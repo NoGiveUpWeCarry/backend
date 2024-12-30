@@ -16,6 +16,9 @@
     "noImplicitAny": false,
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
-    "noFallthroughCasesInSwitch": false
+    "noFallthroughCasesInSwitch": false,
+    "paths": { // 하단부에 이 부분만 추가하시면 됩니다
+      "@src/*": ["./src/*"]
+    }
   }
 }
