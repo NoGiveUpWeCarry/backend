@@ -1,0 +1,18 @@
+#!/bin/sh
+
+# 커밋 메시지 파일 경로
+commit_message_file=$1
+
+# 커밋 메시지 읽기
+commit_message=$(cat "$commit_message_file")
+
+# 커밋 메시지 패턴 (예: [feat], [fix])
+pattern="^\[(Feat|Fix|Chore|Docs|Style|Refactor|Test|Rename|Remove|Add|Merge)\] .+"
+
+# 커밋 메시지 검증
+if ! echo "$commit_message" | grep -Eq "$pattern"; then
+  echo "🚨 커밋 메시지 형식이 잘못되었습니다."
+  echo "올바른 형식: [type] <description>"
+  echo "예: [Feat] add new login feature"
+  exit 1
+fi
