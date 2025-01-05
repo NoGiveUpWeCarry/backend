@@ -17,8 +17,12 @@
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
-    "paths": { // 하단부에 이 부분만 추가하시면 됩니다
-      "@src/*": ["./src/*"]
+    "paths": {
+      "@src/*": ["src/*"], // alias 설정
+      "@modules/*": ["src/modules/*"], // modules alias
+      "@common/*": ["src/common/*"], // common alias
+      "@config/*": ["src/config/*"], // config alias
+      "@prisma/*": ["src/prisma/*"] // prisma alias
     }
   }
 }
