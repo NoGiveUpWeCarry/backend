@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '@src/prisma/prisma.service';
 import { AuthUserDto } from './dto/auth-user.dto';
+import axios from 'axios';
 
 @Injectable()
 export class AuthService {
@@ -9,6 +10,28 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService
   ) {}
+
+  async handleGoogleCallback(code: string) {
+    // Google 토큰 요청
+    const tokenResponse = await axios.post('https://oauth2.googleapis.com/token', {
+      code,
+      client_id: '1030869508870-7svsfcscu3la43lpprj6kui580cp0uhf.apps.googleusercontent.com',
+      client_secret: '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',
+      redirect_uri: 'http://localhost:5173/auth/google/callback',
+      grant_type: 'authorization_code',
+    });
+    const { access_token } = tokenResponse.data;
+    // Google 사용자 정보 요청
+    const userInfoResponse = await axios.get('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: { Authorization: `Bearer ${access_token}` },
+    });
+
+    const userData = userInfoResponse.data;
+
+    // JWT 생성
+    const jwt = this.generateJwt(userData);
+    return { user: userData, accessToken: jwt };
+  }
 
   // 사용자 찾기 또는 생성
   async findOrCreateUser(profile: AuthUserDto) {
@@ -41,6 +64,10 @@ export class AuthService {
     return this.jwtService.sign(payload, { expiresIn: '1h' });
   }
 
+  private generateJwt(user: any) {
+    const payload = { email: user.email, id: user.id };
+    return this.jwtService.sign(payload, { expiresIn: '1h' });
+  }
   // 소셜 로그인 프로세스
   async socialLogin(profile: AuthUserDto) {
     const user = await this.findOrCreateUser(profile);
