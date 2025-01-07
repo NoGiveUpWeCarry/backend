@@ -1,8 +1,7 @@
-import { Controller, Get, UseGuards, Req, Body, Post } from '@nestjs/common';
+import { Controller, Get, UseGuards, Req, Body, Post, Put, BadRequestException } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
-import { AuthUserDto } from './dto/auth-user.dto';
-
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -13,17 +12,11 @@ export class AuthController {
     // Google 로그인 요청
   }
 
-  // @Get('google/callback')
-  // @UseGuards(AuthGuard('google'))
-  // async googleCallback(@Req() req: { user: AuthUserDto }) {
-  //   const { user, accessToken } = await this.authService.socialLogin(req.user);
-  //   return { user, accessToken };
-  // }
   @Post('google/callback')
   async googleCallback(@Body('code') code: string) {
     // Authorization Code 교환 및 사용자 정보 가져오기
-    const { user, accessToken } = await this.authService.handleGoogleCallback(code);
-    return { user, accessToken };
+    const { user, accessToken, isExistingUser } = await this.authService.handleGoogleCallback(code);
+    return { user, accessToken, isExistingUser };
   }
 
   @Get('github')
@@ -32,10 +25,33 @@ export class AuthController {
     // GitHub 로그인 요청
   }
 
-  @Get('github/callback')
-  @UseGuards(AuthGuard('github'))
-  async githubCallback(@Req() req: { user: AuthUserDto }) {
-    const { user, accessToken } = await this.authService.socialLogin(req.user);
-    return { user, accessToken };
+  @Post('github/callback')
+  async githubCallback(@Body('code') code: string) {
+    const { user, accessToken, isExistingUser } = await this.authService.handleGithubCallback(code);
+    return { user, accessToken, isExistingUser };
   }
+
+  // Role 선택 API
+  @Put('roleselect')
+  @UseGuards(JwtAuthGuard)
+  async selectRole(
+    @Body('role_id') roleId: number,
+    @Req() req: any, // JWT에서 사용자 정보 추출
+  ) {
+    const validRoles = [1, 2, 3]; // 1: Programmer, 2: Artist, 3: Designer
+
+    // 유효한 role_id인지 확인
+    if (!validRoles.includes(roleId)) {
+      throw new BadRequestException('유효하지 않은 역할 ID입니다.');
+    }
+
+    const userId = req.user?.id; // JWT에서 추출된 userId 확인
+
+    if (!userId) {
+      throw new BadRequestException('사용자 ID가 누락되었습니다.');
+    }
+
+    return await this.authService.updateUserRole(userId, roleId);
+  }
+
 }
