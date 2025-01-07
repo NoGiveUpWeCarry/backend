@@ -3,16 +3,16 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 
 @Injectable()
-export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
+export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor() {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      ignoreExpiration: false, // 만료된 토큰은 거부
-      secretOrKey: process.env.JWT_SECRET, // 환경 변수에서 비밀키 가져오기
+      secretOrKey: process.env.JWT_SECRET,
     });
   }
 
   async validate(payload: any) {
-    return { userId: payload.userId, email: payload.email };
+    // req.user에 설정될 사용자 정보 반환
+    return { id: payload.id, email: payload.email };
   }
 }

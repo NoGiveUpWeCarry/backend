@@ -6,8 +6,11 @@ config();
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.enableCors();
-  app.useGlobalFilters(new HttpExceptionFilter());
+  app.enableCors({
+    origin: 'http://localhost:5173',
+    credentials:true,
+  });
+  //app.useGlobalFilters(new HttpExceptionFilter());
 
   const port = process.env.PORT;
   await app.listen(process.env.PORT);
