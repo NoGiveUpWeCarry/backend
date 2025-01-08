@@ -1,5 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { RedisService } from '@modules/redis/redis.service';
 import { PrismaService } from '@src/prisma/prisma.service';
 import { AuthUserDto } from './dto/auth-user.dto';
 import axios from 'axios';
@@ -8,7 +13,8 @@ import axios from 'axios';
 export class AuthService {
   constructor(
     private readonly jwtService: JwtService,
-    private readonly prisma: PrismaService
+    private readonly prisma: PrismaService,
+    private readonly redisService: RedisService
   ) {}
 
   async handleGoogleCallback(code: string) {
@@ -16,20 +22,26 @@ export class AuthService {
       console.log('Received Authorization Code:', code);
 
       // Google 토큰 요청
-      const tokenResponse = await axios.post('https://oauth2.googleapis.com/token', {
-        code,
-        client_id: process.env.GOOGLE_CLIENT_ID,
-        client_secret: process.env.GOOGLE_CLIENT_SECRET,
-        redirect_uri: process.env.GOOGLE_CALLBACK_DEVELOP_URL,
-        grant_type: 'authorization_code',
-      });
+      const tokenResponse = await axios.post(
+        'https://oauth2.googleapis.com/token',
+        {
+          code,
+          client_id: process.env.GOOGLE_CLIENT_ID,
+          client_secret: process.env.GOOGLE_CLIENT_SECRET,
+          redirect_uri: process.env.GOOGLE_CALLBACK_DEVELOP_URL,
+          grant_type: 'authorization_code',
+        }
+      );
 
       const { access_token } = tokenResponse.data;
 
       // Google 사용자 정보 요청
-      const userInfoResponse = await axios.get('https://www.googleapis.com/oauth2/v2/userinfo', {
-        headers: { Authorization: `Bearer ${access_token}` },
-      });
+      const userInfoResponse = await axios.get(
+        'https://www.googleapis.com/oauth2/v2/userinfo',
+        {
+          headers: { Authorization: `Bearer ${access_token}` },
+        }
+      );
 
       const userData = userInfoResponse.data;
 
@@ -43,14 +55,29 @@ export class AuthService {
       });
 
       const jwt = this.generateJwt(user);
+      const refreshToken = this.generateRefreshToken(user); // 리프레시 토큰 생성
+
+      // Redis에 리프레시 토큰 저장
+      await this.storeRefreshToken(user.id, refreshToken);
+
       const responseUser = this.filterUserFields(user);
 
-      return { user: responseUser, accessToken: jwt, isExistingUser };
+      return {
+        user: responseUser,
+        accessToken: jwt,
+        refreshToken: refreshToken, // 리프레시 토큰 반환
+        isExistingUser,
+      };
     } catch (error) {
-      console.error('Google OAuth Error:', error.response?.data || error.message);
+      console.error(
+        'Google OAuth Error:',
+        error.response?.data || error.message
+      );
 
       if (error.response?.data?.error === 'invalid_grant') {
-        throw new Error('Authorization Code가 이미 사용되었거나 만료되었습니다.');
+        throw new Error(
+          'Authorization Code가 이미 사용되었거나 만료되었습니다.'
+        );
       }
 
       throw new Error('Google OAuth 인증 실패');
@@ -72,9 +99,9 @@ export class AuthService {
         },
         {
           headers: { Accept: 'application/json' },
-        },
+        }
       );
-      
+
       const { access_token } = tokenResponse.data;
       console.log(access_token);
       // GitHub 사용자 정보 요청
@@ -87,11 +114,16 @@ export class AuthService {
       // GitHub 사용자 이메일 요청 (필요 시)
       let email = userData.email;
       if (!email) {
-        const emailResponse = await axios.get('https://api.github.com/user/emails', {
-          headers: { Authorization: `Bearer ${access_token}` },
-        });
+        const emailResponse = await axios.get(
+          'https://api.github.com/user/emails',
+          {
+            headers: { Authorization: `Bearer ${access_token}` },
+          }
+        );
 
-        const primaryEmail = emailResponse.data.find((e: any) => e.primary && e.verified);
+        const primaryEmail = emailResponse.data.find(
+          (e: any) => e.primary && e.verified
+        );
         email = primaryEmail?.email;
       }
 
@@ -109,11 +141,24 @@ export class AuthService {
       });
 
       const jwt = this.generateJwt(user);
-      const responseUser = this.filterUserFields(user);
+      const refreshToken = this.generateRefreshToken(user); // 리프레시 토큰 생성
 
-      return { user: responseUser, accessToken: jwt, isExistingUser };
+      // Redis에 리프레시 토큰 저장
+      await this.storeRefreshToken(user.id, refreshToken);
+
+      const responseUser = this.filterUserFields(user);
+      console.log(refreshToken);
+      return {
+        user: responseUser,
+        accessToken: jwt,
+        refreshToken: refreshToken, // 리프레시 토큰 반환
+        isExistingUser,
+      };
     } catch (error) {
-      console.error('GitHub OAuth Error:', error.response?.data || error.message);
+      console.error(
+        'GitHub OAuth Error:',
+        error.response?.data || error.message
+      );
 
       if (error.response?.data?.error === 'bad_verification_code') {
         throw new Error('Authorization Code가 잘못되었거나 만료되었습니다.');
@@ -123,7 +168,7 @@ export class AuthService {
     }
   }
 
-  private async checkUserExist(email: string): Promise<boolean>{
+  private async checkUserExist(email: string): Promise<boolean> {
     const user = await this.prisma.user.findUnique({
       where: { email },
     });
@@ -131,32 +176,27 @@ export class AuthService {
   }
   // 사용자 찾기 또는 생성
   async findOrCreateUser(profile: AuthUserDto) {
-    const user = await this.prisma.user.findUnique({
+    return this.prisma.user.upsert({
       where: { email: profile.email },
+      update: {}, // 이미 존재하면 아무것도 업데이트하지 않음
+      create: {
+        email: profile.email,
+        name: profile.name,
+        nickname: profile.nickname,
+        profile_url: profile.profile_url,
+        auth_provider: profile.auth_provider,
+        push_alert: false,
+        following_alert: false,
+        project_alert: false,
+        role: { connect: { id: 1 } },
+        status: { connect: { id: 1 } },
+      },
     });
-
-    if (!user) {
-      return this.prisma.user.create({
-        data: {
-          email: profile.email,
-          name: profile.name,
-          nickname: profile.nickname,
-          profile_url: profile.profile_url,
-          auth_provider: profile.auth_provider,
-          push_alert: false,
-          following_alert: false,
-          project_alert: false,
-          role: { connect: { id: 1 } },
-          status: { connect: { id: 1 } },
-        },
-      });
-    }
-    return user;
   }
 
   private filterUserFields(user: any) {
     return {
-      id: user.id,
+      user_id: user.id,
       email: user.email,
       name: user.name,
       nickname: user.nickname,
@@ -167,10 +207,34 @@ export class AuthService {
   }
 
   private generateJwt(user: any) {
-    const payload = { email: user.email, id: user.id };
+    const payload = { email: user.email, user_id: user.id };
     return this.jwtService.sign(payload, { expiresIn: '1h' });
   }
 
+  private generateRefreshToken(user: any): string {
+    const payload = { email: user.email, user_id: user.id };
+    return this.jwtService.sign(payload, { expiresIn: '7d' }); // 7일 유효 기간
+  }
+
+  // 리프레시 토큰 저장
+  async storeRefreshToken(userId: number, refreshToken: string): Promise<void> {
+    const key = `refresh_token:${userId}`;
+    const ttl = 7 * 24 * 60 * 60; // 7일
+    await this.redisService.set(key, refreshToken, ttl);
+  }
+
+  // 리프레시 토큰 검증
+  async validateRefreshToken(userId: number, token: string): Promise<boolean> {
+    const key = `refresh_token:${userId}`;
+    const storedToken = await this.redisService.get(key);
+    return storedToken === token;
+  }
+
+  // 리프레시 토큰 삭제
+  async deleteRefreshToken(userId: number): Promise<void> {
+    const key = `refresh_token:${userId}`;
+    await this.redisService.del(key);
+  }
   // 사용자 Role 업데이트
   async updateUserRole(userId: number, roleId: number) {
     if (!userId) {
@@ -209,11 +273,11 @@ export class AuthService {
 
     return {
       message: {
-        code : 200,
-        text: `${roleMessage}`
+        code: 200,
+        text: `${roleMessage}`,
       },
       user: {
-        id: updatedUser.id,
+        user_id: updatedUser.id,
         email: updatedUser.email,
         name: updatedUser.name,
         nickname: updatedUser.nickname,
