@@ -6,12 +6,16 @@ import {
   Body,
   Post,
   Put,
+  HttpException,
   BadRequestException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { AuthService } from './auth.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { AuthService } from '@src/modules/auth/auth.service';
+import { JwtAuthGuard } from '@src/modules/auth/guards/jwt-auth.guard';
 import { JwtService } from '@nestjs/jwt';
+import { ApiResponse } from '@common/dto/response.dto';
+import { ErrorMessages } from '@common/constants/error-messages';
+import { HttpStatusCodes } from '@common/constants/http-status-code';
 
 @Controller('auth')
 export class AuthController {
@@ -31,7 +35,12 @@ export class AuthController {
     // Authorization Code 교환 및 사용자 정보 가져오기
     const { user, accessToken, refreshToken, isExistingUser } =
       await this.authService.handleGoogleCallback(code);
-    return { user, accessToken, refreshToken, isExistingUser };
+    return new ApiResponse(HttpStatusCodes.OK, 'Google 로그인 성공', {
+      user,
+      accessToken,
+      refreshToken,
+      isExistingUser,
+    });
   }
 
   @Get('github')
@@ -44,30 +53,25 @@ export class AuthController {
   async githubCallback(@Body('code') code: string) {
     const { user, accessToken, refreshToken, isExistingUser } =
       await this.authService.handleGithubCallback(code);
-    return { user, accessToken, refreshToken, isExistingUser };
+    return new ApiResponse(HttpStatusCodes.OK, 'GitHub 로그인 성공', {
+      user,
+      accessToken,
+      refreshToken,
+      isExistingUser,
+    });
   }
 
   // Role 선택 API
   @Put('roleselect')
   @UseGuards(JwtAuthGuard)
-  async selectRole(
-    @Body('role_id') roleId: number,
-    @Req() req: any // JWT에서 사용자 정보 추출
-  ) {
-    const validRoles = [1, 2, 3]; // 1: Programmer, 2: Artist, 3: Designer
+  async selectRole(@Body('role_id') roleId: number, @Req() req: any) {
+    const userId = req.user?.user_id;
+    const { user, message } = await this.authService.updateUserRole(
+      userId,
+      roleId
+    );
 
-    // 유효한 role_id인지 확인
-    if (!validRoles.includes(roleId)) {
-      throw new BadRequestException('유효하지 않은 역할 ID입니다.');
-    }
-
-    const userId = req.user?.user_id; // JWT에서 추출된 userId 확인
-    console.log(userId);
-    if (!userId) {
-      throw new BadRequestException('사용자 ID가 누락되었습니다.');
-    }
-
-    return await this.authService.updateUserRole(userId, roleId);
+    return new ApiResponse(HttpStatusCodes.OK, message, { user });
   }
 
   @Post('refresh')
@@ -75,26 +79,32 @@ export class AuthController {
     @Body('refreshToken') refreshToken: string,
     @Req() req: any
   ) {
-    const userId = req.user?.user_id; // JWT에서 사용자 ID 추출
+    const userId = req.user?.user_id;
 
-    // 리프레시 토큰 검증
     const isValid = await this.authService.validateRefreshToken(
       userId,
       refreshToken
     );
     if (!isValid) {
-      throw new Error('유효하지 않은 리프레시 토큰입니다.');
+      const error = ErrorMessages.AUTH.INVALID_REFRESH_TOKEN;
+      throw new HttpException(error.text, error.code);
     }
 
-    // 새 액세스 토큰 발급
-    const newAccessToken = this.jwtService.sign({ user_id: userId });
-    return { accessToken: newAccessToken };
+    const newAccessToken = await this.authService.generateAccessToken(userId);
+
+    return new ApiResponse(
+      HttpStatusCodes.OK,
+      '액세스 토큰이 성공적으로 갱신되었습니다.',
+      {
+        accessToken: newAccessToken,
+      }
+    );
   }
 
   @Post('logout')
   async logout(@Req() req: any) {
     const userId = req.user?.user_id;
     await this.authService.deleteRefreshToken(userId);
-    return { message: '로그아웃 성공' };
+    return new ApiResponse(HttpStatusCodes.OK, '로그아웃 성공');
   }
 }

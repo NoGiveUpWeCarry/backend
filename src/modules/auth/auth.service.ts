@@ -1,13 +1,11 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, HttpException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { RedisService } from '@modules/redis/redis.service';
 import { PrismaService } from '@src/prisma/prisma.service';
 import { AuthUserDto } from './dto/auth-user.dto';
 import axios from 'axios';
+import { ErrorMessages } from '@common/constants/error-messages';
+import { HttpStatusCodes } from '@common/constants/http-status-code';
 
 @Injectable()
 export class AuthService {
@@ -19,8 +17,6 @@ export class AuthService {
 
   async handleGoogleCallback(code: string) {
     try {
-      console.log('Received Authorization Code:', code);
-
       // Google 토큰 요청
       const tokenResponse = await axios.post(
         'https://oauth2.googleapis.com/token',
@@ -32,9 +28,7 @@ export class AuthService {
           grant_type: 'authorization_code',
         }
       );
-
       const { access_token } = tokenResponse.data;
-
       // Google 사용자 정보 요청
       const userInfoResponse = await axios.get(
         'https://www.googleapis.com/oauth2/v2/userinfo',
@@ -54,8 +48,8 @@ export class AuthService {
         auth_provider: 'google',
       });
 
-      const jwt = this.generateJwt(user);
-      const refreshToken = this.generateRefreshToken(user); // 리프레시 토큰 생성
+      const jwt = this.generateAccessToken(user.id);
+      const refreshToken = await this.generateRefreshToken(user.id); // 리프레시 토큰 생성
 
       // Redis에 리프레시 토큰 저장
       await this.storeRefreshToken(user.id, refreshToken);
@@ -69,25 +63,15 @@ export class AuthService {
         isExistingUser,
       };
     } catch (error) {
-      console.error(
-        'Google OAuth Error:',
-        error.response?.data || error.message
+      throw new HttpException(
+        ErrorMessages.SERVER.INTERNAL_ERROR.text,
+        ErrorMessages.SERVER.INTERNAL_ERROR.code
       );
-
-      if (error.response?.data?.error === 'invalid_grant') {
-        throw new Error(
-          'Authorization Code가 이미 사용되었거나 만료되었습니다.'
-        );
-      }
-
-      throw new Error('Google OAuth 인증 실패');
     }
   }
 
   async handleGithubCallback(code: string) {
     try {
-      console.log('Received GitHub Authorization Code:', code);
-
       // GitHub 토큰 요청
       const tokenResponse = await axios.post(
         'https://github.com/login/oauth/access_token',
@@ -103,7 +87,6 @@ export class AuthService {
       );
 
       const { access_token } = tokenResponse.data;
-      console.log(access_token);
       // GitHub 사용자 정보 요청
       const userInfoResponse = await axios.get('https://api.github.com/user', {
         headers: { Authorization: `Bearer ${access_token}` },
@@ -140,14 +123,12 @@ export class AuthService {
         auth_provider: 'github',
       });
 
-      const jwt = this.generateJwt(user);
-      const refreshToken = this.generateRefreshToken(user); // 리프레시 토큰 생성
+      const jwt = this.generateAccessToken(user.id);
+      const refreshToken = await this.generateRefreshToken(user.id); // 리프레시 토큰 생성
 
       // Redis에 리프레시 토큰 저장
       await this.storeRefreshToken(user.id, refreshToken);
-
       const responseUser = this.filterUserFields(user);
-      console.log(refreshToken);
       return {
         user: responseUser,
         accessToken: jwt,
@@ -155,16 +136,10 @@ export class AuthService {
         isExistingUser,
       };
     } catch (error) {
-      console.error(
-        'GitHub OAuth Error:',
-        error.response?.data || error.message
+      throw new HttpException(
+        ErrorMessages.SERVER.INTERNAL_ERROR.text,
+        ErrorMessages.SERVER.INTERNAL_ERROR.code
       );
-
-      if (error.response?.data?.error === 'bad_verification_code') {
-        throw new Error('Authorization Code가 잘못되었거나 만료되었습니다.');
-      }
-
-      throw new Error('GitHub OAuth 인증 실패');
     }
   }
 
@@ -206,14 +181,12 @@ export class AuthService {
     };
   }
 
-  private generateJwt(user: any) {
-    const payload = { email: user.email, user_id: user.id };
-    return this.jwtService.sign(payload, { expiresIn: '1h' });
+  async generateAccessToken(userId: number): Promise<string> {
+    return this.jwtService.sign({ user_id: userId }, { expiresIn: '1h' });
   }
 
-  private generateRefreshToken(user: any): string {
-    const payload = { email: user.email, user_id: user.id };
-    return this.jwtService.sign(payload, { expiresIn: '7d' }); // 7일 유효 기간
+  async generateRefreshToken(userId: number): Promise<string> {
+    return this.jwtService.sign({ user_id: userId }, { expiresIn: '1h' });
   }
 
   // 리프레시 토큰 저장
@@ -237,45 +210,33 @@ export class AuthService {
   }
   // 사용자 Role 업데이트
   async updateUserRole(userId: number, roleId: number) {
-    if (!userId) {
-      throw new BadRequestException('유효하지 않은 사용자 ID입니다.');
-    }
-
-    // 사용자 확인
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId }, // userId가 반드시 존재해야 함
-    });
-
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
-      throw new NotFoundException('사용자를 찾을 수 없습니다.');
+      const error = ErrorMessages.AUTH.USER_NOT_FOUND;
+      throw new HttpException(error.text, error.code);
     }
 
-    // Role 메시지 설정
-    let roleMessage = '';
-    switch (roleId) {
-      case 1:
-        roleMessage = '프로그래머로 변경되었습니다.';
-        break;
-      case 2:
-        roleMessage = '아티스트로 변경되었습니다.';
-        break;
-      case 3:
-        roleMessage = '디자이너로 변경되었습니다.';
-        break;
-      default:
-        throw new BadRequestException('유효하지 않은 역할 ID입니다.');
+    // 역할에 따른 메시지 생성
+    const roleMessages = {
+      1: '프로그래머로 변경되었습니다.',
+      2: '아티스트로 변경되었습니다.',
+      3: '디자이너로 변경되었습니다.',
+    };
+
+    if (!roleMessages[roleId]) {
+      throw new HttpException(
+        '유효하지 않은 역할 ID입니다.',
+        HttpStatusCodes.BAD_REQUEST
+      );
     }
-    // 사용자 Role 업데이트
+
+    // 사용자 역할 업데이트
     const updatedUser = await this.prisma.user.update({
       where: { id: userId },
       data: { role_id: roleId },
     });
 
     return {
-      message: {
-        code: 200,
-        text: `${roleMessage}`,
-      },
       user: {
         user_id: updatedUser.id,
         email: updatedUser.email,
@@ -283,6 +244,7 @@ export class AuthService {
         nickname: updatedUser.nickname,
         role_id: updatedUser.role_id,
       },
+      message: roleMessages[roleId], // 역할별 메시지 추가
     };
   }
 }
