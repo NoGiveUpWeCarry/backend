@@ -2,7 +2,6 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from '@common/filters/http-exception.filter';
 import { config } from 'dotenv';
-import * as express from 'express';
 config();
 
 async function bootstrap() {
