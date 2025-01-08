@@ -24,6 +24,10 @@ export const ErrorMessages = {
       code: HttpStatusCodes.BAD_REQUEST,
       text: '유효하지 않은 이메일 형식입니다.',
     },
+    INVALID_ROLE_ID: {
+      code: HttpStatusCodes.BAD_REQUEST,
+      text: '유효하지 않은 역할 ID입니다.',
+    },
   },
   SERVER: {
     DATABASE_ERROR: {
