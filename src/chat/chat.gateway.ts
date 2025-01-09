@@ -30,6 +30,6 @@ export class ChatGateway {
     const user = this.jwtService.decode(userId);
 
     // 채팅방 멤버 저장
-    await this.chatService.joinChannel(channelId, user.id);
+    await this.chatService.joinChannel(channelId, user.user_id);
   }
 }

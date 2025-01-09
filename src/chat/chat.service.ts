@@ -15,7 +15,7 @@ export class ChatService {
 
   // 채팅방 생성
   async createChannel(id) {
-    await this.prisma.channel.create({ data: id });
+    await this.prisma.channel.create({ data: { id } });
   }
 
   // 채팅방 멤버 저장
