@@ -36,4 +36,27 @@ export class ChatGateway {
     // 채팅방 멤버 저장
     await this.chatService.joinChannel(channelId, user.user_id);
   }
+
+  // 메세지 송수신
+  @SubscribeMessage('sendMessage')
+  async handleSendMessage(
+    @MessageBody()
+    data: {
+      type: string;
+      content: string;
+      user: string;
+      channelId: string;
+    }
+  ) {
+    // user 디코딩
+    const user = this.jwtService.decode(data.user);
+
+    // 메세지 데이터 저장
+    await this.chatService.createMessage(
+      data.type,
+      data.channelId,
+      user.user_id,
+      data.content
+    );
+  }
 }

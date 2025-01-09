@@ -60,5 +60,15 @@ export class ChatService {
     });
   }
   // 메세지 저장
+  async createMessage(type, channelId, userId, content) {
+    await this.prisma.message.create({
+      data: {
+        type,
+        content,
+        channel_id: channelId,
+        user_id: userId,
+      },
+    });
+  }
   // 메세지 상태 업데이트
 }
