@@ -1,35 +1,41 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, HttpException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { RedisService } from '@modules/redis/redis.service';
 import { PrismaService } from '@src/prisma/prisma.service';
 import { AuthUserDto } from './dto/auth-user.dto';
 import axios from 'axios';
+import { ErrorMessages } from '@common/constants/error-messages';
+import { HttpStatusCodes } from '@common/constants/http-status-code';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly jwtService: JwtService,
-    private readonly prisma: PrismaService
+    private readonly prisma: PrismaService,
+    private readonly redisService: RedisService
   ) {}
 
   async handleGoogleCallback(code: string) {
     try {
-      console.log('Received Authorization Code:', code);
-
       // Google 토큰 요청
-      const tokenResponse = await axios.post('https://oauth2.googleapis.com/token', {
-        code,
-        client_id: process.env.GOOGLE_CLIENT_ID,
-        client_secret: process.env.GOOGLE_CLIENT_SECRET,
-        redirect_uri: process.env.GOOGLE_CALLBACK_DEVELOP_URL,
-        grant_type: 'authorization_code',
-      });
-
+      const tokenResponse = await axios.post(
+        'https://oauth2.googleapis.com/token',
+        {
+          code,
+          client_id: process.env.GOOGLE_CLIENT_ID,
+          client_secret: process.env.GOOGLE_CLIENT_SECRET,
+          redirect_uri: process.env.GOOGLE_CALLBACK_DEVELOP_URL,
+          grant_type: 'authorization_code',
+        }
+      );
       const { access_token } = tokenResponse.data;
-
       // Google 사용자 정보 요청
-      const userInfoResponse = await axios.get('https://www.googleapis.com/oauth2/v2/userinfo', {
-        headers: { Authorization: `Bearer ${access_token}` },
-      });
+      const userInfoResponse = await axios.get(
+        'https://www.googleapis.com/oauth2/v2/userinfo',
+        {
+          headers: { Authorization: `Bearer ${access_token}` },
+        }
+      );
 
       const userData = userInfoResponse.data;
 
@@ -42,25 +48,30 @@ export class AuthService {
         auth_provider: 'google',
       });
 
-      const jwt = this.generateJwt(user);
+      const accessToken = this.generateAccessToken(user.id);
+      const refreshToken = this.generateRefreshToken(user.id); // 리프레시 토큰 생성
+
+      // Redis에 리프레시 토큰 저장
+      await this.storeRefreshToken(user.id, refreshToken);
+
       const responseUser = this.filterUserFields(user);
 
-      return { user: responseUser, accessToken: jwt, isExistingUser };
+      return {
+        user: responseUser,
+        accessToken,
+        refreshToken,
+        isExistingUser,
+      };
     } catch (error) {
-      console.error('Google OAuth Error:', error.response?.data || error.message);
-
-      if (error.response?.data?.error === 'invalid_grant') {
-        throw new Error('Authorization Code가 이미 사용되었거나 만료되었습니다.');
-      }
-
-      throw new Error('Google OAuth 인증 실패');
+      throw new HttpException(
+        ErrorMessages.SERVER.INTERNAL_ERROR.text,
+        ErrorMessages.SERVER.INTERNAL_ERROR.code
+      );
     }
   }
 
   async handleGithubCallback(code: string) {
     try {
-      console.log('Received GitHub Authorization Code:', code);
-
       // GitHub 토큰 요청
       const tokenResponse = await axios.post(
         'https://github.com/login/oauth/access_token',
@@ -72,11 +83,10 @@ export class AuthService {
         },
         {
           headers: { Accept: 'application/json' },
-        },
+        }
       );
-      
+
       const { access_token } = tokenResponse.data;
-      console.log(access_token);
       // GitHub 사용자 정보 요청
       const userInfoResponse = await axios.get('https://api.github.com/user', {
         headers: { Authorization: `Bearer ${access_token}` },
@@ -87,11 +97,16 @@ export class AuthService {
       // GitHub 사용자 이메일 요청 (필요 시)
       let email = userData.email;
       if (!email) {
-        const emailResponse = await axios.get('https://api.github.com/user/emails', {
-          headers: { Authorization: `Bearer ${access_token}` },
-        });
+        const emailResponse = await axios.get(
+          'https://api.github.com/user/emails',
+          {
+            headers: { Authorization: `Bearer ${access_token}` },
+          }
+        );
 
-        const primaryEmail = emailResponse.data.find((e: any) => e.primary && e.verified);
+        const primaryEmail = emailResponse.data.find(
+          (e: any) => e.primary && e.verified
+        );
         email = primaryEmail?.email;
       }
 
@@ -108,22 +123,27 @@ export class AuthService {
         auth_provider: 'github',
       });
 
-      const jwt = this.generateJwt(user);
+      const jwt = this.generateAccessToken(user.id);
+      const refreshToken = await this.generateRefreshToken(user.id); // 리프레시 토큰 생성
+
+      // Redis에 리프레시 토큰 저장
+      await this.storeRefreshToken(user.id, refreshToken);
       const responseUser = this.filterUserFields(user);
-
-      return { user: responseUser, accessToken: jwt, isExistingUser };
+      return {
+        user: responseUser,
+        accessToken: jwt,
+        refreshToken: refreshToken, // 리프레시 토큰 반환
+        isExistingUser,
+      };
     } catch (error) {
-      console.error('GitHub OAuth Error:', error.response?.data || error.message);
-
-      if (error.response?.data?.error === 'bad_verification_code') {
-        throw new Error('Authorization Code가 잘못되었거나 만료되었습니다.');
-      }
-
-      throw new Error('GitHub OAuth 인증 실패');
+      throw new HttpException(
+        ErrorMessages.SERVER.INTERNAL_ERROR.text,
+        ErrorMessages.SERVER.INTERNAL_ERROR.code
+      );
     }
   }
 
-  private async checkUserExist(email: string): Promise<boolean>{
+  private async checkUserExist(email: string): Promise<boolean> {
     const user = await this.prisma.user.findUnique({
       where: { email },
     });
@@ -131,32 +151,27 @@ export class AuthService {
   }
   // 사용자 찾기 또는 생성
   async findOrCreateUser(profile: AuthUserDto) {
-    const user = await this.prisma.user.findUnique({
+    return this.prisma.user.upsert({
       where: { email: profile.email },
+      update: {}, // 이미 존재하면 아무것도 업데이트하지 않음
+      create: {
+        email: profile.email,
+        name: profile.name,
+        nickname: profile.nickname,
+        profile_url: profile.profile_url,
+        auth_provider: profile.auth_provider,
+        push_alert: false,
+        following_alert: false,
+        project_alert: false,
+        role: { connect: { id: 1 } },
+        status: { connect: { id: 1 } },
+      },
     });
-
-    if (!user) {
-      return this.prisma.user.create({
-        data: {
-          email: profile.email,
-          name: profile.name,
-          nickname: profile.nickname,
-          profile_url: profile.profile_url,
-          auth_provider: profile.auth_provider,
-          push_alert: false,
-          following_alert: false,
-          project_alert: false,
-          role: { connect: { id: 1 } },
-          status: { connect: { id: 1 } },
-        },
-      });
-    }
-    return user;
   }
 
   private filterUserFields(user: any) {
     return {
-      id: user.id,
+      user_id: user.id,
       email: user.email,
       name: user.name,
       nickname: user.nickname,
@@ -166,59 +181,89 @@ export class AuthService {
     };
   }
 
-  private generateJwt(user: any) {
-    const payload = { email: user.email, id: user.id };
-    return this.jwtService.sign(payload, { expiresIn: '1h' });
+  generateAccessToken(userId: number): string {
+    return this.jwtService.sign(
+      { userId },
+      { expiresIn: '15m', secret: process.env.ACCESS_TOKEN_SECRET }
+    );
   }
 
+  generateRefreshToken(userId: number): string {
+    return this.jwtService.sign(
+      { userId },
+      { expiresIn: '7d', secret: process.env.REFRESH_TOKEN_SECRET }
+    );
+  }
+
+  getUserIdFromRefreshToken(refreshToken: string): number | null {
+    try {
+      const payload = this.jwtService.verify(refreshToken, {
+        secret: process.env.REFRESH_TOKEN_SECRET,
+      });
+      return payload.userId;
+    } catch (error) {
+      return null;
+    }
+  }
+  // 리프레시 토큰 저장
+  async storeRefreshToken(userId: number, refreshToken: string): Promise<void> {
+    const key = `refresh_token:${userId}`;
+    const ttl = 7 * 24 * 60 * 60; // 7일
+    await this.redisService.set(key, refreshToken, ttl);
+  }
+
+  // 리프레시 토큰 검증
+  async validateRefreshToken(userId: number, token: string): Promise<boolean> {
+    const key = `refresh_token:${userId}`;
+    const storedToken = await this.redisService.get(key);
+    return storedToken === token;
+  }
+
+  // 리프레시 토큰 삭제
+  async deleteRefreshToken(userId: number): Promise<void> {
+    const key = `refresh_token:${userId}`;
+    await this.redisService.del(key);
+  }
   // 사용자 Role 업데이트
   async updateUserRole(userId: number, roleId: number) {
-    if (!userId) {
-      throw new BadRequestException('유효하지 않은 사용자 ID입니다.');
-    }
-
-    // 사용자 확인
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId }, // userId가 반드시 존재해야 함
-    });
-
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
-      throw new NotFoundException('사용자를 찾을 수 없습니다.');
+      const error = ErrorMessages.AUTH.USER_NOT_FOUND;
+      throw new HttpException(error.text, error.code);
     }
 
-    // Role 메시지 설정
-    let roleMessage = '';
-    switch (roleId) {
-      case 1:
-        roleMessage = '프로그래머로 변경되었습니다.';
-        break;
-      case 2:
-        roleMessage = '아티스트로 변경되었습니다.';
-        break;
-      case 3:
-        roleMessage = '디자이너로 변경되었습니다.';
-        break;
-      default:
-        throw new BadRequestException('유효하지 않은 역할 ID입니다.');
+    // 역할에 따른 메시지 생성
+    const roleMessages = {
+      1: '프로그래머로 변경되었습니다.',
+      2: '아티스트로 변경되었습니다.',
+      3: '디자이너로 변경되었습니다.',
+    };
+
+    if (!roleMessages[roleId]) {
+      throw new HttpException(
+        '유효하지 않은 역할 ID입니다.',
+        HttpStatusCodes.BAD_REQUEST
+      );
     }
-    // 사용자 Role 업데이트
+
+    // 사용자 역할 업데이트
     const updatedUser = await this.prisma.user.update({
       where: { id: userId },
       data: { role_id: roleId },
     });
 
-    return {
-      message: {
-        code : 200,
-        text: `${roleMessage}`
-      },
+    const result = {
       user: {
-        id: updatedUser.id,
+        user_id: updatedUser.id,
         email: updatedUser.email,
         name: updatedUser.name,
         nickname: updatedUser.nickname,
         role_id: updatedUser.role_id,
       },
+      message: roleMessages[roleId],
     };
+
+    console.log('Service Result:', result); // 디버깅
+    return result;
   }
 }
