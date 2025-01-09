@@ -4,10 +4,14 @@ import {
   MessageBody,
 } from '@nestjs/websockets';
 import { ChatService } from './chat.service';
+import { JwtService } from '@nestjs/jwt';
 
 @WebSocketGateway()
 export class ChatGateway {
-  constructor(private readonly chatService: ChatService) {}
+  constructor(
+    private readonly chatService: ChatService,
+    private readonly jwtService: JwtService
+  ) {}
 
   // 채팅방 참여
   @SubscribeMessage('joinChannel')
@@ -23,8 +27,9 @@ export class ChatGateway {
     await this.chatService.createChannel(channelId);
 
     // userId JWT 토큰 값이라 디코딩 해야함
-    const user = userId;
+    const user = this.jwtService.decode(userId);
+
     // 채팅방 멤버 저장
-    await this.chatService.joinChannel(channelId, userId);
+    await this.chatService.joinChannel(channelId, user.id);
   }
 }
