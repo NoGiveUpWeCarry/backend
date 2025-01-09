@@ -1,14 +1,307 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
+}
+
+model User {
+  id               Int                @id @default(autoincrement())
+  email            String             @unique
+  name             String
+  nickname         String
+  auth_provider    String
+  profile_url      String?
+  role_id          Int
+  introduce        String?
+  status_id        Int
+  apply_count      Int?               @default(0)
+  post_count       Int?               @default(0)
+  push_alert       Boolean            @default(false)
+  following_alert  Boolean            @default(false)
+  project_alert    Boolean            @default(false)
+  created_at       DateTime           @default(now())
+  updated_at       DateTime           @updatedAt
+  ArtistData       ArtistData?
+  FeedComments     FeedComment[]
+  FeedLikes        FeedLike[]
+  FeedPosts        FeedPost[]
+  Followed         Follows[]          @relation("FollowedUsers")
+  Follows          Follows[]          @relation("UserFollows")
+  ProgrammerData   ProgrammerData?
+  ProjectPosts     Project?
+  ProjectPost      ProjectPost[]
+  ProjectSaves     ProjectSave[]
+  Resume           Resume[]
+  role             Role               @relation(fields: [role_id], references: [id])
+  status           Status             @relation(fields: [status_id], references: [id])
+  UserApplyProject UserApplyProject[]
+  UserLinks        UserLink[]
+  UserSkills       UserSkill[]
+
+
+  @@index([role_id], map: "User_role_id_fkey")
+  @@index([status_id], map: "User_status_id_fkey")
+}
+
+model Role {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  Users User[]
+}
+
+model Project {
+  id           Int           @id @default(autoincrement())
+  user_id      Int           @unique
+  title        String
+  description  String
+  created_at   DateTime      @default(now())
+  updated_at   DateTime      @updatedAt
+  user         User          @relation(fields: [user_id], references: [id])
+  ProjectLinks ProjectLink[]
+}
+
+model ProjectLink {
+  id         Int      @id @default(autoincrement())
+  project_id Int
+  type_id    Int
+  url        String
+  project    Project  @relation(fields: [project_id], references: [id])
+  type       LinkType @relation(fields: [type_id], references: [id])
+
+  @@index([project_id], map: "ProjectLink_project_id_fkey")
+  @@index([type_id], map: "ProjectLink_type_id_fkey")
+}
+
+model LinkType {
+  id    Int           @id @default(autoincrement())
+  name  String        @unique
+  Links ProjectLink[]
+}
+
+model ProgrammerData {
+  id                Int    @id @default(autoincrement())
+  user_id           Int    @unique
+  github_username   String
+  github_url        String
+  commit_count      Int
+  contribution_data String
+  user              User   @relation(fields: [user_id], references: [id])
+}
+
+model ArtistData {
+  id             Int    @id @default(autoincrement())
+  user_id        Int    @unique
+  soundcloud_url String
+  portfolio_url  String
+  music_data     String
+  user           User   @relation(fields: [user_id], references: [id])
+}
+
+model Status {
+  id    Int    @id @default(autoincrement())
+  name  String
+  Users User[]
+}
+
+model Resume {
+  id        Int    @id @default(autoincrement())
+  user_id   Int
+  title     String
+  introduce String
+  user      User   @relation(fields: [user_id], references: [id])
+
+  @@index([user_id], map: "Resume_user_id_fkey")
+}
+
+model Skill {
+  id         Int         @id @default(autoincrement())
+  name       String      @unique
+  UserSkills UserSkill[]
+}
+
+model UserSkill {
+  id       Int   @id @default(autoincrement())
+  user_id  Int
+  skill_id Int
+  skill    Skill @relation(fields: [skill_id], references: [id])
+  user     User  @relation(fields: [user_id], references: [id])
+
+  @@unique([user_id, skill_id])
+  @@index([skill_id], map: "UserSkill_skill_id_fkey")
+}
+
+model UserLink {
+  id       Int    @id @default(autoincrement())
+  user_id  Int
+  platform String
+  link     String
+  user     User   @relation(fields: [user_id], references: [id])
+
+  @@index([user_id], map: "UserLink_user_id_fkey")
+}
+
+model Follows {
+  id                Int  @id @default(autoincrement())
+  following_user_id Int
+  followed_user_id  Int
+  created_at        DateTime  @default(now())
+  followed_user     User @relation("FollowedUsers", fields: [followed_user_id], references: [id])
+  following_user    User @relation("UserFollows", fields: [following_user_id], references: [id])
+
+  @@unique([following_user_id, followed_user_id])
+  @@index([followed_user_id], map: "Follows_followed_user_id_fkey")
+}
+
+model FeedPost {
+  id            Int           @id @default(autoincrement())
+  user_id       Int
+  title         String
+  content       String
+  thumbnail_url String
+  created_at    DateTime      @default(now())
+  updated_at    DateTime      @updatedAt
+  view          Int
+  comment_count Int
+  like_count    Int
+  Comments      FeedComment[]
+  Likes         FeedLike[]
+  user          User          @relation(fields: [user_id], references: [id])
+  Tags          FeedPostTag[]
+
+  @@index([user_id], map: "FeedPost_user_id_fkey")
+}
+
+model FeedTag {
+  id    Int           @id @default(autoincrement())
+  name  String
+  Posts FeedPostTag[]
+}
+
+model FeedPostTag {
+  id      Int      @id @default(autoincrement())
+  post_id Int
+  tag_id  Int
+  post    FeedPost @relation(fields: [post_id], references: [id])
+  tag     FeedTag  @relation(fields: [tag_id], references: [id])
+
+  @@unique([post_id, tag_id])
+  @@index([tag_id], map: "FeedPostTag_tag_id_fkey")
+}
+
+model FeedComment {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  post_id    Int
+  content    String
+  image_url  String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  post       FeedPost @relation(fields: [post_id], references: [id])
+  user       User     @relation(fields: [user_id], references: [id])
+
+  @@index([post_id], map: "FeedComment_post_id_fkey")
+  @@index([user_id], map: "FeedComment_user_id_fkey")
+}
+
+model FeedLike {
+  id      Int      @id @default(autoincrement())
+  user_id Int
+  post_id Int
+  post    FeedPost @relation(fields: [post_id], references: [id])
+  user    User     @relation(fields: [user_id], references: [id])
+
+  @@index([post_id], map: "FeedLike_post_id_fkey")
+  @@index([user_id], map: "FeedLike_user_id_fkey")
+}
+
+model ProjectPost {
+  id              Int                 @id @default(autoincrement())
+  user_id         Int
+  title           String
+  content         String
+  thumbnail_url   String
+  role            Int
+  unit            String
+  start_date      DateTime
+  end_date        DateTime
+  work_type_id    Int
+  recruiting      Boolean
+  applicant_count Int
+  view            Int
+  saved_count     Int
+  Details         ProjectDetailRole[]
+  user            User                @relation(fields: [user_id], references: [id])
+  work_type       WorkType            @relation(fields: [work_type_id], references: [id])
+  Tags            ProjectPostTag[]
+  Saves           ProjectSave[]
+  Applications    UserApplyProject[]
+
+  @@index([user_id], map: "ProjectPost_user_id_fkey")
+  @@index([work_type_id], map: "ProjectPost_work_type_id_fkey")
+}
+
+model WorkType {
+  id           Int           @id @default(autoincrement())
+  name         String
+  ProjectPosts ProjectPost[]
+}
+
+model ProjectSave {
+  id      Int         @id @default(autoincrement())
+  user_id Int
+  post_id Int
+  post    ProjectPost @relation(fields: [post_id], references: [id])
+  user    User        @relation(fields: [user_id], references: [id])
+
+  @@index([post_id], map: "ProjectSave_post_id_fkey")
+  @@index([user_id], map: "ProjectSave_user_id_fkey")
+}
+
+model ProjectDetailRole {
+  id             Int         @id @default(autoincrement())
+  post_id        Int
+  detail_role_id Int
+  detail_role    DetailRole  @relation(fields: [detail_role_id], references: [id])
+  post           ProjectPost @relation(fields: [post_id], references: [id])
+
+  @@index([detail_role_id], map: "ProjectDetailRole_detail_role_id_fkey")
+  @@index([post_id], map: "ProjectDetailRole_post_id_fkey")
+}
+
+model DetailRole {
+  id      Int                 @id @default(autoincrement())
+  role_id Int
+  name    String
+  Details ProjectDetailRole[]
+}
+
+model ProjectTag {
+  id   Int              @id @default(autoincrement())
+  name String
+  Tags ProjectPostTag[]
+}
+
+model ProjectPostTag {
+  id      Int         @id @default(autoincrement())
+  post_id Int
+  tag_id  Int
+  post    ProjectPost @relation(fields: [post_id], references: [id])
+  tag     ProjectTag  @relation(fields: [tag_id], references: [id])
+
+  @@unique([post_id, tag_id])
+  @@index([tag_id], map: "ProjectPostTag_tag_id_fkey")
+}
+
+model UserApplyProject {
+  id      Int         @id @default(autoincrement())
+  user_id Int
+  post_id Int
+  post    ProjectPost @relation(fields: [post_id], references: [id])
+  user    User        @relation(fields: [user_id], references: [id])
+
+  @@index([post_id], map: "UserApplyProject_post_id_fkey")
+  @@index([user_id], map: "UserApplyProject_user_id_fkey")
 }

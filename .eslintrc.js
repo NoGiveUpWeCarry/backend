@@ -22,4 +22,11 @@ module.exports = {
     '@typescript-eslint/explicit-module-boundary-types': 'off',
     '@typescript-eslint/no-explicit-any': 'off',
   },
+  settings: {
+    'import/resolver': {
+      typescript: {
+        project: './tsconfig.json', // tsconfig.json 파일 경로
+      },
+    }
+  }
 };
