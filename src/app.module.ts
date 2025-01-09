@@ -4,6 +4,7 @@ import { AuthModule } from '@modules/auth/auth.module';
 import { UserModule } from '@modules/user/user.module';
 import { ChatGateway } from './chat/chat.gateway';
 import { ChatModule } from './chat/chat.module';
+import { JwtModule } from '@nestjs/jwt';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -12,6 +13,7 @@ import { ChatModule } from './chat/chat.module';
     AuthModule, // Auth 모듈 추가
     UserModule,
     ChatModule,
+    JwtModule,
   ],
   providers: [ChatGateway],
 })
