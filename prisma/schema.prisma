@@ -40,7 +40,9 @@ model User {
   UserApplyProject UserApplyProject[]
   UserLinks        UserLink[]
   UserSkills       UserSkill[]
-
+  Channel_users    Channel_users[]
+  Message          Message[]
+  Message_status   Message_status[]
 
   @@index([role_id], map: "User_role_id_fkey")
   @@index([status_id], map: "User_status_id_fkey")
@@ -144,12 +146,12 @@ model UserLink {
 }
 
 model Follows {
-  id                Int  @id @default(autoincrement())
+  id                Int      @id @default(autoincrement())
   following_user_id Int
   followed_user_id  Int
-  created_at        DateTime  @default(now())
-  followed_user     User @relation("FollowedUsers", fields: [followed_user_id], references: [id])
-  following_user    User @relation("UserFollows", fields: [following_user_id], references: [id])
+  created_at        DateTime @default(now())
+  followed_user     User     @relation("FollowedUsers", fields: [followed_user_id], references: [id])
+  following_user    User     @relation("UserFollows", fields: [following_user_id], references: [id])
 
   @@unique([following_user_id, followed_user_id])
   @@index([followed_user_id], map: "Follows_followed_user_id_fkey")
@@ -304,4 +306,43 @@ model UserApplyProject {
 
   @@index([post_id], map: "UserApplyProject_post_id_fkey")
   @@index([user_id], map: "UserApplyProject_user_id_fkey")
+}
+
+model Channel {
+  id            String          @id
+  name          String          @default("default_channel_name")
+  active        Boolean         @default(true)
+  created_at    DateTime        @default(now())
+  Channel_users Channel_users[]
+  Message       Message[]
+}
+
+model Channel_users {
+  id         Int      @id @default(autoincrement())
+  channel_id String
+  user_id    Int
+  joined_at  DateTime @default(now())
+  channel    Channel  @relation(fields: [channel_id], references: [id])
+  user       User     @relation(fields: [user_id], references: [id])
+}
+
+model Message {
+  id             Int              @id @default(autoincrement())
+  channel_id     String
+  user_id        Int
+  type           String
+  content        String
+  created_at     DateTime         @default(now())
+  user           User             @relation(fields: [user_id], references: [id])
+  channel        Channel          @relation(fields: [channel_id], references: [id])
+  message_status Message_status[]
+}
+
+model Message_status {
+  id         Int     @id @default(autoincrement())
+  message_id Int
+  user_id    Int
+  is_read    Boolean @default(false)
+  user       User    @relation(fields: [user_id], references: [id])
+  message    Message @relation(fields: [message_id], references: [id])
 }
