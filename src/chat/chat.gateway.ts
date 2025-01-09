@@ -2,17 +2,19 @@ import {
   SubscribeMessage,
   WebSocketGateway,
   MessageBody,
+  WebSocketServer,
 } from '@nestjs/websockets';
 import { ChatService } from './chat.service';
 import { JwtService } from '@nestjs/jwt';
+import { Server } from 'socket.io';
 
-@WebSocketGateway()
+@WebSocketGateway({ cors: { origin: '*' } })
 export class ChatGateway {
   constructor(
     private readonly chatService: ChatService,
     private readonly jwtService: JwtService
   ) {}
-
+  @WebSocketServer() server: Server;
   // 채팅방 참여
   @SubscribeMessage('joinChannel')
   async handleJoinChannel(
@@ -61,5 +63,7 @@ export class ChatGateway {
     data.user = userData;
     const createdAt = new Date();
     const sendData = { ...data, createdAt };
+
+    this.server.to(data.channelId).emit('message', sendData);
   }
 }
