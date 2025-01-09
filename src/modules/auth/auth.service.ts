@@ -182,13 +182,29 @@ export class AuthService {
   }
 
   async generateAccessToken(userId: number): Promise<string> {
-    return this.jwtService.sign({ user_id: userId }, { expiresIn: '1h' });
+    return this.jwtService.sign(
+      { userId },
+      { expiresIn: '15m', secret: process.env.ACCESS_TOKEN_SECRET }
+    );
   }
 
   async generateRefreshToken(userId: number): Promise<string> {
-    return this.jwtService.sign({ user_id: userId }, { expiresIn: '1h' });
+    return this.jwtService.sign(
+      { userId },
+      { expiresIn: '7d', secret: process.env.REFRESH_TOKEN_SECRET }
+    );
   }
 
+  getUserIdFromRefreshToken(refreshToken: string): number | null {
+    try {
+      const payload = this.jwtService.verify(refreshToken, {
+        secret: process.env.REFRESH_TOKEN_SECRET,
+      });
+      return payload.userId;
+    } catch (error) {
+      return null;
+    }
+  }
   // 리프레시 토큰 저장
   async storeRefreshToken(userId: number, refreshToken: string): Promise<void> {
     const key = `refresh_token:${userId}`;
