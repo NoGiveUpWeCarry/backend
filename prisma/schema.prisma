@@ -40,7 +40,7 @@ model User {
   UserApplyProject UserApplyProject[]
   UserLinks        UserLink[]
   UserSkills       UserSkill[]
-  Room_users       Room_users[]
+  Channel_users    Channel_users[]
   Message          Message[]
   Message_status   Message_status[]
 
@@ -308,33 +308,33 @@ model UserApplyProject {
   @@index([user_id], map: "UserApplyProject_user_id_fkey")
 }
 
-model Room {
-  id         Int          @id @default(autoincrement())
-  name       String
-  active     Boolean      @default(true)
-  created_at DateTime     @default(now())
-  Room_users Room_users[]
-  Message    Message[]
+model Channel {
+  id            String          @id
+  name          String          @default("default_channel_name")
+  active        Boolean         @default(true)
+  created_at    DateTime        @default(now())
+  Channel_users Channel_users[]
+  Message       Message[]
 }
 
-model Room_users {
-  id        Int      @id @default(autoincrement())
-  room_id   Int
-  user_id   Int
-  joined_at DateTime @default(now())
-  room      Room     @relation(fields: [room_id], references: [id])
-  user      User     @relation(fields: [user_id], references: [id])
+model Channel_users {
+  id         Int      @id @default(autoincrement())
+  channel_id String
+  user_id    Int
+  joined_at  DateTime @default(now())
+  channel    Channel  @relation(fields: [channel_id], references: [id])
+  user       User     @relation(fields: [user_id], references: [id])
 }
 
 model Message {
   id             Int              @id @default(autoincrement())
-  room_id        Int
+  channel_id     String
   user_id        Int
   photo_url      String?
   message        String
   created_at     DateTime         @default(now())
   user           User             @relation(fields: [user_id], references: [id])
-  room           Room             @relation(fields: [room_id], references: [id])
+  channel        Channel          @relation(fields: [channel_id], references: [id])
   message_status Message_status[]
 }
 
