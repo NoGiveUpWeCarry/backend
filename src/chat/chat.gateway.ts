@@ -24,17 +24,14 @@ export class ChatGateway {
     const user = this.jwtService.decode(userId);
 
     // 존재하는 채팅방인지 확인
-    const existData = await this.chatService.channelExist(
-      channelId,
-      user.user_id
-    );
+    const existData = await this.chatService.channelExist(channelId, user.id);
     if (existData) return;
 
     // 채팅방 생성
     await this.chatService.createChannel(channelId);
 
     // 채팅방 멤버 저장
-    await this.chatService.joinChannel(channelId, user.user_id);
+    await this.chatService.joinChannel(channelId, user.id);
   }
 
   // 메세지 송수신
@@ -44,7 +41,7 @@ export class ChatGateway {
     data: {
       type: string;
       content: string;
-      user: string;
+      user: any;
       channelId: string;
     }
   ) {
@@ -55,8 +52,14 @@ export class ChatGateway {
     await this.chatService.createMessage(
       data.type,
       data.channelId,
-      user.user_id,
+      user.id,
       data.content
     );
+
+    // 유저 정보 추가
+    const userData = await this.chatService.getSenderProfile(user.id);
+    data.user = userData;
+    const createdAt = new Date();
+    const sendData = { ...data, createdAt };
   }
 }

@@ -70,5 +70,23 @@ export class ChatService {
       },
     });
   }
+
+  // 유저 정보 확인
+  async getSenderProfile(userId) {
+    const data = await this.prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        nickname: true,
+        role_id: true,
+        profile_url: true,
+      },
+    });
+    return data;
+  }
   // 메세지 상태 업데이트
 }
