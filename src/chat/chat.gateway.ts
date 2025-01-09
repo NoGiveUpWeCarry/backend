@@ -9,7 +9,7 @@ import { ChatService } from './chat.service';
 import { JwtService } from '@nestjs/jwt';
 import { Server, Socket } from 'socket.io';
 
-@WebSocketGateway({ cors: { origin: '*' } })
+@WebSocketGateway({ namespace: 'chat', cors: { origin: '*' } })
 export class ChatGateway {
   constructor(
     private readonly chatService: ChatService,
