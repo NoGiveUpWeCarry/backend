@@ -18,6 +18,8 @@ export class ChatService {
     await this.prisma.channel.create({ data: id });
   }
 
+  // 채팅방 멤버 저장
+  async joinChannel(channelId, userId) {}
   // 메세지 저장
   // 메세지 상태 업데이트
 }
