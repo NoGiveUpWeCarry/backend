@@ -48,8 +48,8 @@ export class AuthService {
         auth_provider: 'google',
       });
 
-      const jwt = this.generateAccessToken(user.id);
-      const refreshToken = await this.generateRefreshToken(user.id); // 리프레시 토큰 생성
+      const accessToken = this.generateAccessToken(user.id);
+      const refreshToken = this.generateRefreshToken(user.id); // 리프레시 토큰 생성
 
       // Redis에 리프레시 토큰 저장
       await this.storeRefreshToken(user.id, refreshToken);
@@ -58,8 +58,8 @@ export class AuthService {
 
       return {
         user: responseUser,
-        accessToken: jwt,
-        refreshToken: refreshToken, // 리프레시 토큰 반환
+        accessToken,
+        refreshToken,
         isExistingUser,
       };
     } catch (error) {
@@ -181,14 +181,14 @@ export class AuthService {
     };
   }
 
-  async generateAccessToken(userId: number): Promise<string> {
+  generateAccessToken(userId: number): string {
     return this.jwtService.sign(
       { userId },
-      { expiresIn: '15m', secret: process.env.ACCESS_TOKEN_SECRET }
+      { expiresIn: '1m', secret: process.env.ACCESS_TOKEN_SECRET }
     );
   }
 
-  async generateRefreshToken(userId: number): Promise<string> {
+  generateRefreshToken(userId: number): string {
     return this.jwtService.sign(
       { userId },
       { expiresIn: '7d', secret: process.env.REFRESH_TOKEN_SECRET }
@@ -252,7 +252,7 @@ export class AuthService {
       data: { role_id: roleId },
     });
 
-    return {
+    const result = {
       user: {
         user_id: updatedUser.id,
         email: updatedUser.email,
@@ -260,7 +260,10 @@ export class AuthService {
         nickname: updatedUser.nickname,
         role_id: updatedUser.role_id,
       },
-      message: roleMessages[roleId], // 역할별 메시지 추가
+      message: roleMessages[roleId],
     };
+
+    console.log('Service Result:', result); // 디버깅
+    return result;
   }
 }

@@ -36,19 +36,28 @@ export class AuthController {
     const { user, accessToken, refreshToken, isExistingUser } =
       await this.authService.handleGoogleCallback(code);
 
+    console.log(refreshToken);
     // 리프레시 토큰을 HTTP-Only 쿠키로 설정
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
-      secure: true,
-      sameSite: 'strict', // CSRF 방지
+      secure: false,
+      sameSite: 'none', // CSRF 방지
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7일
     });
 
-    return new ApiResponse(HttpStatusCodes.OK, 'Google 로그인 성공', {
-      user,
-      accessToken,
-      isExistingUser,
-    });
+    return res.status(HttpStatusCodes.OK).json(
+      new ApiResponse(HttpStatusCodes.OK, 'Google 로그인 성공', {
+        user,
+        accessToken,
+        refreshToken,
+        isExistingUser,
+      })
+    );
+    // return new ApiResponse(HttpStatusCodes.OK, 'Google 로그인 성공', {
+    //   user,
+    //   accessToken,
+    //   isExistingUser,
+    // });
   }
 
   @Get('github')
@@ -81,14 +90,35 @@ export class AuthController {
   // Role 선택 API
   @Put('roleselect')
   @UseGuards(JwtAuthGuard)
-  async selectRole(@Body('role_id') roleId: number, @Req() req: any) {
+  async selectRole(
+    @Body('role_id') roleId: number,
+    @Req() req: any,
+    @Res() res: Response
+  ) {
     const userId = req.user?.user_id;
+    console.log(userId);
     const { user, message } = await this.authService.updateUserRole(
       userId,
       roleId
     );
 
-    return new ApiResponse(HttpStatusCodes.OK, message, { user });
+    const serviceResult = await this.authService.updateUserRole(userId, roleId);
+
+    console.log('Service Result in Controller:', serviceResult);
+
+    // 응답 객체 생성
+    const responseBody = {
+      message: {
+        code: HttpStatusCodes.OK,
+        text: serviceResult.message,
+      },
+      user: serviceResult.user,
+    };
+
+    console.log('Response Body:', responseBody);
+
+    // 응답 반환
+    return res.status(HttpStatusCodes.OK).json(responseBody);
   }
 
   @Post('refresh')
@@ -120,12 +150,14 @@ export class AuthController {
       sameSite: 'strict',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
-    return new ApiResponse(
-      HttpStatusCodes.OK,
-      '액세스 토큰이 성공적으로 갱신되었습니다.',
-      {
-        accessToken: newAccessToken,
-      }
+    return res.status(HttpStatusCodes.OK).json(
+      new ApiResponse(
+        HttpStatusCodes.OK,
+        '액세스 토큰이 성공적으로 갱신되었습니다.',
+        {
+          accessToken: newAccessToken,
+        }
+      )
     );
   }
 
