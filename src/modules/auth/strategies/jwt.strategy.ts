@@ -7,12 +7,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor() {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      secretOrKey: process.env.JWT_SECRET,
+      secretOrKey: process.env.ACCESS_TOKEN_SECRET,
     });
   }
 
   async validate(payload: any) {
+    console.log('JWT_payload: ', payload);
     // req.user에 설정될 사용자 정보 반환
-    return { user_id: payload.user_id, email: payload.email };
+    return { user_id: payload.userId, email: payload.email };
   }
 }
