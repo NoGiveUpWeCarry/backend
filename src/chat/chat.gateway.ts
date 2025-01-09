@@ -3,10 +3,11 @@ import {
   WebSocketGateway,
   MessageBody,
   WebSocketServer,
+  ConnectedSocket,
 } from '@nestjs/websockets';
 import { ChatService } from './chat.service';
 import { JwtService } from '@nestjs/jwt';
-import { Server } from 'socket.io';
+import { Server, Socket } from 'socket.io';
 
 @WebSocketGateway({ cors: { origin: '*' } })
 export class ChatGateway {
@@ -18,7 +19,8 @@ export class ChatGateway {
   // 채팅방 참여
   @SubscribeMessage('joinChannel')
   async handleJoinChannel(
-    @MessageBody() data: { channelId: string; userId: string }
+    @MessageBody() data: { channelId: string; userId: string },
+    @ConnectedSocket() client: Socket
   ) {
     const { channelId, userId } = data;
 
@@ -27,10 +29,17 @@ export class ChatGateway {
 
     // 존재하는 채팅방인지 확인
     const existData = await this.chatService.channelExist(channelId, user.id);
-    if (existData) return;
+    if (existData) {
+      // 채팅방 참여
+      client.join(channelId);
+      return existData;
+    }
 
     // 채팅방 생성
     await this.chatService.createChannel(channelId);
+
+    // 채팅방 참여
+    client.join(channelId);
 
     // 채팅방 멤버 저장
     await this.chatService.joinChannel(channelId, user.id);
