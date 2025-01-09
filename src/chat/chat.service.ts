@@ -5,26 +5,31 @@ import { PrismaService } from '@src/prisma/prisma.service';
 export class ChatService {
   constructor(private readonly prisma: PrismaService) {}
 
+  // 이미 존재하는 채팅방인지 확인
+  async channelExist(channelId) {
+    const result = await this.prisma.channel.count({
+      where: { id: channelId },
+    });
+    return result;
+  }
+
   // 채팅방 생성
   async creatRoom() {
-    const result = await this.prisma.room.create({});
+    const result = await this.prisma.channel.create({});
     // 생성한 채팅방 id 리턴
     return result.id;
   }
 
   // 채팅방 멤버 저장
-  async joinRoom(roomId, userId1, userId2) {
-    await this.prisma.room_users.createMany({
-      data: [
-        {
-          room_id: roomId,
-          user_id: userId1,
-        },
-        {
-          room_id: roomId,
-          user_id: userId2,
-        },
-      ],
+  async joinChannel(channelId, userId1) {
+    await this.prisma.room_users.create({
+      data: {
+        room_id: channelId,
+        user_id: userId1,
+      },
     });
   }
+
+  // 메세지 저장
+  // 메세지 상태 업데이트
 }
