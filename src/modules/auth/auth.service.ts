@@ -184,7 +184,7 @@ export class AuthService {
   generateAccessToken(userId: number): string {
     return this.jwtService.sign(
       { userId },
-      { expiresIn: '1m', secret: process.env.ACCESS_TOKEN_SECRET }
+      { expiresIn: '15m', secret: process.env.ACCESS_TOKEN_SECRET }
     );
   }
 
