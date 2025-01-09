@@ -330,8 +330,8 @@ model Message {
   id             Int              @id @default(autoincrement())
   channel_id     String
   user_id        Int
-  photo_url      String?
-  message        String
+  type           String
+  content        String
   created_at     DateTime         @default(now())
   user           User             @relation(fields: [user_id], references: [id])
   channel        Channel          @relation(fields: [channel_id], references: [id])
