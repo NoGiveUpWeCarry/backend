@@ -19,6 +19,9 @@ export class ChatGateway {
     const exist = await this.chatService.channelExist(channelId);
     if (exist) return;
 
+    // 채팅방 생성
+    await this.chatService.createChannel(channelId);
+
     // userId JWT 토큰 값이라 디코딩 해야함
     const user = userId;
     // 채팅방 멤버 저장

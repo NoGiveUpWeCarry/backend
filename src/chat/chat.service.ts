@@ -14,20 +14,8 @@ export class ChatService {
   }
 
   // 채팅방 생성
-  async creatRoom() {
-    const result = await this.prisma.channel.create({});
-    // 생성한 채팅방 id 리턴
-    return result.id;
-  }
-
-  // 채팅방 멤버 저장
-  async joinChannel(channelId, userId1) {
-    await this.prisma.room_users.create({
-      data: {
-        room_id: channelId,
-        user_id: userId1,
-      },
-    });
+  async createChannel(id) {
+    await this.prisma.channel.create({ data: id });
   }
 
   // 메세지 저장
