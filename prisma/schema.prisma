@@ -25,11 +25,14 @@ model User {
   created_at       DateTime           @default(now())
   updated_at       DateTime           @updatedAt
   ArtistData       ArtistData?
+  Channel_users    Channel_users[]
   FeedComments     FeedComment[]
   FeedLikes        FeedLike[]
   FeedPosts        FeedPost[]
   Followed         Follows[]          @relation("FollowedUsers")
   Follows          Follows[]          @relation("UserFollows")
+  Message          Message[]
+  Message_status   Message_status[]
   ProgrammerData   ProgrammerData?
   ProjectPosts     Project?
   ProjectPost      ProjectPost[]
@@ -40,9 +43,6 @@ model User {
   UserApplyProject UserApplyProject[]
   UserLinks        UserLink[]
   UserSkills       UserSkill[]
-  Channel_users    Channel_users[]
-  Message          Message[]
-  Message_status   Message_status[]
 
   @@index([role_id], map: "User_role_id_fkey")
   @@index([status_id], map: "User_status_id_fkey")
@@ -309,7 +309,7 @@ model UserApplyProject {
 }
 
 model Channel {
-  id            String          @id
+  id            Int             @id @default(autoincrement())
   name          String          @default("default_channel_name")
   active        Boolean         @default(true)
   created_at    DateTime        @default(now())
@@ -319,23 +319,29 @@ model Channel {
 
 model Channel_users {
   id         Int      @id @default(autoincrement())
-  channel_id String
+  channel_id Int
   user_id    Int
   joined_at  DateTime @default(now())
   channel    Channel  @relation(fields: [channel_id], references: [id])
   user       User     @relation(fields: [user_id], references: [id])
+
+  @@index([channel_id], map: "Channel_users_channel_id_fkey")
+  @@index([user_id], map: "Channel_users_user_id_fkey")
 }
 
 model Message {
   id             Int              @id @default(autoincrement())
-  channel_id     String
   user_id        Int
-  type           String
-  content        String
   created_at     DateTime         @default(now())
-  user           User             @relation(fields: [user_id], references: [id])
+  channel_id     Int
+  content        String
+  type           String
   channel        Channel          @relation(fields: [channel_id], references: [id])
+  user           User             @relation(fields: [user_id], references: [id])
   message_status Message_status[]
+
+  @@index([channel_id], map: "Message_channel_id_fkey")
+  @@index([user_id], map: "Message_user_id_fkey")
 }
 
 model Message_status {
@@ -343,7 +349,9 @@ model Message_status {
   message_id Int
   user_id    Int
   is_read    Boolean @default(false)
-  user       User    @relation(fields: [user_id], references: [id])
   message    Message @relation(fields: [message_id], references: [id])
-}
+  user       User    @relation(fields: [user_id], references: [id])
 
+  @@index([message_id], map: "Message_status_message_id_fkey")
+  @@index([user_id], map: "Message_status_user_id_fkey")
+}
