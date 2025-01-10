@@ -54,6 +54,11 @@ export class AuthController {
         isExistingUser,
       })
     );
+    // return new ApiResponse(HttpStatusCodes.OK, 'Google 로그인 성공', {
+    //   user,
+    //   accessToken,
+    //   isExistingUser,
+    // });
   }
 
   @Get('github')
@@ -101,7 +106,6 @@ export class AuthController {
       },
       user: serviceResult.user,
     };
-
     // 응답 반환
     return res.status(HttpStatusCodes.OK).json(responseBody);
   }
@@ -161,7 +165,6 @@ export class AuthController {
         ErrorMessages.AUTH.INVALID_REFRESH_TOKEN.code
       );
     }
-
     console.log('요청된 Refresh Token:', refreshToken);
 
     try {

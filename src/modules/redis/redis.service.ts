@@ -21,4 +21,5 @@ export class RedisService {
     const result = await this.redis.exists(key);
     return result === 1;
   }
+
 }

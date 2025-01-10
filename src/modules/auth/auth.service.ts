@@ -273,7 +273,6 @@ export class AuthService {
       },
       message: roleMessages[roleId],
     };
-
     return result;
   }
 }

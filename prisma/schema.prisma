@@ -346,3 +346,4 @@ model Message_status {
   user       User    @relation(fields: [user_id], references: [id])
   message    Message @relation(fields: [message_id], references: [id])
 }
+
