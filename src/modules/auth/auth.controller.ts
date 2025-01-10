@@ -43,7 +43,7 @@ export class AuthController {
       secure: false,
       sameSite: 'none',
       path: '/',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      maxAge: 7 * 24 * 60 * 60,
     });
 
     return res.status(HttpStatusCodes.OK).json(
@@ -78,7 +78,7 @@ export class AuthController {
       httpOnly: true,
       secure: true,
       sameSite: 'strict', // CSRF 방지
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7일
+      maxAge: 7 * 24 * 60 * 60, // 7일
     });
 
     return new ApiResponse(HttpStatusCodes.OK, 'Google 로그인 성공', {
@@ -210,7 +210,7 @@ export class AuthController {
         secure: false,
         sameSite: 'none',
         path: '/',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
+        maxAge: 7 * 24 * 60 * 60,
       });
 
       return res.status(HttpStatusCodes.OK).json(
