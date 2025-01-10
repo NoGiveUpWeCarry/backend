@@ -11,10 +11,7 @@ import { Server, Socket } from 'socket.io';
 
 @WebSocketGateway({ namespace: 'chat', cors: { origin: '*' } })
 export class ChatGateway {
-  constructor(
-    private readonly chatService: ChatService,
-    private readonly jwtService: JwtService
-  ) {}
+  constructor(private readonly chatService: ChatService) {}
   @WebSocketServer() server: Server;
   // 채팅방 참여
   @SubscribeMessage('joinChannel')
@@ -28,8 +25,8 @@ export class ChatGateway {
     const channelId = await this.chatService.getChannelId(userId1, userId2);
 
     // 채널에 유저 참여
-    client.to(userId1.toString()).socketsJoin(channelId);
-    client.to(userId2.toString()).socketsJoin(channelId);
+    client.to(userId1.toString()).socketsJoin(channelId.toString());
+    client.to(userId2.toString()).socketsJoin(channelId.toString());
 
     // 클라이언트에 채널id 전달
     this.server.emit('channelJoined', { channelId });
