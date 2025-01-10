@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
@@ -9,13 +8,14 @@ import { GoogleStrategy } from './strategies/google.strategy';
 import { PrismaService } from '@src/prisma/prisma.service';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { RedisModule } from '../redis/redis.module';
+import { JwtModule } from '@nestjs/jwt';
 @Module({
   imports: [
     PassportModule,
     RedisModule,
     JwtModule.register({
-      secret: process.env.JWT_SECRET, // JWT 비밀키 설정
-      signOptions: { expiresIn: '1h' }, // 기본 만료 시간
+      secret: process.env.ACCESS_TOKEN_SECRET, // 비밀키 설정
+      signOptions: { expiresIn: '1m' }, // 기본 만료 시간
     }),
   ],
   controllers: [AuthController],
