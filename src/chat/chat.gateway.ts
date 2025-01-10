@@ -27,9 +27,11 @@ export class ChatGateway {
     // 채널 id 조회
     const channelId = await this.chatService.getChannelId(userId1, userId2);
 
+    // 채널에 유저 참여
     client.to(userId1.toString()).socketsJoin(channelId);
     client.to(userId2.toString()).socketsJoin(channelId);
 
+    // 클라이언트에 채널id 전달
     this.server.emit('channelId', channelId);
   }
   // 메세지 송수신
