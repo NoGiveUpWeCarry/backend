@@ -6,7 +6,6 @@ import {
   ConnectedSocket,
 } from '@nestjs/websockets';
 import { ChatService } from './chat.service';
-import { JwtService } from '@nestjs/jwt';
 import { Server, Socket } from 'socket.io';
 
 @WebSocketGateway({ namespace: 'chat', cors: { origin: '*' } })
