@@ -32,7 +32,7 @@ export class ChatGateway {
     client.to(userId2.toString()).socketsJoin(channelId);
 
     // 클라이언트에 채널id 전달
-    this.server.emit('channelId', channelId);
+    this.server.emit('channelJoined', { channelId });
   }
   // 메세지 송수신
   @SubscribeMessage('sendMessage')
