@@ -27,6 +27,6 @@ import { JwtModule } from '@nestjs/jwt';
     GoogleStrategy, // Google OAuth 전략
     JwtAuthGuard,
   ],
-  exports: [JwtAuthGuard], // 다른 모듈에서 AuthService를 사용할 수 있도록 내보냄
+  exports: [JwtAuthGuard, JwtModule], // 다른 모듈에서 AuthService를 사용할 수 있도록 내보냄
 })
 export class AuthModule {}

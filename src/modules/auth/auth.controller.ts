@@ -78,7 +78,7 @@ export class AuthController {
       httpOnly: true,
       secure: true,
       sameSite: 'strict', // CSRF 방지
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7일
+      maxAge: 7 * 24 * 60 * 60, // 7일
     });
 
     return new ApiResponse(HttpStatusCodes.OK, 'Google 로그인 성공', {
