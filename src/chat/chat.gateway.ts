@@ -41,26 +41,26 @@ export class ChatGateway {
     data: {
       type: string;
       content: string;
-      user: any;
+      userId: number;
       channelId: string;
     }
   ) {
-    // user 디코딩
-    const user = this.jwtService.decode(data.user);
+    const { userId, ...resData } = data;
 
     // 메세지 데이터 저장
     await this.chatService.createMessage(
       data.type,
       data.channelId,
-      user.id,
+      userId,
       data.content
     );
 
     // 유저 정보 추가
-    const userData = await this.chatService.getSenderProfile(user.id);
-    data.user = userData;
-    const createdAt = new Date();
-    const sendData = { ...data, createdAt };
+    const user = await this.chatService.getSenderProfile(userId);
+    const date = new Date();
+
+    // 전달 데이터 양식
+    const sendData = { ...resData, user, date };
 
     this.server.to(data.channelId).emit('message', sendData);
   }

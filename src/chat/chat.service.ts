@@ -72,7 +72,7 @@ export class ChatService {
         nickname: true,
         role_id: true,
         profile_url: true,
-        //authprovider 추가
+        auth_provider: true,
       },
     });
     return data;
