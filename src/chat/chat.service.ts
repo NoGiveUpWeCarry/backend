@@ -5,60 +5,48 @@ import { PrismaService } from '@src/prisma/prisma.service';
 export class ChatService {
   constructor(private readonly prisma: PrismaService) {}
 
-  // 이미 존재하는 채팅방인지 확인
-  // 없다면 생성, 있다면 매핑 테이블 확인
-  // 매핑 테이블 유저 데이터 있다면 대화 내용 불러오기, 없다면 매핑 테이블에 유저 데이터 생성
-  async channelExist(channelId, userId) {
-    const exist = await this.prisma.channel.count({
-      where: { id: channelId },
-    });
-
-    // 존재하지 않으면 함수 종료 후 컨트롤러에서 채팅방 생성 로직 재개
-    if (!exist) return false;
-
-    // 매핑 테이블 channel_users에 유저 데이터 있는지 확인
-    const userExist = await this.prisma.channel_users.findFirst({
+  // 채널 id를 리턴하는 로직
+  async getChannelId(userId1, userId2) {
+    // 매핑 테이블에서 파라미터로 전달된 유저 아이디에 해당하는 데이터 찾기
+    const result = await this.prisma.channel_users.groupBy({
+      by: ['channel_id'],
       where: {
-        channel_id: channelId,
-        user_id: userId,
+        user_id: {
+          in: [userId1, userId2],
+        },
+      },
+      _count: {
+        user_id: true,
       },
     });
 
-    // 있다면 대화내용 불러오기
-    if (userExist) {
-      const message = await this.prisma.message.findMany({
-        where: {
-          channel_id: channelId,
-        },
-      });
-      return message;
-    } else {
-      // 없다면 매핑 테이블에 유저 데이터 추가
-      await this.prisma.channel_users.create({
-        data: {
-          channel_id: channelId,
-          user_id: userId,
-        },
-      });
-      const notice = `${userId}님이 채팅방에 참가했습니다`;
-      return { notice };
-    }
-  }
+    // user_id == 2 -> 두 유저가 모두 참여한 채널 필터링
+    const channel = result.filter(data => data._count.user_id == 2)[0];
 
-  // 채팅방 생성
-  async createChannel(id) {
-    await this.prisma.channel.create({ data: { id } });
-  }
+    // 참여한 채널이 있다면 채널 id 리턴
+    if (channel) return channel.channel_id;
 
-  // 채팅방 멤버 저장
-  async joinChannel(channelId, userId) {
-    await this.prisma.channel_users.create({
-      data: {
-        channel_id: channelId,
-        user_id: userId,
-      },
+    // 없다면 새로운 채널 생성 후
+    const newChannel = await this.prisma.channel.create({});
+
+    // 매핑 테이블에 데이터 저장
+    await this.prisma.channel_users.createMany({
+      data: [
+        {
+          channel_id: newChannel.id,
+          user_id: userId1,
+        },
+        {
+          channel_id: newChannel.id,
+          user_id: userId2,
+        },
+      ],
     });
+
+    // 채널 id 리턴
+    return newChannel.id;
   }
+
   // 메세지 저장
   async createMessage(type, channelId, userId, content) {
     await this.prisma.message.create({
@@ -84,6 +72,7 @@ export class ChatService {
         nickname: true,
         role_id: true,
         profile_url: true,
+        //authprovider 추가
       },
     });
     return data;

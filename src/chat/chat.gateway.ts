@@ -19,32 +19,19 @@ export class ChatGateway {
   // 채팅방 참여
   @SubscribeMessage('joinChannel')
   async handleJoinChannel(
-    @MessageBody() data: { channelId: string; userId: string },
+    @MessageBody() data: { userId1: number; userId2: number },
     @ConnectedSocket() client: Socket
   ) {
-    const { channelId, userId } = data;
+    const { userId1, userId2 } = data;
 
-    // userId JWT 토큰 값이라 디코딩 해야함
-    const user = this.jwtService.decode(userId);
+    // 채널 id 조회
+    const channelId = await this.chatService.getChannelId(userId1, userId2);
 
-    // 존재하는 채팅방인지 확인
-    const existData = await this.chatService.channelExist(channelId, user.id);
-    if (existData) {
-      // 채팅방 참여
-      client.join(channelId);
-      return existData;
-    }
+    client.to(userId1.toString()).socketsJoin(channelId);
+    client.to(userId2.toString()).socketsJoin(channelId);
 
-    // 채팅방 생성
-    await this.chatService.createChannel(channelId);
-
-    // 채팅방 참여
-    client.join(channelId);
-
-    // 채팅방 멤버 저장
-    await this.chatService.joinChannel(channelId, user.id);
+    this.server.emit('channelId', channelId);
   }
-
   // 메세지 송수신
   @SubscribeMessage('sendMessage')
   async handleSendMessage(
