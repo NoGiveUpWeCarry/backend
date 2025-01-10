@@ -16,4 +16,10 @@ export class RedisService {
   async del(key: string): Promise<void> {
     await this.redis.del(key);
   }
+
+  async exists(key: string): Promise<boolean> {
+    const result = await this.redis.exists(key);
+    return result === 1;
+  }
+
 }

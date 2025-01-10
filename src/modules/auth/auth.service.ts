@@ -63,10 +63,11 @@ export class AuthService {
         isExistingUser,
       };
     } catch (error) {
-      throw new HttpException(
-        ErrorMessages.SERVER.INTERNAL_ERROR.text,
-        ErrorMessages.SERVER.INTERNAL_ERROR.code
-      );
+      console.error(error);
+      // throw new HttpException(
+      //   ErrorMessages.SERVER.INTERNAL_ERROR.text,
+      //   ErrorMessages.SERVER.INTERNAL_ERROR.code
+      // );
     }
   }
 
@@ -182,13 +183,15 @@ export class AuthService {
   }
 
   generateAccessToken(userId: number): string {
+    console.log(`Access Token 생성: userId=${userId}`);
     return this.jwtService.sign(
       { userId },
-      { expiresIn: '15m', secret: process.env.ACCESS_TOKEN_SECRET }
+      { expiresIn: '1m', secret: process.env.ACCESS_TOKEN_SECRET }
     );
   }
 
   generateRefreshToken(userId: number): string {
+    console.log(`Refresh Token 생성: userId=${userId}`);
     return this.jwtService.sign(
       { userId },
       { expiresIn: '7d', secret: process.env.REFRESH_TOKEN_SECRET }
@@ -197,11 +200,14 @@ export class AuthService {
 
   getUserIdFromRefreshToken(refreshToken: string): number | null {
     try {
+      console.log('Refresh Token 디코딩 중...');
       const payload = this.jwtService.verify(refreshToken, {
         secret: process.env.REFRESH_TOKEN_SECRET,
       });
+      console.log('Refresh Token 디코딩 성공:', payload);
       return payload.userId;
     } catch (error) {
+      console.error('Refresh Token 디코딩 실패:', error.message);
       return null;
     }
   }
@@ -209,13 +215,18 @@ export class AuthService {
   async storeRefreshToken(userId: number, refreshToken: string): Promise<void> {
     const key = `refresh_token:${userId}`;
     const ttl = 7 * 24 * 60 * 60; // 7일
+    console.log(
+      `Redis에 Refresh Token 저장: key=${key}, token=${refreshToken}`
+    );
     await this.redisService.set(key, refreshToken, ttl);
   }
 
   // 리프레시 토큰 검증
   async validateRefreshToken(userId: number, token: string): Promise<boolean> {
     const key = `refresh_token:${userId}`;
+    console.log(`Redis에서 Refresh Token 조회: key=${key}`);
     const storedToken = await this.redisService.get(key);
+    console.log('Redis에서 조회된 Refresh Token:', storedToken);
     return storedToken === token;
   }
 
@@ -262,8 +273,6 @@ export class AuthService {
       },
       message: roleMessages[roleId],
     };
-
-    console.log('Service Result:', result); // 디버깅
     return result;
   }
 }
