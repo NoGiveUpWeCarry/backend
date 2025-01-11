@@ -125,7 +125,7 @@ export class AuthService {
       });
 
       const jwt = this.generateAccessToken(user.id);
-      const refreshToken = await this.generateRefreshToken(user.id); // 리프레시 토큰 생성
+      const refreshToken = this.generateRefreshToken(user.id); // 리프레시 토큰 생성
 
       // Redis에 리프레시 토큰 저장
       await this.storeRefreshToken(user.id, refreshToken);
@@ -152,10 +152,18 @@ export class AuthService {
   }
   // 사용자 찾기 또는 생성
   async findOrCreateUser(profile: AuthUserDto) {
-    return this.prisma.user.upsert({
+    // 이메일로 유저 찾기
+    const existingUser = await this.prisma.user.findUnique({
       where: { email: profile.email },
-      update: {}, // 이미 존재하면 아무것도 업데이트하지 않음
-      create: {
+    });
+
+    if (existingUser) {
+      return existingUser; // 기존 유저 반환
+    }
+
+    // 새 유저 생성
+    return this.prisma.user.create({
+      data: {
         email: profile.email,
         name: profile.name,
         nickname: profile.nickname,
@@ -274,5 +282,43 @@ export class AuthService {
       message: roleMessages[roleId],
     };
     return result;
+  }
+
+  async renewAccessToken(userId: number): Promise<string> {
+    const redisKey = `refresh_token:${userId}`;
+    const refreshToken = await this.redisService.get(redisKey);
+
+    if (!refreshToken) {
+      console.error(`No refresh token found for Redis key: ${redisKey}`);
+      throw new Error('Refresh token not found for user');
+    }
+
+    console.log(`Retrieved refresh token from Redis: ${refreshToken}`);
+
+    try {
+      const payload = this.jwtService.verify(refreshToken, {
+        secret: process.env.REFRESH_TOKEN_SECRET,
+        algorithms: ['HS256'], // 생성 시와 동일한 알고리즘
+      });
+      console.log(`Decoded payload:`, payload);
+
+      if (payload.userId !== userId) {
+        console.error(
+          `Token userId mismatch. Expected: ${userId}, Got: ${payload.userId}`
+        );
+        throw new Error('Invalid refresh token');
+      }
+    } catch (error) {
+      console.error(`JWT verification error: ${error.message}`);
+      throw new Error('Refresh token validation failed');
+    }
+
+    const newAccessToken = this.jwtService.sign(
+      { userId },
+      { expiresIn: '15m', secret: process.env.ACCESS_TOKEN_SECRET }
+    );
+
+    console.log(`Generated new access token: ${newAccessToken}`);
+    return newAccessToken;
   }
 }
