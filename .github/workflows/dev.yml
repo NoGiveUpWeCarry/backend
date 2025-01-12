@@ -24,7 +24,7 @@ jobs:
           chmod 600 ec2_key.pem
           
           ssh -o StrictHostKeyChecking=no -i ec2_key.pem $EC2_USER@$EC2_HOST << 'EOF'
-             cd /home/ubuntu/final
+             cd /home/ubuntu/pad
              git fetch
              git pull origin master
              pm2 kill
