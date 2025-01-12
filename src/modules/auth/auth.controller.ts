@@ -129,8 +129,10 @@ export class AuthController {
     }
   }
   @Post('logout')
+  @UseGuards(JwtAuthGuard)
   async logout(@Req() req: any, @Res() res: Response) {
-    res.clearCookie('refreshToken'); // HTTP-Only 쿠키 삭제
+    const userId = req.user?.user_id;
+    await this.authService.deleteRefreshToken(userId);
     return res
       .status(HttpStatusCodes.OK)
       .json(new ApiResponse(HttpStatusCodes.OK, '로그아웃 성공'));
