@@ -19,6 +19,7 @@ jobs:
         env:
           EC2_HOST: ${{ secrets.REMOTE_IP }} # 인스턴스 IP
           EC2_USER: ${{ secrets.REMOTE_USER }} # 우분투 아이디
+          NODE_OPTIONS: --max_old_space_size=2048
         run: |
           echo "${{secrets.REMOTE_PRIVATE_KEY}}" > ec2_key.pem
           chmod 600 ec2_key.pem
