@@ -137,4 +137,29 @@ export class AuthController {
       .status(HttpStatusCodes.OK)
       .json(new ApiResponse(HttpStatusCodes.OK, '로그아웃 성공'));
   }
+
+  @Post('signup')
+  async signup(
+    @Body() body: { email: string; nickname: string; password: string }
+  ) {
+    const result = await this.authService.signup(
+      body.email,
+      body.nickname,
+      body.password
+    );
+    return {
+      message: 'Signup successful',
+      user: result,
+    };
+  }
+
+  @Post('login')
+  async login(@Body() body: { email: string; password: string }) {
+    const result = await this.authService.login(body.email, body.password);
+    return {
+      message: 'Login successful',
+      user: result.user,
+      access_token: result.accessToken,
+    };
+  }
 }

@@ -179,6 +179,61 @@ export class AuthService {
     });
   }
 
+  // 회원가입 로직
+  async signup(email: string, nickname: string, password: string) {
+    // 이메일 중복 확인
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email },
+    });
+    if (existingUser) {
+      throw new HttpException('Email already exists', HttpStatus.BAD_REQUEST);
+    }
+
+    // 새로운 사용자 생성
+    const newUser = await this.prisma.user.create({
+      data: {
+        email,
+        name: nickname,
+        nickname,
+        password,
+        auth_provider: 'pad', // 소셜 로그인과 구분
+        role: { connect: { id: 1 } },
+        status: { connect: { id: 1 } },
+      },
+    });
+
+    return {
+      user_id: newUser.id,
+      email: newUser.email,
+      nickname: newUser.nickname,
+    };
+  }
+
+  // 로그인 로직
+  async login(email: string, password: string) {
+    // 사용자 조회
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+    if (!user || user.password !== password) {
+      throw new HttpException(
+        'Invalid email or password',
+        HttpStatus.UNAUTHORIZED
+      );
+    }
+
+    // 액세스 토큰 및 리프레시 토큰 생성
+    const accessToken = this.generateAccessToken(user.id);
+    const refreshToken = this.generateRefreshToken(user.id);
+
+    // Redis에 리프레시 토큰 저장
+    await this.storeRefreshToken(user.id, refreshToken);
+    const responseUser = this.filterUserFields(user);
+    return {
+      user: responseUser,
+      accessToken,
+    };
+  }
   private filterUserFields(user: any) {
     return {
       user_id: user.id,
