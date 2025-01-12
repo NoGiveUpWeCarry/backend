@@ -8,13 +8,13 @@ import {
   Put,
   HttpException,
   Res,
+  HttpStatus,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from '@src/modules/auth/auth.service';
 import { JwtAuthGuard } from '@src/modules/auth/guards/jwt-auth.guard';
 import { JwtService } from '@nestjs/jwt';
 import { ApiResponse } from '@common/dto/response.dto';
-import { ErrorMessages } from '@common/constants/error-messages';
 import { HttpStatusCodes } from '@common/constants/http-status-code';
 import { Response } from 'express';
 @Controller('auth')
@@ -35,30 +35,18 @@ export class AuthController {
     // Authorization Code 교환 및 사용자 정보 가져오기
     const { user, accessToken, refreshToken, isExistingUser } =
       await this.authService.handleGoogleCallback(code);
-    console.log('accessToken: ' + accessToken);
-    console.log('refreshToken: ' + refreshToken);
-    // 리프레시 토큰을 HTTP-Only 쿠키로 설정
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: false,
-      secure: false,
-      sameSite: 'none',
-      path: '/',
-      maxAge: 7 * 24 * 60 * 60,
-    });
-
-    return res.status(HttpStatusCodes.OK).json(
-      new ApiResponse(HttpStatusCodes.OK, 'Google 로그인 성공', {
-        user,
-        accessToken,
-        refreshToken,
-        isExistingUser,
-      })
-    );
-    // return new ApiResponse(HttpStatusCodes.OK, 'Google 로그인 성공', {
-    //   user,
-    //   accessToken,
-    //   isExistingUser,
-    // });
+    console.log('refreshToken: ', refreshToken);
+    const response = {
+      message: {
+        code: 200,
+        message: 'Google 로그인 성공',
+      },
+      user,
+      accessToken,
+      isExistingUser,
+    };
+    console.log(response);
+    return res.status(HttpStatusCodes.OK).json(response);
   }
 
   @Get('github')
@@ -72,22 +60,24 @@ export class AuthController {
     // Authorization Code 교환 및 사용자 정보 가져오기
     const { user, accessToken, refreshToken, isExistingUser } =
       await this.authService.handleGithubCallback(code);
-
-    // 리프레시 토큰을 HTTP-Only 쿠키로 설정
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'strict', // CSRF 방지
-      maxAge: 7 * 24 * 60 * 60, // 7일
-    });
-
-    return new ApiResponse(HttpStatusCodes.OK, 'Google 로그인 성공', {
+    console.log(refreshToken);
+    const response = {
+      message: {
+        code: 200,
+        message: 'Github 로그인 성공',
+      },
       user,
       accessToken,
       isExistingUser,
-    });
+    };
+    console.log(response);
+    return res.status(HttpStatusCodes.OK).json(response);
   }
 
+  // @Post('login')
+  // async login(
+  //   @Body()
+  // )
   // Role 선택 API
   @Put('roleselect')
   @UseGuards(JwtAuthGuard)
@@ -110,131 +100,66 @@ export class AuthController {
     return res.status(HttpStatusCodes.OK).json(responseBody);
   }
 
-  // @Post('refresh')
-  // async refreshAccessToken(@Req() req: any, @Res() res: Response) {
-  //   console.log('Refresh Token API 호출');
-  //   const refreshToken = req.cookies['refreshToken'];
-  //
-  //   if (!refreshToken) {
-  //     throw new HttpException(
-  //       ErrorMessages.AUTH.INVALID_REFRESH_TOKEN.text,
-  //       ErrorMessages.AUTH.INVALID_REFRESH_TOKEN.code
-  //     );
-  //   }
-  //   //const userId = req.user?.user_id;
-  //   const userId = this.authService.getUserIdFromRefreshToken(refreshToken);
-  //   console.log('user_id: ' + userId);
-  //   const isValid = await this.authService.validateRefreshToken(
-  //     userId,
-  //     refreshToken
-  //   );
-  //   if (!isValid) {
-  //     const error = ErrorMessages.AUTH.INVALID_REFRESH_TOKEN;
-  //     throw new HttpException(error.text, error.code);
-  //   }
-  //
-  //   const newAccessToken = this.authService.generateAccessToken(userId);
-  //   const newRefreshToken = this.authService.generateRefreshToken(userId);
-  //   res.cookie('refreshToken', newRefreshToken, {
-  //     httpOnly: true,
-  //     secure: false,
-  //     sameSite: 'none',
-  //     maxAge: 7 * 24 * 60 * 60 * 1000,
-  //   });
-  //   return res.status(HttpStatusCodes.OK).json(
-  //     new ApiResponse(
-  //       HttpStatusCodes.OK,
-  //       '액세스 토큰이 성공적으로 갱신되었습니다.',
-  //       {
-  //         accessToken: newAccessToken,
-  //       }
-  //     )
-  //   );
-  // }
-
   @Post('refresh')
-  async refreshAccessToken(@Req() req: any, @Res() res: Response) {
-    console.log('Refresh Token API 호출');
-    const refreshToken = req.cookies['refreshToken'];
-    console.log('refreshToken from Cookie: ' + refreshToken);
-    // 1. Refresh Token이 없는 경우 예외 처리
-    if (!refreshToken) {
-      console.error('리프레쉬 토큰 없음');
-      throw new HttpException(
-        ErrorMessages.AUTH.INVALID_REFRESH_TOKEN.text,
-        ErrorMessages.AUTH.INVALID_REFRESH_TOKEN.code
-      );
+  async refreshAccessToken(
+    @Body('user_id') userId: number, // user_id는 숫자로 받음
+    @Res() res: Response
+  ) {
+    if (userId === undefined || userId === null) {
+      throw new HttpException('User ID is required', HttpStatus.BAD_REQUEST);
     }
-    console.log('요청된 Refresh Token:', refreshToken);
-
+    console.log(userId);
     try {
-      // 2. Refresh Token에서 User ID 추출
-      const userId = this.authService.getUserIdFromRefreshToken(refreshToken);
-      if (!userId) {
-        console.error('Refresh Token으로부터 User ID 추출 실패');
-        throw new HttpException(
-          ErrorMessages.AUTH.INVALID_REFRESH_TOKEN.text,
-          ErrorMessages.AUTH.INVALID_REFRESH_TOKEN.code
-        );
-      }
-      console.log('추출된 User ID:', userId);
+      // 리프레쉬 토큰 확인 및 액세스 토큰 재발급
+      const newAccessToken = await this.authService.renewAccessToken(userId);
 
-      // 3. Refresh Token 유효성 검증
-      const isValid = await this.authService.validateRefreshToken(
-        userId,
-        refreshToken
-      );
-      console.log('Refresh Token 유효성 검증 결과:', isValid);
+      // 성공 메시지와 새로운 액세스 토큰 반환
+      const response = {
+        message: {
+          code: 200,
+          text: 'Access token이 성공적으로 갱신 되었습니다.',
+        },
+        access_token: newAccessToken,
+      };
 
-      if (!isValid) {
-        console.error('Refresh Token이 Redis와 일치하지 않음');
-        throw new HttpException(
-          ErrorMessages.AUTH.INVALID_REFRESH_TOKEN.text,
-          ErrorMessages.AUTH.INVALID_REFRESH_TOKEN.code
-        );
-      }
-
-      // 4. 새로운 Access Token 및 Refresh Token 생성
-      const newAccessToken = this.authService.generateAccessToken(userId);
-      const newRefreshToken = this.authService.generateRefreshToken(userId);
-
-      console.log('새로운 Access Token:', newAccessToken);
-      console.log('새로운 Refresh Token:', newRefreshToken);
-
-      // 5. Redis에 새로운 Refresh Token 저장
-      await this.authService.storeRefreshToken(userId, newRefreshToken);
-
-      // 6. Refresh Token을 쿠키에 저장
-      res.cookie('refreshToken', refreshToken, {
-        httpOnly: false,
-        secure: false,
-        sameSite: 'none',
-        path: '/',
-        maxAge: 7 * 24 * 60 * 60,
-      });
-
-      return res.status(HttpStatusCodes.OK).json(
-        new ApiResponse(
-          HttpStatusCodes.OK,
-          '액세스 토큰이 성공적으로 갱신되었습니다.',
-          {
-            accessToken: newAccessToken,
-          }
-        )
-      );
+      return res.status(200).json(response);
     } catch (error) {
-      console.error('Refresh Token 갱신 중 오류 발생:', error.message);
-      return res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR).json({
-        message: 'Internal Server Error',
-      });
+      //throw new HttpException(error.message, HttpStatus.UNAUTHORIZED);
+      console.log(error);
     }
   }
-
   @Post('logout')
+  @UseGuards(JwtAuthGuard)
   async logout(@Req() req: any, @Res() res: Response) {
-    res.clearCookie('refreshToken'); // HTTP-Only 쿠키 삭제
+    const userId = req.user?.user_id;
+    await this.authService.deleteRefreshToken(userId);
     return res
       .status(HttpStatusCodes.OK)
       .json(new ApiResponse(HttpStatusCodes.OK, '로그아웃 성공'));
+  }
+
+  @Post('signup')
+  async signup(
+    @Body() body: { email: string; nickname: string; password: string }
+  ) {
+    const result = await this.authService.signup(
+      body.email,
+      body.nickname,
+      body.password
+    );
+    return {
+      message: 'Signup successful',
+      user: result,
+    };
+  }
+
+  @Post('login')
+  async login(@Body() body: { email: string; password: string }) {
+    const result = await this.authService.login(body.email, body.password);
+    return {
+      message: 'Login successful',
+      user: result.user,
+      access_token: result.accessToken,
+    };
   }
 }
