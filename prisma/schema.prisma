@@ -12,6 +12,7 @@ model User {
   email            String             @unique
   name             String
   nickname         String
+  password         String?
   auth_provider    String
   profile_url      String?
   role_id          Int

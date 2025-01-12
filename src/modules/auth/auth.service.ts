@@ -1,4 +1,4 @@
-import { Injectable, HttpException } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { RedisService } from '@modules/redis/redis.service';
 import { PrismaService } from '@src/prisma/prisma.service';
@@ -124,16 +124,17 @@ export class AuthService {
         auth_provider: 'github',
       });
 
-      const jwt = this.generateAccessToken(user.id);
-      const refreshToken = await this.generateRefreshToken(user.id); // 리프레시 토큰 생성
+      const accessToken = this.generateAccessToken(user.id);
+      const refreshToken = this.generateRefreshToken(user.id); // 리프레시 토큰 생성
 
       // Redis에 리프레시 토큰 저장
       await this.storeRefreshToken(user.id, refreshToken);
       const responseUser = this.filterUserFields(user);
+
       return {
         user: responseUser,
-        accessToken: jwt,
-        refreshToken: refreshToken, // 리프레시 토큰 반환
+        accessToken,
+        refreshToken,
         isExistingUser,
       };
     } catch (error) {
@@ -152,10 +153,18 @@ export class AuthService {
   }
   // 사용자 찾기 또는 생성
   async findOrCreateUser(profile: AuthUserDto) {
-    return this.prisma.user.upsert({
+    // 이메일로 유저 찾기
+    const existingUser = await this.prisma.user.findUnique({
       where: { email: profile.email },
-      update: {}, // 이미 존재하면 아무것도 업데이트하지 않음
-      create: {
+    });
+
+    if (existingUser) {
+      return existingUser; // 기존 유저 반환
+    }
+
+    // 새 유저 생성
+    return this.prisma.user.create({
+      data: {
         email: profile.email,
         name: profile.name,
         nickname: profile.nickname,
@@ -170,6 +179,61 @@ export class AuthService {
     });
   }
 
+  // 회원가입 로직
+  async signup(email: string, nickname: string, password: string) {
+    // 이메일 중복 확인
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email },
+    });
+    if (existingUser) {
+      throw new HttpException('Email already exists', HttpStatus.BAD_REQUEST);
+    }
+
+    // 새로운 사용자 생성
+    const newUser = await this.prisma.user.create({
+      data: {
+        email,
+        name: nickname,
+        nickname,
+        password,
+        auth_provider: 'pad', // 소셜 로그인과 구분
+        role: { connect: { id: 1 } },
+        status: { connect: { id: 1 } },
+      },
+    });
+
+    return {
+      user_id: newUser.id,
+      email: newUser.email,
+      nickname: newUser.nickname,
+    };
+  }
+
+  // 로그인 로직
+  async login(email: string, password: string) {
+    // 사용자 조회
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+    if (!user || user.password !== password) {
+      throw new HttpException(
+        'Invalid email or password',
+        HttpStatus.UNAUTHORIZED
+      );
+    }
+
+    // 액세스 토큰 및 리프레시 토큰 생성
+    const accessToken = this.generateAccessToken(user.id);
+    const refreshToken = this.generateRefreshToken(user.id);
+
+    // Redis에 리프레시 토큰 저장
+    await this.storeRefreshToken(user.id, refreshToken);
+    const responseUser = this.filterUserFields(user);
+    return {
+      user: responseUser,
+      accessToken,
+    };
+  }
   private filterUserFields(user: any) {
     return {
       user_id: user.id,
@@ -186,7 +250,7 @@ export class AuthService {
     console.log(`Access Token 생성: userId=${userId}`);
     return this.jwtService.sign(
       { userId },
-      { expiresIn: '1m', secret: process.env.ACCESS_TOKEN_SECRET }
+      { expiresIn: '7d', secret: process.env.ACCESS_TOKEN_SECRET }
     );
   }
 
@@ -274,5 +338,51 @@ export class AuthService {
       message: roleMessages[roleId],
     };
     return result;
+  }
+
+  async renewAccessToken(userId: number): Promise<string> {
+    const redisKey = `refresh_token:${userId}`;
+    const refreshToken = await this.redisService.get(redisKey);
+
+    if (!refreshToken) {
+      console.error(`No refresh token found for Redis key: ${redisKey}`);
+      throw new Error('Refresh token not found for user');
+    }
+
+    console.log(`Retrieved refresh token from Redis: ${refreshToken}`);
+
+    try {
+      const payload = this.jwtService.verify(refreshToken, {
+        secret: process.env.REFRESH_TOKEN_SECRET,
+        algorithms: ['HS256'], // 생성 시와 동일한 알고리즘
+      });
+      console.log(`Decoded payload:`, payload);
+
+      if (payload.userId !== userId) {
+        console.error(
+          `Token userId mismatch. Expected: ${userId}, Got: ${payload.userId}`
+        );
+        throw new Error('Invalid refresh token');
+      }
+    } catch (error) {
+      if (error.name === 'TokenExpiredError') {
+        throw new HttpException(
+          'Refresh token has expired',
+          HttpStatus.BAD_REQUEST
+        );
+      }
+      throw new HttpException(
+        'Refresh token validation failed',
+        HttpStatus.UNAUTHORIZED
+      );
+    }
+
+    const newAccessToken = this.jwtService.sign(
+      { userId },
+      { expiresIn: '15m', secret: process.env.ACCESS_TOKEN_SECRET }
+    );
+
+    console.log(`Generated new access token: ${newAccessToken}`);
+    return newAccessToken;
   }
 }
