@@ -1,4 +1,4 @@
-import { Injectable, HttpException } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { RedisService } from '@modules/redis/redis.service';
 import { PrismaService } from '@src/prisma/prisma.service';
@@ -124,16 +124,17 @@ export class AuthService {
         auth_provider: 'github',
       });
 
-      const jwt = this.generateAccessToken(user.id);
+      const accessToken = this.generateAccessToken(user.id);
       const refreshToken = this.generateRefreshToken(user.id); // 리프레시 토큰 생성
 
       // Redis에 리프레시 토큰 저장
       await this.storeRefreshToken(user.id, refreshToken);
       const responseUser = this.filterUserFields(user);
+
       return {
         user: responseUser,
-        accessToken: jwt,
-        refreshToken: refreshToken, // 리프레시 토큰 반환
+        accessToken,
+        refreshToken,
         isExistingUser,
       };
     } catch (error) {
@@ -194,7 +195,7 @@ export class AuthService {
     console.log(`Access Token 생성: userId=${userId}`);
     return this.jwtService.sign(
       { userId },
-      { expiresIn: '1m', secret: process.env.ACCESS_TOKEN_SECRET }
+      { expiresIn: '15m', secret: process.env.ACCESS_TOKEN_SECRET }
     );
   }
 
@@ -309,8 +310,16 @@ export class AuthService {
         throw new Error('Invalid refresh token');
       }
     } catch (error) {
-      console.error(`JWT verification error: ${error.message}`);
-      throw new Error('Refresh token validation failed');
+      if (error.name === 'TokenExpiredError') {
+        throw new HttpException(
+          'Refresh token has expired',
+          HttpStatus.BAD_REQUEST
+        );
+      }
+      throw new HttpException(
+        'Refresh token validation failed',
+        HttpStatus.UNAUTHORIZED
+      );
     }
 
     const newAccessToken = this.jwtService.sign(
