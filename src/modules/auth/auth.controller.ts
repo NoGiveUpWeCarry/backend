@@ -64,7 +64,7 @@ export class AuthController {
     const response = {
       message: {
         code: 200,
-        message: 'Google 로그인 성공',
+        message: 'Github 로그인 성공',
       },
       user,
       accessToken,

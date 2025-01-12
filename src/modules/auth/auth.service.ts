@@ -250,7 +250,7 @@ export class AuthService {
     console.log(`Access Token 생성: userId=${userId}`);
     return this.jwtService.sign(
       { userId },
-      { expiresIn: '15m', secret: process.env.ACCESS_TOKEN_SECRET }
+      { expiresIn: '7d', secret: process.env.ACCESS_TOKEN_SECRET }
     );
   }
 
