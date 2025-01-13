@@ -5,6 +5,8 @@ import { PrismaService } from '@src/prisma/prisma.service';
 export class ChatService {
   constructor(private readonly prisma: PrismaService) {}
 
+  // ---- Socket ----
+
   // 채널 id를 리턴하는 로직
   async getChannelId(userId1, userId2) {
     // 매핑 테이블에서 파라미터로 전달된 유저 아이디에 해당하는 데이터 찾기
@@ -78,4 +80,20 @@ export class ChatService {
     return data;
   }
   // 메세지 상태 업데이트
+
+  // ---- HTTP ----
+
+  // 전체 조회
+  async getAllChannels(id: number) {
+    const result = await this.prisma.channel_users.findMany({
+      where: { user_id: id },
+      select: { channel_id: true },
+    });
+
+    const data = result.map(channel => ({
+      id: channel.channel_id,
+    }));
+
+    return data;
+  }
 }
