@@ -4,14 +4,22 @@ import {
   MessageBody,
   WebSocketServer,
   ConnectedSocket,
+  OnGatewayConnection,
 } from '@nestjs/websockets';
 import { ChatService } from './chat.service';
 import { Server, Socket } from 'socket.io';
 
 @WebSocketGateway({ namespace: 'chat', cors: { origin: '*' } })
-export class ChatGateway {
+export class ChatGateway implements OnGatewayConnection {
   constructor(private readonly chatService: ChatService) {}
   @WebSocketServer() server: Server;
+
+  async handleConnection(client: Socket) {
+    const userId = client.handshake.query.userId;
+    client.data.userId = userId;
+    console.log(`User ${userId} connected`);
+  }
+
   // 채팅방 참여
   @SubscribeMessage('joinChannel')
   async handleJoinChannel(
@@ -19,6 +27,7 @@ export class ChatGateway {
     @ConnectedSocket() client: Socket
   ) {
     const { userId1, userId2 } = data;
+    client.data.userId = userId1;
 
     // 채널 id 조회
     const channelId = await this.chatService.getChannelId(userId1, userId2);
