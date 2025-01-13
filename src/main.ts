@@ -2,12 +2,14 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from '@common/filters/http-exception.filter';
 import { config } from 'dotenv';
+import * as cookieParser from 'cookie-parser';
 config();
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.use(cookieParser());
   app.enableCors({
-    origin: true,
+    origin: ['http://localhost:5173', 'http://localhost:8080'],
     credentials: true,
     exposedHeaders: ['Authorization'],
   });
