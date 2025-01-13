@@ -1,4 +1,4 @@
-import { Controller, Get, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { JwtAuthGuard } from '@src/modules/auth/guards/jwt-auth.guard';
 
@@ -12,5 +12,11 @@ export class ChatController {
   async getAllChannels(@Req() req: any) {
     const userId = +req.user.user_id;
     return this.chatService.getAllChannels(userId);
+  }
+
+  @Get('channels/:id')
+  @UseGuards(JwtAuthGuard)
+  async getChannel(@Param('id') id: number) {
+    return this.chatService.getChannel(+id);
   }
 }

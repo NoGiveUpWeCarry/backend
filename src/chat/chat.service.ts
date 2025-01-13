@@ -96,4 +96,38 @@ export class ChatService {
 
     return data;
   }
+
+  async getChannel(channelId: number) {
+    try {
+      const result = await this.prisma.channel.findUnique({
+        where: { id: channelId },
+        include: {
+          Channel_users: { select: { user_id: true } },
+          Message: { take: 1, orderBy: { created_at: 'desc' } },
+        },
+      });
+
+      const nickname = await this.prisma.user.findMany({
+        where: {
+          id: { in: result.Channel_users.map(v => +v.user_id) },
+        },
+        select: { nickname: true },
+      });
+
+      const userNicnames = nickname.map(result => result.nickname);
+
+      console.log(nickname);
+      const data = {
+        id: channelId,
+        title: result.name,
+        userNicnames,
+        lastMessageTime: result.Message[0].created_at,
+        lastMessage: result.Message[0].content,
+      };
+
+      return data;
+    } catch (err) {
+      return err;
+    }
+  }
 }
