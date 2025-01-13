@@ -44,9 +44,7 @@ model User {
   UserApplyProject UserApplyProject[]
   UserLinks        UserLink[]
   UserSkills       UserSkill[]
-  Channel_users    Channel_users[]
-  Message          Message[]
-  Message_status   Message_status[]
+
 
   @@index([role_id], map: "User_role_id_fkey")
   @@index([status_id], map: "User_status_id_fkey")
