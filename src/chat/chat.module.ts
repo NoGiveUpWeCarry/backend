@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { PrismaModule } from '@src/prisma/prisma.module';
-import { AuthModule } from '@modules/auth/auth.module'; // AuthModule 추가
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
-  imports: [PrismaModule, AuthModule],
+  imports: [PrismaModule, JwtModule],
   providers: [ChatService],
   exports: [ChatService],
 })
