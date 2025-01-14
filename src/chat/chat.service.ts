@@ -130,4 +130,14 @@ export class ChatService {
       return err;
     }
   }
+
+  // 온라인 유저 DB에 저장
+  async addUserOnline(userId, clientId) {
+    await this.prisma.online_users.create({
+      data: {
+        user_id: userId,
+        client_id: clientId,
+      },
+    });
+  }
 }
