@@ -145,4 +145,14 @@ export class ChatService {
       },
     });
   }
+
+  // 유저 아이디를 통해 유저의 소켓 아이디 가져오기
+  async getSocketId(userId: number) {
+    const socketId = await this.prisma.online_users.findMany({
+      where: {
+        user_id: userId,
+      },
+    });
+    return socketId;
+  }
 }
