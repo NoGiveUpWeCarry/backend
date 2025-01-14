@@ -83,18 +83,14 @@ export class ChatService {
 
   // ---- HTTP ----
 
-  // 전체 조회
+  // 유저가 참여한 채널 전체 조회
   async getAllChannels(id: number) {
     const result = await this.prisma.channel_users.findMany({
       where: { user_id: id },
       select: { channel_id: true },
     });
 
-    const data = result.map(channel => ({
-      id: channel.channel_id,
-    }));
-
-    return data;
+    return result;
   }
 
   async getChannel(channelId: number) {
@@ -137,6 +133,15 @@ export class ChatService {
       data: {
         user_id: userId,
         client_id: clientId,
+      },
+    });
+  }
+
+  // 오프라인 유저 DB에서 삭제
+  async deleteUserOnline(userId: number) {
+    await this.prisma.online_users.deleteMany({
+      where: {
+        user_id: userId,
       },
     });
   }
