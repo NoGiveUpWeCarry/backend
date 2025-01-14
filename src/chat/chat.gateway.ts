@@ -68,10 +68,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // 온라인 일때
     if (targetSocket) {
       // 유저2의 소켓 가져오기
-      const user2Socket = this.server.sockets.sockets.get(
-        targetSocket.toString()
+      const sockets = await this.server.fetchSockets();
+      const user2Socket = sockets.find(
+        socket => socket.id === targetSocket.toString()
       );
+
       // 유저2의 채널 리스트에 해당 채널 추가
+      client.emit('channelAdded', channel);
       user2Socket.emit('channelAdded', channel);
       console.log(`channel ${channelId} added in ${userId2} channel list`);
     } else {
@@ -80,7 +83,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     // 클라이언트에 채널id 전달
-    client.emit('channelJoined', channel);
+    client.emit('channelCreated', channel);
   }
 
   // 채널 참여
@@ -92,8 +95,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const { userId, channelId } = data;
 
     // 채널 참여
-    client.join(channelId);
-
+    client.join(channelId.toString());
+    console.log(`유저 ${userId} 채널 ${channelId} 참여`);
     // 채널 객체
     const channel = { channelId };
 
