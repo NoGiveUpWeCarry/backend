@@ -7,11 +7,19 @@ import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  @Get(':userId')
+  @Get(':userId/profile')
   async getUserProfile(@Param('userId') userId: string, @Req() req) {
     const loggedInUserId = req.user?.user_id;
     const numUserId = parseInt(userId); // 인증된 사용자 ID
     console.log(loggedInUserId);
     return this.userService.getUserProfile(loggedInUserId, numUserId);
+  }
+
+  @Get(':userId/follow-relations')
+  async getFollowRelations(@Param('userId') userId: string, @Req() req) {
+    const loggedInUserId = req.user?.user_id;
+    const numUserId = parseInt(userId); // 인증된 사용자 ID
+    console.log(loggedInUserId);
+    return this.userService.getFollowRelations(loggedInUserId, numUserId);
   }
 }

@@ -60,4 +60,32 @@ export class UserService {
       console.error(err);
     }
   }
+
+  async getFollowRelations(loggedInUserId: number, targetUserId: number) {
+    // 로그인한 사용자와 조회 대상 사용자가 같은지 확인
+    const isOwnProfile = loggedInUserId === targetUserId;
+    const followers = await this.prisma.follows.findMany({
+      where: { followed_user_id: targetUserId },
+      include: { following_user: true },
+    });
+
+    const followings = await this.prisma.follows.findMany({
+      where: { following_user_id: targetUserId },
+      include: { followed_user: true },
+    });
+
+    return {
+      isOwnProfile,
+      followers: followers.map(f => ({
+        id: f.following_user.id,
+        nickname: f.following_user.nickname,
+        profileUrl: f.following_user.profile_url,
+      })),
+      followings: followings.map(f => ({
+        id: f.followed_user.id,
+        nickname: f.followed_user.nickname,
+        profileUrl: f.followed_user.profile_url,
+      })),
+    };
+  }
 }
