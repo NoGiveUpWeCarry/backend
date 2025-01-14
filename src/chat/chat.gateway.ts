@@ -18,23 +18,34 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   // 유저 소켓 접속
   async handleConnection(client: Socket) {
-    const userId = client.handshake.query.userId;
-    client.data.userId = userId;
+    const userId = +client.handshake.query.userId;
+    client.data.userId = userId; // userId 넘버로 저장
 
+    // 유저 온라인 -> DB에 저장
     await this.chatService.addUserOnline(userId, client.id);
     console.log(`User ${userId} connected with socket ID ${client.id}`);
+
+    // 유저가 참여한 전체 채널 조회
+    const channels = await this.chatService.getAllChannels(userId);
+
+    // channel(유저가 참여한 전체 채널) 배열 형태로 전송
+    client.emit('fetchChanneles', channels);
   }
 
   // 유저 소켓 접속 해제
-  handleDisconnect(client: Socket) {
-    console.log('유저 연결 해제', client.data.userId);
-    // 유저가 연결 끊을 때, 온라인 유저 목록에서 삭제
-    this.onlineUsers.delete(client.data.userId);
+  async handleDisconnect(client: Socket) {
+    // 유저 아이디 소켓 객체(client)에서 가져옴
+    const userId = client.data.userId;
+
+    // 온라인 여부 DB에서 삭제
+    await this.chatService.deleteUserOnline(userId);
+
+    console.log(`User ${userId} disconnected.`);
   }
 
-  // 채팅방 참여
-  @SubscribeMessage('joinChannel')
-  async handleJoinChannel(
+  // 1대1 새 채팅방 생성 (userId1(클라이언트/본인), userId2(상대방))
+  @SubscribeMessage('createChannel')
+  async handleCreateChannel(
     @MessageBody() data: { userId1: number; userId2: number },
     @ConnectedSocket() client: Socket
   ) {
@@ -43,28 +54,50 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // 채널 id 조회
     const channelId = await this.chatService.getChannelId(userId1, userId2);
 
+    // 채널 객체
+    const channel = { channelId };
+
     // 채널에 유저 참여
     client.join(channelId.toString());
     console.log(`client ${client.data.userId}  ${channelId}번 채팅방 입장`);
 
     // B 유저 온라인 여부 확인
-    const targetSocket = this.onlineUsers.get(userId2.toString());
+    const targetSocket = await this.chatService.getSocketId(userId2);
+
+    // 온라인 일때
     if (targetSocket) {
-      // 온라인
-      targetSocket.join(channelId.toString()); // B 유저도 채널에 입장
-      targetSocket.emit('channelJoined', { channelId: channelId.toString() });
-      console.log(
-        `client ${userId2} ${channelId}번 채팅방 입장 (온라인 바로 입장)`
+      // 유저2의 소켓 가져오기
+      const user2Socket = this.server.sockets.sockets.get(
+        targetSocket.toString()
       );
+      // 유저2의 채널 리스트에 해당 채널 추가
+      user2Socket.emit('channelAdded', channel);
+      console.log(`channel ${channelId} added in ${userId2} channel list`);
     } else {
-      // 오프라인
-      // 채팅 요청에 올려둠
-      this.chatRequest.set(userId2.toString(), channelId.toString());
-      console.log(`client ${userId2} 오프라인 `);
+      // 오프라인 일때
+      console.log(`User ${userId2} is not connected.`);
     }
 
     // 클라이언트에 채널id 전달
-    client.emit('channelJoined', { channelId: channelId.toString() });
+    client.emit('channelJoined', channel);
+  }
+
+  // 채널 참여
+  @SubscribeMessage('joinChannel')
+  async handleJoinChannel(
+    @MessageBody() data: { userId: number; channelId: string },
+    @ConnectedSocket() client: Socket
+  ) {
+    const { userId, channelId } = data;
+
+    // 채널 참여
+    client.join(channelId);
+
+    // 채널 객체
+    const channel = { channelId };
+
+    // 클라이언트에 채널id 전달
+    client.emit('channelJoined', channel);
   }
 
   // 메세지 송수신
