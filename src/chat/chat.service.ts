@@ -63,7 +63,7 @@ export class ChatService {
 
   // 유저 정보 확인
   async getSenderProfile(userId) {
-    const data = await this.prisma.user.findUnique({
+    const result = await this.prisma.user.findUnique({
       where: {
         id: userId,
       },
@@ -77,6 +77,8 @@ export class ChatService {
         auth_provider: true,
       },
     });
+    const { id, ...resData } = result;
+    const data = { user_id: id, ...resData };
     return data;
   }
   // 메세지 상태 업데이트
