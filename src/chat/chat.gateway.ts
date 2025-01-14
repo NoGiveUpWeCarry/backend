@@ -50,6 +50,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket
   ) {
     const { userId1, userId2 } = data;
+    client.data.userId = userId1;
 
     // 채널 id 조회
     const channelId = await this.chatService.getChannelId(userId1, userId2);
