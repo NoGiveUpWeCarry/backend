@@ -152,7 +152,10 @@ export class ChatService {
       where: {
         user_id: userId,
       },
+      select: {
+        client_id: true,
+      },
     });
-    return socketId;
+    return socketId[0].client_id;
   }
 }
