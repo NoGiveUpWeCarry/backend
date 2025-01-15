@@ -77,8 +77,16 @@ export class ChatService {
         auth_provider: true,
       },
     });
-    const { id, ...resData } = result;
-    const data = { user_id: id, ...resData };
+
+    const data = {
+      userId: result.id,
+      email: result.email,
+      nickname: result.nickname,
+      profileUrl: result.profile_url,
+      authProvide: result.auth_provider,
+      roleId: result.role_id,
+    };
+
     return data;
   }
   // 메세지 상태 업데이트

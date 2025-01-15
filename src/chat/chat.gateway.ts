@@ -127,6 +127,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     // 유저 정보 추가
     const user = await this.chatService.getSenderProfile(userId);
+
     const date = new Date();
 
     // 전달 데이터 양식
