@@ -108,7 +108,7 @@ export class ChatService {
 
       // 아닐 시 예외처리
       if (!auth.length) {
-        throw new Error();
+        throw new Error('권한 X');
       }
 
       // 채널 데이터 조회
@@ -157,7 +157,7 @@ export class ChatService {
       };
       return { channel, message };
     } catch (err) {
-      return err;
+      return err.message;
     }
   }
 
@@ -206,7 +206,7 @@ export class ChatService {
 
       // 아닐 시 예외처리
       if (!auth.length) {
-        throw new Error();
+        throw new Error('권한 X');
       }
 
       // 메세지 데이터 조회
@@ -262,7 +262,7 @@ export class ChatService {
       // 응답데이터 {메세지데이터, 페이지네이션}
       return { messages: data, pagenation, message };
     } catch (err) {
-      return err;
+      return err.message;
     }
   }
 }
