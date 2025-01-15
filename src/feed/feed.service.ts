@@ -6,7 +6,6 @@ export class FeedService {
   constructor(private readonly prisma: PrismaService) {}
   /** 피드 전체 조회 / 남은 구현 과제
    * 유저 토큰 제공 시 좋아요 여부
-   * 인기순 정렬
    * 예외 처리
    **/
   async getAllFeeds() {
@@ -32,6 +31,8 @@ export class FeedService {
             },
           },
         },
+        // 인기순 정렬 : 좋아요 순
+        orderBy: { like_count: 'desc' },
       });
 
       const posts = result.map(post => ({
