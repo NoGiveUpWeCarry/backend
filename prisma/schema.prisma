@@ -12,7 +12,6 @@ model User {
   email            String             @unique
   name             String
   nickname         String
-  password         String?
   auth_provider    String
   profile_url      String?
   role_id          Int
@@ -25,6 +24,7 @@ model User {
   project_alert    Boolean            @default(false)
   created_at       DateTime           @default(now())
   updated_at       DateTime           @updatedAt
+  password         String?
   ArtistData       ArtistData?
   Channel_users    Channel_users[]
   FeedComments     FeedComment[]
@@ -44,7 +44,7 @@ model User {
   UserApplyProject UserApplyProject[]
   UserLinks        UserLink[]
   UserSkills       UserSkill[]
-
+  FeedCommentLikes FeedCommentLikes[]
 
   @@index([role_id], map: "User_role_id_fkey")
   @@index([status_id], map: "User_status_id_fkey")
@@ -196,18 +196,27 @@ model FeedPostTag {
 }
 
 model FeedComment {
-  id         Int      @id @default(autoincrement())
-  user_id    Int
-  post_id    Int
-  content    String
-  image_url  String?
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  post       FeedPost @relation(fields: [post_id], references: [id])
-  user       User     @relation(fields: [user_id], references: [id])
+  id               Int                @id @default(autoincrement())
+  user_id          Int
+  post_id          Int
+  content          String
+  image_url        String?
+  created_at       DateTime           @default(now())
+  updated_at       DateTime           @updatedAt
+  post             FeedPost           @relation(fields: [post_id], references: [id])
+  user             User               @relation(fields: [user_id], references: [id])
+  FeedCommentLikes FeedCommentLikes[]
 
   @@index([post_id], map: "FeedComment_post_id_fkey")
   @@index([user_id], map: "FeedComment_user_id_fkey")
+}
+
+model FeedCommentLikes {
+  id         Int         @id @default(autoincrement())
+  user_id    Int
+  user       User        @relation(fields: [user_id], references: [id])
+  comment_id Int
+  comment    FeedComment @relation(fields: [comment_id], references: [id])
 }
 
 model FeedLike {
@@ -356,4 +365,10 @@ model Message_status {
 
   @@index([message_id], map: "Message_status_message_id_fkey")
   @@index([user_id], map: "Message_status_user_id_fkey")
+}
+
+model online_users {
+  id        Int    @id @default(autoincrement())
+  client_id String
+  user_id   Int
 }
