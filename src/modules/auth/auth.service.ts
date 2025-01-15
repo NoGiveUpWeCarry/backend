@@ -240,9 +240,9 @@ export class AuthService {
       email: user.email,
       name: user.name,
       nickname: user.nickname,
-      profile_url: user.profile_url,
-      auth_provider: user.auth_provider,
-      role_id: user.role_id,
+      profileUrl: user.profile_url,
+      authProvider: user.auth_provider,
+      roleId: user.role_id,
     };
   }
 
