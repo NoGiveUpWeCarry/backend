@@ -253,8 +253,14 @@ export class ChatService {
         totalMessageCount: data.length,
         currentPage: currentPage,
       };
+
+      const message = {
+        code: 200,
+        text: '데이터 패칭 성공',
+      };
+
       // 응답데이터 {메세지데이터, 페이지네이션}
-      return { messages: data, pagenation };
+      return { messages: data, pagenation, message };
     } catch (err) {
       return err;
     }
