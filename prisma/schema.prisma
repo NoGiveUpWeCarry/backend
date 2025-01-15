@@ -45,7 +45,6 @@ model User {
   UserLinks        UserLink[]
   UserSkills       UserSkill[]
 
-
   @@index([role_id], map: "User_role_id_fkey")
   @@index([status_id], map: "User_status_id_fkey")
 }
@@ -356,4 +355,10 @@ model Message_status {
 
   @@index([message_id], map: "Message_status_message_id_fkey")
   @@index([user_id], map: "Message_status_user_id_fkey")
+}
+
+model online_users {
+  id        Int    @id @default(autoincrement())
+  client_id String
+  user_id   Int
 }
