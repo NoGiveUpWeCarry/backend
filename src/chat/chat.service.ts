@@ -99,8 +99,11 @@ export class ChatService {
       where: { user_id: id },
       select: { channel_id: true },
     });
+    const data = result.map(v => ({
+      channelId: v.channel_id,
+    }));
 
-    return result;
+    return data;
   }
 
   // 채널 개별 조회
