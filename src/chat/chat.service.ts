@@ -160,4 +160,71 @@ export class ChatService {
     });
     return socketId[0].client_id;
   }
+
+  // 채널 메세지 조회
+  async getMessages(userId, channelId, limit, currentPage) {
+    try {
+      // 유저 아이디가 채널에 속해있는지 확인
+      const auth = await this.prisma.channel_users.findMany({
+        where: {
+          user_id: userId,
+          channel_id: channelId,
+        },
+      });
+
+      // 아닐 시 예외처리
+      if (!auth.length) {
+        throw new Error();
+      }
+
+      // 메세지 데이터 조회
+      const result = await this.prisma.message.findMany({
+        where: {
+          channel_id: channelId,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              name: true,
+              nickname: true,
+              role: true,
+              profile_url: true,
+              auth_provider: true,
+            },
+          },
+        },
+        orderBy: {
+          id: 'desc',
+        },
+        take: limit,
+      });
+
+      // 메세지 데이터 양식화
+      const data = result.map(msg => ({
+        id: msg.id,
+        type: msg.type,
+        content: msg.content,
+        channelId: msg.channel_id,
+        date: msg.created_at,
+        user: {
+          id: msg.user.id,
+          email: msg.user.email,
+          nickname: msg.user.nickname,
+          role: msg.user.role.name,
+          profileUrl: msg.user.profile_url,
+        },
+      }));
+      // 페이지네이션
+      const pagenation = {
+        totalMessageCount: data.length,
+        currentPage: currentPage,
+      };
+      // 응답데이터 {메세지데이터, 페이지네이션}
+      return { messages: data, pagenation };
+    } catch (err) {
+      return err;
+    }
+  }
 }
