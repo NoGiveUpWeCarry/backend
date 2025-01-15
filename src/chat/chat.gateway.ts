@@ -29,7 +29,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const channels = await this.chatService.getAllChannels(userId);
 
     // channel(유저가 참여한 전체 채널) 배열 형태로 전송
-    client.emit('fetchChanneles', channels);
+    client.emit('fetchChannels', channels);
   }
 
   // 유저 소켓 접속 해제
