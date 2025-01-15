@@ -102,4 +102,37 @@ export class FeedService {
     };
     return { post };
   }
+
+  async getFeedComments(feedId) {
+    const result = await this.prisma.feedComment.findMany({
+      where: {
+        post_id: feedId,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: {
+              select: { name: true },
+            },
+            profile_url: true,
+          },
+        },
+      },
+    });
+
+    const comments = result.map(c => ({
+      commentId: c.id,
+      userId: c.user.id,
+      userName: c.user.name,
+      userRole: c.user.role.name,
+      userProfileUrl: c.user.profile_url,
+      comment: c.content,
+      createdAt: c.created_at,
+    }));
+
+    return { comments };
+  }
 }

@@ -10,9 +10,14 @@ export class FeedController {
     return this.feedService.getAllFeeds();
   }
 
-  // 피드 조회
+  // 피드 조회 (게시글)
   @Get(':id')
   async getFeed(@Param('id') feedId: number) {
     return await this.feedService.getFeed(+feedId);
+  }
+
+  @Get(':id/comments')
+  async getFeedComments(@Param('id') feedId: number) {
+    return await this.feedService.getFeedComments(+feedId);
   }
 }
