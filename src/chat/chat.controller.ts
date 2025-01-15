@@ -33,7 +33,7 @@ export class ChatController {
 
   @Get('channels/:id')
   @UseGuards(JwtAuthGuard)
-  async getChannel(@Param('id') id: number) {
-    return this.chatService.getChannel(+id);
+  async getChannel(@Req() req: any, @Param('id') channelId: number) {
+    return this.chatService.getChannel(req.user.user_id, +channelId);
   }
 }

@@ -95,35 +95,67 @@ export class ChatService {
     return result;
   }
 
-  async getChannel(channelId: number) {
+  // 채널 개별 조회
+  async getChannel(userId: number, channelId: number) {
     try {
+      // 유저 아이디가 채널에 속해있는지 확인
+      const auth = await this.prisma.channel_users.findMany({
+        where: {
+          user_id: userId,
+          channel_id: channelId,
+        },
+      });
+
+      // 아닐 시 예외처리
+      if (!auth.length) {
+        throw new Error();
+      }
+
+      // 채널 데이터 조회
       const result = await this.prisma.channel.findUnique({
         where: { id: channelId },
         include: {
-          Channel_users: { select: { user_id: true } },
-          Message: { take: 1, orderBy: { created_at: 'desc' } },
+          Channel_users: {
+            select: {
+              user: {
+                select: { nickname: true },
+              },
+            },
+          },
+          Message: {
+            take: 1,
+            orderBy: { id: 'desc' },
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  email: true,
+                  name: true,
+                  nickname: true,
+                  profile_url: true,
+                  auth_provider: true,
+                  role_id: true,
+                },
+              },
+            },
+          },
         },
       });
 
-      const nickname = await this.prisma.user.findMany({
-        where: {
-          id: { in: result.Channel_users.map(v => +v.user_id) },
-        },
-        select: { nickname: true },
-      });
-
-      const userNicnames = nickname.map(result => result.nickname);
-
-      console.log(nickname);
-      const data = {
-        id: channelId,
+      // 채널 데이터 양식화
+      const channel = {
+        channelId: result.id,
         title: result.name,
-        userNicnames,
-        lastMessageTime: result.Message[0].created_at,
-        lastMessage: result.Message[0].content,
+        type: result.Channel_users.length > 2 ? 'group' : 'private',
+        users: result.Channel_users.map(v => v.user.nickname),
+        lastMessage: result.Message[0],
       };
 
-      return data;
+      const message = {
+        code: 200,
+        text: '데이터 패칭 성공',
+      };
+      return { channel, message };
     } catch (err) {
       return err;
     }
