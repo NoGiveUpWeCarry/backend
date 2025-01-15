@@ -203,7 +203,7 @@ export class AuthService {
     });
 
     return {
-      user_id: newUser.id,
+      userId: newUser.id,
       email: newUser.email,
       nickname: newUser.nickname,
     };
@@ -236,7 +236,7 @@ export class AuthService {
   }
   private filterUserFields(user: any) {
     return {
-      user_id: user.id,
+      userId: user.id,
       email: user.email,
       name: user.name,
       nickname: user.nickname,

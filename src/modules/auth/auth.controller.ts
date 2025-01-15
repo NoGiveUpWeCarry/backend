@@ -74,15 +74,10 @@ export class AuthController {
     return res.status(HttpStatusCodes.OK).json(response);
   }
 
-  // @Post('login')
-  // async login(
-  //   @Body()
-  // )
-  // Role 선택 API
   @Put('roleselect')
   @UseGuards(JwtAuthGuard)
   async selectRole(
-    @Body('role_id') roleId: number,
+    @Body('roleId') roleId: number,
     @Req() req: any,
     @Res() res: Response
   ) {
@@ -102,7 +97,7 @@ export class AuthController {
 
   @Post('refresh')
   async refreshAccessToken(
-    @Body('user_id') userId: number, // user_id는 숫자로 받음
+    @Body('userId') userId: number, // user_id는 숫자로 받음
     @Res() res: Response
   ) {
     if (userId === undefined || userId === null) {
