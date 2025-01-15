@@ -88,4 +88,16 @@ export class UserService {
       })),
     };
   }
+
+  async patchUserNickname(userId: number, nickname: string) {
+    return Promise.resolve(undefined);
+  }
+
+  async getUserSetting(userId: number) {
+    return Promise.resolve(undefined);
+  }
+
+  async patchUserIntroduce(userId: number, introduce: string) {
+    return Promise.resolve(undefined);
+  }
 }
