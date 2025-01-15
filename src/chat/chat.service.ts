@@ -222,28 +222,35 @@ export class ChatService {
       }
 
       // 메세지 데이터 조회
-      const result = await this.prisma.message.findMany({
-        where: {
-          channel_id: channelId,
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-              name: true,
-              nickname: true,
-              role: true,
-              profile_url: true,
-              auth_provider: true,
+      const [result, totalMessageCount] = await Promise.all([
+        this.prisma.message.findMany({
+          where: {
+            channel_id: channelId,
+          },
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                name: true,
+                nickname: true,
+                role: true,
+                profile_url: true,
+                auth_provider: true,
+              },
             },
           },
-        },
-        orderBy: {
-          id: 'desc',
-        },
-        take: limit,
-      });
+          orderBy: {
+            id: 'desc',
+          },
+          take: limit,
+        }),
+        this.prisma.message.count({
+          where: {
+            channel_id: channelId,
+          },
+        }),
+      ]);
 
       // 메세지 데이터 양식화
       const data = result.map(msg => ({
@@ -262,7 +269,7 @@ export class ChatService {
       }));
       // 페이지네이션
       const pagenation = {
-        totalMessageCount: data.length,
+        totalMessageCount,
         currentPage: currentPage,
       };
 
