@@ -89,7 +89,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   // 채널 참여
   @SubscribeMessage('joinChannel')
   async handleJoinChannel(
-    @MessageBody() data: { userId: number; channelId: string },
+    @MessageBody() data: { userId: number; channelId: number },
     @ConnectedSocket() client: Socket
   ) {
     const { userId, channelId } = data;
@@ -112,7 +112,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       type: string;
       content: string;
       userId: number;
-      channelId: string;
+      channelId: number;
     }
   ) {
     const { userId, ...resData } = data;
@@ -132,6 +132,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // 전달 데이터 양식
     const sendData = { ...resData, user, date };
     console.log(sendData);
-    this.server.to(data.channelId).emit('message', sendData);
+    this.server.to(data.channelId.toString()).emit('message', sendData);
   }
 }
