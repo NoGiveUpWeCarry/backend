@@ -114,7 +114,7 @@ export class AuthController {
           code: 200,
           text: 'Access token이 성공적으로 갱신 되었습니다.',
         },
-        access_token: newAccessToken,
+        accessToken: newAccessToken,
       };
 
       return res.status(200).json(response);
@@ -154,7 +154,7 @@ export class AuthController {
     return {
       message: 'Login successful',
       user: result.user,
-      access_token: result.accessToken,
+      accessToken: result.accessToken,
     };
   }
 }
