@@ -4,12 +4,18 @@ import {
   Get,
   Param,
   Patch,
+  Post,
   Req,
   Res,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
+  Delete,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @UseGuards(JwtAuthGuard)
 @Controller('users')
@@ -48,5 +54,54 @@ export class UserController {
   async patchUserIntroduce(@Req() req, @Body('introduce') introduce: string) {
     const userId = req.user?.user_id;
     return this.userService.patchUserIntroduce(userId, introduce);
+  }
+
+  @Patch('profile/status')
+  async patchUserStatus(@Req() req, @Body('status') statusId: number) {
+    const userId = req.user?.user_id;
+    return this.userService.patchUserStatus(userId, statusId);
+  }
+
+  @Post('profile/skills')
+  async patchUserSkills(@Req() req, @Body('skills') skills: string[]) {
+    const userId = req.user?.user_id;
+    return this.userService.patchUserSkills(userId, skills);
+  }
+
+  @Patch('profile/image')
+  @UseInterceptors(FileInterceptor('file'))
+  async patchProfileImage(
+    @Req() req,
+    @UploadedFile() file: Express.Multer.File
+  ) {
+    const userId = req.user?.user_id;
+    if (!file) {
+      throw new BadRequestException('파일이 업로드되지 않았습니다');
+    }
+    const fileType = file.mimetype.split('/')[1];
+    const updateUser = await this.userService.patchProfileImage(
+      userId,
+      file.buffer,
+      fileType
+    );
+    return {
+      message: '프로필 이미지가 성공적으로 업데이트되었습니다.',
+      user: updateUser,
+    };
+  }
+
+  @Delete('profile/skills')
+  async deleteUserSkills(@Req() req, @Body('skills') skills: string[]) {
+    const userId = req.user?.user_id;
+    return this.userService.deleteUserSkills(userId, skills);
+  }
+
+  @Patch('profile/notification')
+  async patchUserNotification(
+    @Req() req,
+    @Body('notification') notification: boolean
+  ) {
+    const userId = req.user?.user_id;
+    return this.userService.patchUserNotification(userId, notification);
   }
 }

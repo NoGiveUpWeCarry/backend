@@ -1,9 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@prisma/prisma.service';
+import { S3Service } from '@src/s3/s3.service';
 
 @Injectable()
 export class UserService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly s3Service: S3Service
+  ) {}
 
   async getUserProfile(loggedInUserId: number, targetUserId: number) {
     // 사용자 정보를 가져옴
@@ -98,6 +102,40 @@ export class UserService {
   }
 
   async patchUserIntroduce(userId: number, introduce: string) {
+    return Promise.resolve(undefined);
+  }
+
+  async patchUserStatus(userId: number, status_id: number) {
+    return Promise.resolve(undefined);
+  }
+
+  async patchUserSkills(userId: number, skills: string[]) {
+    return Promise.resolve(undefined);
+  }
+
+  async patchProfileImage(
+    userId: number,
+    fileBuffer: Buffer,
+    fileType: string
+  ) {
+    const imageUrl = await this.s3Service.uploadImage(
+      userId,
+      fileBuffer,
+      fileType
+    );
+
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { profile_url: imageUrl },
+      select: { id: true, nickname: true, profile_url: true },
+    });
+  }
+
+  async deleteUserSkills(userId: number, skills: string[]) {
+    return Promise.resolve(undefined);
+  }
+
+  async patchUserNotification(userId: number, notification: boolean) {
     return Promise.resolve(undefined);
   }
 }
