@@ -10,7 +10,7 @@ export class FeedController {
   @Get()
   @UseGuards(OptionalAuthGuard)
   async getAllFeed(@Req() req) {
-    return this.feedService.getAllFeeds();
+    return this.feedService.getAllFeeds(req.user);
   }
 
   // 피드 조회 (게시글)

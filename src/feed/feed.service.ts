@@ -5,13 +5,18 @@ import { PrismaService } from '@src/prisma/prisma.service';
 export class FeedService {
   constructor(private readonly prisma: PrismaService) {}
   /** 피드 전체 조회 / 남은 구현 과제
-   * 유저 토큰 제공 시 좋아요 여부
+   * 썸네일 뽑기
    * 예외 처리
    **/
-  async getAllFeeds() {
+  async getAllFeeds(user) {
     try {
+      const userId = user ? user.user_id : 0;
+
       const result = await this.prisma.feedPost.findMany({
         include: {
+          Likes: {
+            where: { user_id: userId },
+          },
           user: {
             select: {
               id: true,
@@ -49,9 +54,11 @@ export class FeedService {
         likeCount: post.like_count,
         viewCount: post.view,
         createdAt: post.created_at,
+        liked: !!post.Likes.length,
       }));
 
       return { posts };
+      // return result;
     } catch (err) {
       return err;
     }
