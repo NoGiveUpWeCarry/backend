@@ -43,13 +43,23 @@ export class FeedController {
     return await this.feedService.handlePostLikes(feedId, userId);
   }
 
-  /** 피드 등록
-   * 등록 시 썸네일 추출 -> cheerio
-   */
+  // 피드 등록
   @Post()
   @UseGuards(JwtAuthGuard)
   async createPost(@Req() req, @Body() createPostDto: CreatePostDto) {
     const userId = req.user.user_id;
     return this.feedService.createPost(createPostDto, userId);
+  }
+
+  // 댓글 등록
+  @Post(':id/comment')
+  @UseGuards(JwtAuthGuard)
+  async createComment(
+    @Req() req,
+    @Param('id') feedId: number,
+    @Body() comment
+  ) {
+    const userId = req.user.user_id;
+    return this.feedService.createComment(userId, feedId, comment.content);
   }
 }

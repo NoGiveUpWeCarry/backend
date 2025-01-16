@@ -287,4 +287,24 @@ export class FeedService {
       throw err;
     }
   }
+
+  // 댓글 등록
+  async createComment(userId, feedId, content) {
+    try {
+      await this.prisma.feedComment.create({
+        data: {
+          user_id: userId,
+          post_id: feedId,
+          content: content,
+        },
+      });
+      return { success: true, message: '댓글 등록이 완료되었습니다.' };
+    } catch (err) {
+      console.log(err);
+      throw new HttpException(
+        '서버에서 오류가 발생했습니다.',
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
 }
