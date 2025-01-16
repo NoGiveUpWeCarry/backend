@@ -212,7 +212,7 @@ export class FeedService {
           data: { like_count: { decrement: 1 } },
         });
 
-        return { message: '좋아요 취소 ' };
+        return { success: true, message: '좋아요가 취소되었습니다. ' };
       } else {
         await this.prisma.feedLike.create({
           data: {
@@ -226,7 +226,7 @@ export class FeedService {
           data: { like_count: { increment: 1 } },
         });
 
-        return { message: '좋아요 추가 ' };
+        return { success: true, message: '좋아요가 추가되었습니다. ' };
       }
     } catch (err) {
       console.log(err);
@@ -277,6 +277,7 @@ export class FeedService {
     }
   }
 
+  // 썸네일 추출
   async getThumnailUrl(text) {
     try {
       const $ = cheerio.load(text);
