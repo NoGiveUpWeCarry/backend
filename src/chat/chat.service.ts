@@ -209,13 +209,13 @@ export class ChatService {
           authProvider: res.user.auth_provider,
           roleId: res.user.role_id,
         })),
-        lastMessage: result.Message.map(res => ({
-          type: res.type,
-          content: res.content,
-          channelId: res.channel_id,
-          date: res.created_at,
-          userId: res.user_id,
-        })),
+        lastMessage: {
+          type: result.Message[0].type,
+          content: result.Message[0].content,
+          channelId: result.Message[0].channel_id,
+          date: result.Message[0].created_at,
+          userId: result.Message[0].user_id,
+        },
       };
       const message = {
         code: 200,
