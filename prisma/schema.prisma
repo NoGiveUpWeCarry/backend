@@ -28,23 +28,23 @@ model User {
   ArtistData       ArtistData?
   Channel_users    Channel_users[]
   FeedComments     FeedComment[]
+  FeedCommentLikes FeedCommentLikes[]
   FeedLikes        FeedLike[]
   FeedPosts        FeedPost[]
   Followed         Follows[]          @relation("FollowedUsers")
   Follows          Follows[]          @relation("UserFollows")
   Message          Message[]
   Message_status   Message_status[]
+  MyPageProject    MyPageProject?
+  MyPageUserLink   MyPageUserLink[]
   ProgrammerData   ProgrammerData?
-  ProjectPosts     Project?
   ProjectPost      ProjectPost[]
   ProjectSaves     ProjectSave[]
   Resume           Resume[]
   role             Role               @relation(fields: [role_id], references: [id])
   status           Status             @relation(fields: [status_id], references: [id])
   UserApplyProject UserApplyProject[]
-  UserLinks        UserLink[]
   UserSkills       UserSkill[]
-  FeedCommentLikes FeedCommentLikes[]
 
   @@index([role_id], map: "User_role_id_fkey")
   @@index([status_id], map: "User_status_id_fkey")
@@ -56,52 +56,26 @@ model Role {
   Users User[]
 }
 
-model Project {
-  id           Int           @id @default(autoincrement())
-  user_id      Int           @unique
-  title        String
-  description  String
-  created_at   DateTime      @default(now())
-  updated_at   DateTime      @updatedAt
-  user         User          @relation(fields: [user_id], references: [id])
-  ProjectLinks ProjectLink[]
-}
-
-model ProjectLink {
-  id         Int      @id @default(autoincrement())
-  project_id Int
-  type_id    Int
-  url        String
-  project    Project  @relation(fields: [project_id], references: [id])
-  type       LinkType @relation(fields: [type_id], references: [id])
-
-  @@index([project_id], map: "ProjectLink_project_id_fkey")
-  @@index([type_id], map: "ProjectLink_type_id_fkey")
-}
-
 model LinkType {
-  id    Int           @id @default(autoincrement())
-  name  String        @unique
-  Links ProjectLink[]
+  id                Int                 @id @default(autoincrement())
+  name              String              @unique
+  MyPageProjectLink MyPageProjectLink[]
 }
 
 model ProgrammerData {
-  id                Int    @id @default(autoincrement())
-  user_id           Int    @unique
-  github_username   String
-  github_url        String
-  commit_count      Int
-  contribution_data String
-  user              User   @relation(fields: [user_id], references: [id])
+  id              Int    @id @default(autoincrement())
+  user_id         Int    @unique
+  github_username String
+  user            User   @relation(fields: [user_id], references: [id])
 }
 
 model ArtistData {
-  id             Int    @id @default(autoincrement())
-  user_id        Int    @unique
-  soundcloud_url String
-  portfolio_url  String
-  music_data     String
-  user           User   @relation(fields: [user_id], references: [id])
+  id         Int     @id @default(autoincrement())
+  user_id    Int     @unique
+  music_data String?
+  music_url  String
+  platform   String
+  user       User    @relation(fields: [user_id], references: [id])
 }
 
 model Status {
@@ -135,16 +109,6 @@ model UserSkill {
 
   @@unique([user_id, skill_id])
   @@index([skill_id], map: "UserSkill_skill_id_fkey")
-}
-
-model UserLink {
-  id       Int    @id @default(autoincrement())
-  user_id  Int
-  platform String
-  link     String
-  user     User   @relation(fields: [user_id], references: [id])
-
-  @@index([user_id], map: "UserLink_user_id_fkey")
 }
 
 model Follows {
@@ -214,9 +178,12 @@ model FeedComment {
 model FeedCommentLikes {
   id         Int         @id @default(autoincrement())
   user_id    Int
-  user       User        @relation(fields: [user_id], references: [id])
   comment_id Int
   comment    FeedComment @relation(fields: [comment_id], references: [id])
+  user       User        @relation(fields: [user_id], references: [id])
+
+  @@index([comment_id], map: "FeedCommentLikes_comment_id_fkey")
+  @@index([user_id], map: "FeedCommentLikes_user_id_fkey")
 }
 
 model FeedLike {
@@ -371,4 +338,36 @@ model online_users {
   id        Int    @id @default(autoincrement())
   client_id String
   user_id   Int
+}
+
+model MyPageProject {
+  id                Int                 @id @default(autoincrement())
+  user_id           Int                 @unique
+  title             String
+  description       String
+  created_at        DateTime            @default(now())
+  updated_at        DateTime
+  User              User                @relation(fields: [user_id], references: [id])
+  MyPageProjectLink MyPageProjectLink[]
+}
+
+model MyPageProjectLink {
+  id            Int           @id @default(autoincrement())
+  project_id    Int
+  type_id       Int
+  url           String
+  MyPageProject MyPageProject @relation(fields: [project_id], references: [id])
+  LinkType      LinkType      @relation(fields: [type_id], references: [id])
+
+  @@index([project_id], map: "ProjectLink_project_id_fkey")
+  @@index([type_id], map: "ProjectLink_type_id_fkey")
+}
+
+model MyPageUserLink {
+  id      Int    @id @default(autoincrement())
+  user_id Int
+  link    String
+  User    User   @relation(fields: [user_id], references: [id])
+
+  @@index([user_id], map: "UserLink_user_id_fkey")
 }
