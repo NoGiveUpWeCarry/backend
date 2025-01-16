@@ -241,10 +241,10 @@ export class ChatService {
           },
         },
         orderBy: {
-          id: 'asc',
+          id: 'desc',
         },
         take: limit,
-        skip: currentPage - 1,
+        skip: (currentPage - 1) * limit,
       });
 
       // 메세지 데이터 양식화
