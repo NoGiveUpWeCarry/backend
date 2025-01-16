@@ -1,6 +1,7 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '@src/prisma/prisma.service';
 import { CreatePostDto } from './dto/create-post.dto';
+import * as cheerio from 'cheerio';
 
 @Injectable()
 export class FeedService {
@@ -237,15 +238,19 @@ export class FeedService {
   }
 
   // 피드 등록
-  async createPost(dto: CreatePostDto, userId: number) {
-    const { title, tags, content } = dto;
+  async createPost(createPostDto: CreatePostDto, userId: number) {
+    const { title, tags, content } = createPostDto;
     try {
+      // 썸네일 url 추출
+      const thumnailUrl = await this.getThumnailUrl(content);
+
       // FeedPost에 피드 데이터 저장
       const feedData = await this.prisma.feedPost.create({
         data: {
           user_id: userId,
           title,
           content,
+          thumbnail_url: thumnailUrl,
         },
       });
 
@@ -266,8 +271,17 @@ export class FeedService {
         data: tagData,
       });
 
-      console.log(tagIds);
-      return dto;
+      return createPostDto;
+    } catch (err) {
+      throw err;
+    }
+  }
+
+  async getThumnailUrl(text) {
+    try {
+      const $ = cheerio.load(text);
+      const thumnailUrl = $('img').first().attr('src');
+      return thumnailUrl;
     } catch (err) {
       throw err;
     }
