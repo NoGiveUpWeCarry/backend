@@ -136,4 +136,48 @@ export class FeedService {
 
     return { comments };
   }
+
+  // 게시글 좋아요 추가/제거
+  async handlePostLikes(feedId, userId) {
+    try {
+      const exist = await this.prisma.feedLike.findMany({
+        where: {
+          post_id: feedId,
+          user_id: userId,
+        },
+      });
+
+      if (exist.length) {
+        await this.prisma.feedLike.deleteMany({
+          where: {
+            post_id: feedId,
+            user_id: userId,
+          },
+        });
+
+        await this.prisma.feedPost.update({
+          where: { id: feedId },
+          data: { like_count: { decrement: 1 } },
+        });
+
+        return { message: '좋아요 취소 ' };
+      } else {
+        await this.prisma.feedLike.create({
+          data: {
+            post_id: feedId,
+            user_id: userId,
+          },
+        });
+
+        await this.prisma.feedPost.update({
+          where: { id: feedId },
+          data: { like_count: { increment: 1 } },
+        });
+
+        return { message: '좋아요 추가 ' };
+      }
+    } catch (err) {
+      return err;
+    }
+  }
 }
