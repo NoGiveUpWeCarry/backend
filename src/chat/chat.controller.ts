@@ -20,14 +20,12 @@ export class ChatController {
   async getChannelsMessages(
     @Req() req: any,
     @Param('id') channelId: number,
-    @Query('limit') limit: number,
-    @Query('currentPage') currentPage: number
+    @Query('limit') limit: number
   ) {
     return await this.chatService.getMessages(
       req.user.user_id,
       +channelId,
-      +limit,
-      +currentPage
+      +limit
     );
   }
 

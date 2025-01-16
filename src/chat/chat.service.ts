@@ -206,7 +206,7 @@ export class ChatService {
   }
 
   // 채널 메세지 조회
-  async getMessages(userId, channelId, limit, currentPage) {
+  async getMessages(userId, channelId, limit) {
     try {
       // 유저 아이디가 채널에 속해있는지 확인
       const auth = await this.prisma.channel_users.findMany({
@@ -222,35 +222,28 @@ export class ChatService {
       }
 
       // 메세지 데이터 조회
-      const [result, totalMessageCount] = await Promise.all([
-        this.prisma.message.findMany({
-          where: {
-            channel_id: channelId,
-          },
-          include: {
-            user: {
-              select: {
-                id: true,
-                email: true,
-                name: true,
-                nickname: true,
-                role: true,
-                profile_url: true,
-                auth_provider: true,
-              },
+      const result = await this.prisma.message.findMany({
+        where: {
+          channel_id: channelId,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              name: true,
+              nickname: true,
+              role: true,
+              profile_url: true,
+              auth_provider: true,
             },
           },
-          orderBy: {
-            id: 'desc',
-          },
-          take: limit,
-        }),
-        this.prisma.message.count({
-          where: {
-            channel_id: channelId,
-          },
-        }),
-      ]);
+        },
+        orderBy: {
+          id: 'desc',
+        },
+        take: limit,
+      });
 
       // 메세지 데이터 양식화
       const data = result.map(msg => ({
@@ -260,18 +253,15 @@ export class ChatService {
         channelId: msg.channel_id,
         date: msg.created_at,
         user: {
-          id: msg.user.id,
+          userId: msg.user.id,
           email: msg.user.email,
+          name: msg.user.name,
           nickname: msg.user.nickname,
-          role: msg.user.role.name,
           profileUrl: msg.user.profile_url,
+          authProvider: msg.user.auth_provider,
+          roleId: msg.user.role.id,
         },
       }));
-      // 페이지네이션
-      const pagenation = {
-        totalMessageCount,
-        currentPage: currentPage,
-      };
 
       const message = {
         code: 200,
@@ -279,7 +269,7 @@ export class ChatService {
       };
 
       // 응답데이터 {메세지데이터, 페이지네이션}
-      return { messages: data, pagenation, message };
+      return { messages: data, message };
     } catch (err) {
       return err.message;
     }
