@@ -13,7 +13,7 @@ model User {
   name             String
   nickname         String
   auth_provider    String
-  profile_url      String?
+  profile_url      String?            @db.Text
   role_id          Int
   introduce        String?
   status_id        Int
@@ -127,7 +127,7 @@ model FeedPost {
   id            Int           @id @default(autoincrement())
   user_id       Int
   title         String
-  content       String
+  content       String        @db.Text
   thumbnail_url String?
   created_at    DateTime      @default(now())
   updated_at    DateTime      @updatedAt
