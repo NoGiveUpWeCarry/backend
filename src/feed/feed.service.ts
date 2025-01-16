@@ -1,5 +1,6 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '@src/prisma/prisma.service';
+import { CreatePostDto } from './dto/create-post.dto';
 
 @Injectable()
 export class FeedService {
@@ -187,7 +188,7 @@ export class FeedService {
     }
   }
 
-  // 게시글 좋아요 추가/제거
+  // 피드 좋아요 추가/제거
   async handlePostLikes(feedId, userId) {
     try {
       const exist = await this.prisma.feedLike.findMany({
@@ -232,6 +233,43 @@ export class FeedService {
         '서버에서 오류가 발생했습니다.',
         HttpStatus.INTERNAL_SERVER_ERROR
       );
+    }
+  }
+
+  // 피드 등록
+  async createPost(dto: CreatePostDto, userId: number) {
+    const { title, tags, content } = dto;
+    try {
+      // FeedPost에 피드 데이터 저장
+      const feedData = await this.prisma.feedPost.create({
+        data: {
+          user_id: userId,
+          title,
+          content,
+        },
+      });
+
+      // 태그 이름으로 태그 id 조회
+      const tagIds = await this.prisma.feedTag.findMany({
+        where: { name: { in: tags } },
+        select: { id: true },
+      });
+
+      // 태그 데이터 양식화 {post_id, tag_id}
+      const tagData = tagIds.map(tag => ({
+        post_id: feedData.id,
+        tag_id: tag.id,
+      }));
+
+      // 태그 데이터 저장
+      await this.prisma.feedPostTag.createMany({
+        data: tagData,
+      });
+
+      console.log(tagIds);
+      return dto;
+    } catch (err) {
+      throw err;
     }
   }
 }

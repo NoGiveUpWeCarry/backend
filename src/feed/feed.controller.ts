@@ -1,7 +1,16 @@
-import { Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { FeedService } from './feed.service';
 import { OptionalAuthGuard } from '@src/modules/auth/guards/optional-auth.guard';
 import { JwtAuthGuard } from '@src/modules/auth/guards/jwt-auth.guard';
+import { CreatePostDto } from './dto/create-post.dto';
 
 @Controller('feed')
 export class FeedController {
@@ -37,4 +46,10 @@ export class FeedController {
   /** 피드 등록
    * 등록 시 썸네일 추출 -> cheerio
    */
+  @Post()
+  @UseGuards(JwtAuthGuard)
+  async createPost(@Req() req, @Body() createPostDto: CreatePostDto) {
+    const userId = req.user.user_id;
+    return this.feedService.createPost(createPostDto, userId);
+  }
 }
