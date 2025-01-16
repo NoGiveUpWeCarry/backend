@@ -15,8 +15,9 @@ export class FeedController {
 
   // 피드 조회 (게시글)
   @Get(':id')
-  async getFeed(@Param('id') feedId: number) {
-    return await this.feedService.getFeed(feedId);
+  @UseGuards(OptionalAuthGuard)
+  async getFeed(@Param('id') feedId: number, @Req() req) {
+    return await this.feedService.getFeed(feedId, req.user);
   }
 
   // 피드 조회 (댓글)

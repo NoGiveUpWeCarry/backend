@@ -65,13 +65,16 @@ export class FeedService {
   }
 
   /** 피드 조회 (게시글 부분) / 남은 구현 과제
-   * 유저 토큰 제공 시 좋아요 여부
    * 예외 처리
    **/
-  async getFeed(feedId) {
+  async getFeed(feedId, user) {
+    const userId = user ? user.user_id : 0;
     const result = await this.prisma.feedPost.findUnique({
       where: { id: feedId },
       include: {
+        Likes: {
+          where: { user_id: userId },
+        },
         user: {
           select: {
             id: true,
@@ -107,6 +110,7 @@ export class FeedService {
       likeCount: result.like_count,
       viewCount: result.view,
       createdAt: result.created_at,
+      Liked: !!result.Likes.length,
     };
     return { post };
   }
