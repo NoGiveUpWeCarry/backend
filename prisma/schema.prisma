@@ -36,14 +36,14 @@ model User {
   Message          Message[]
   Message_status   Message_status[]
   ProgrammerData   ProgrammerData?
-  ProjectPosts     Project?
+  MyPageProject    MyPageProject?
   ProjectPost      ProjectPost[]
   ProjectSaves     ProjectSave[]
   Resume           Resume[]
   role             Role               @relation(fields: [role_id], references: [id])
   status           Status             @relation(fields: [status_id], references: [id])
   UserApplyProject UserApplyProject[]
-  UserLinks        UserLink[]
+  UserLinks        MyPageUserLink[]
   UserSkills       UserSkill[]
 
 
@@ -57,7 +57,7 @@ model Role {
   Users User[]
 }
 
-model Project {
+model MyPageProject {
   id           Int           @id @default(autoincrement())
   user_id      Int           @unique
   title        String
@@ -65,15 +65,15 @@ model Project {
   created_at   DateTime      @default(now())
   updated_at   DateTime      @updatedAt
   user         User          @relation(fields: [user_id], references: [id])
-  ProjectLinks ProjectLink[]
+  ProjectLinks MyPageProjectLink[]
 }
 
-model ProjectLink {
+model MyPageProjectLink {
   id         Int      @id @default(autoincrement())
   project_id Int
   type_id    Int
   url        String
-  project    Project  @relation(fields: [project_id], references: [id])
+  project    MyPageProject  @relation(fields: [project_id], references: [id])
   type       LinkType @relation(fields: [type_id], references: [id])
 
   @@index([project_id], map: "ProjectLink_project_id_fkey")
@@ -83,25 +83,22 @@ model ProjectLink {
 model LinkType {
   id    Int           @id @default(autoincrement())
   name  String        @unique
-  Links ProjectLink[]
+  Links MyPageProjectLink[]
 }
 
 model ProgrammerData {
   id                Int    @id @default(autoincrement())
   user_id           Int    @unique
   github_username   String
-  github_url        String
-  commit_count      Int
-  contribution_data String
   user              User   @relation(fields: [user_id], references: [id])
 }
 
 model ArtistData {
   id             Int    @id @default(autoincrement())
   user_id        Int    @unique
-  soundcloud_url String
-  portfolio_url  String
-  music_data     String
+  music_url      String
+  platform       String
+  music_data     String?
   user           User   @relation(fields: [user_id], references: [id])
 }
 
@@ -138,10 +135,9 @@ model UserSkill {
   @@index([skill_id], map: "UserSkill_skill_id_fkey")
 }
 
-model UserLink {
+model MyPageUserLink {
   id       Int    @id @default(autoincrement())
   user_id  Int
-  platform String
   link     String
   user     User   @relation(fields: [user_id], references: [id])
 
