@@ -291,6 +291,7 @@ export class FeedService {
   // 댓글 등록
   async createComment(userId, feedId, content) {
     try {
+      // 댓글 데이터 저장
       await this.prisma.feedComment.create({
         data: {
           user_id: userId,
@@ -298,6 +299,13 @@ export class FeedService {
           content: content,
         },
       });
+
+      // 피드 댓글 카운트 증가
+      await this.prisma.feedPost.update({
+        where: { id: feedId },
+        data: { comment_count: { increment: 1 } },
+      });
+
       return { success: true, message: '댓글 등록이 완료되었습니다.' };
     } catch (err) {
       console.log(err);
