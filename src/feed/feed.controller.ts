@@ -16,13 +16,13 @@ export class FeedController {
   // 피드 조회 (게시글)
   @Get(':id')
   async getFeed(@Param('id') feedId: number) {
-    return await this.feedService.getFeed(+feedId);
+    return await this.feedService.getFeed(feedId);
   }
 
   // 피드 조회 (댓글)
   @Get(':id/comments')
   async getFeedComments(@Param('id') feedId: number) {
-    return await this.feedService.getFeedComments(+feedId);
+    return await this.feedService.getFeedComments(feedId);
   }
 
   // 좋아요 추가/ 제거
