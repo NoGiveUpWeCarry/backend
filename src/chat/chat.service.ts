@@ -51,7 +51,7 @@ export class ChatService {
 
   // 메세지 저장
   async createMessage(type, channelId, userId, content) {
-    await this.prisma.message.create({
+    return await this.prisma.message.create({
       data: {
         type,
         content,
@@ -81,6 +81,7 @@ export class ChatService {
     const data = {
       userId: result.id,
       email: result.email,
+      name: result.name,
       nickname: result.nickname,
       profileUrl: result.profile_url,
       authProvide: result.auth_provider,
@@ -248,7 +249,7 @@ export class ChatService {
 
       // 메세지 데이터 양식화
       const data = result.map(msg => ({
-        id: msg.id,
+        messageId: msg.id,
         type: msg.type,
         content: msg.content,
         channelId: msg.channel_id,
