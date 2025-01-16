@@ -33,4 +33,8 @@ export class FeedController {
     const userId = req.user.user_id;
     return await this.feedService.handlePostLikes(feedId, userId);
   }
+
+  /** 피드 등록
+   * 등록 시 썸네일 추출 -> cheerio
+   */
 }

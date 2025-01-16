@@ -5,7 +5,7 @@ import { PrismaService } from '@src/prisma/prisma.service';
 export class FeedService {
   constructor(private readonly prisma: PrismaService) {}
   /** 피드 전체 조회 / 남은 구현 과제
-   * 썸네일 뽑기
+   * 최신순 정렬
    * 예외 처리
    **/
   async getAllFeeds(user) {
