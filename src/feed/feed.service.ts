@@ -271,7 +271,7 @@ export class FeedService {
         data: tagData,
       });
 
-      return createPostDto;
+      return { success: true, message: '게시글 작성이 완료되었습니다.' };
     } catch (err) {
       throw err;
     }
