@@ -206,7 +206,7 @@ export class ChatService {
   }
 
   // 채널 메세지 조회
-  async getMessages(userId, channelId, limit) {
+  async getMessages(userId, channelId, limit, currentPage) {
     try {
       // 유저 아이디가 채널에 속해있는지 확인
       const auth = await this.prisma.channel_users.findMany({
@@ -240,9 +240,10 @@ export class ChatService {
           },
         },
         orderBy: {
-          id: 'desc',
+          id: 'asc',
         },
         take: limit,
+        skip: currentPage - 1,
       });
 
       // 메세지 데이터 양식화
