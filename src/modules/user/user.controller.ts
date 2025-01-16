@@ -22,20 +22,23 @@ import { FileInterceptor } from '@nestjs/platform-express';
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  @Get(':userId/profile')
+  @Get(':userId')
   async getUserProfile(@Param('userId') userId: string, @Req() req) {
     const loggedInUserId = req.user?.user_id;
     const numUserId = parseInt(userId); // 인증된 사용자 ID
-    console.log(loggedInUserId);
     return this.userService.getUserProfile(loggedInUserId, numUserId);
   }
 
-  @Get(':userId/follow-relations')
-  async getFollowRelations(@Param('userId') userId: string, @Req() req) {
-    const loggedInUserId = req.user?.user_id;
+  @Get(':userId/followers')
+  async getUserFollowers(@Param('userId') userId: string) {
     const numUserId = parseInt(userId); // 인증된 사용자 ID
-    console.log(loggedInUserId);
-    return this.userService.getFollowRelations(loggedInUserId, numUserId);
+    return this.userService.getUserFollowers(numUserId);
+  }
+
+  @Get(':userId/followers')
+  async getUserFollowings(@Param('userId') userId: string) {
+    const numUserId = parseInt(userId); // 인증된 사용자 ID
+    return this.userService.getUserFollowings(numUserId);
   }
 
   @Get('setting')
