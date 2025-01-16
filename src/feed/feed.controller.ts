@@ -1,12 +1,14 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
 import { FeedService } from './feed.service';
+import { OptionalAuthGuard } from '@src/modules/auth/guards/optional-auth.guard';
 
 @Controller('feed')
 export class FeedController {
   constructor(private readonly feedService: FeedService) {}
-  @Get()
   // 메인 페이지 조회
-  async getAllFeed() {
+  @Get()
+  @UseGuards(OptionalAuthGuard)
+  async getAllFeed(@Req() req) {
     return this.feedService.getAllFeeds();
   }
 
