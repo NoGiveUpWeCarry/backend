@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -67,7 +68,7 @@ export class UserService {
       user.role.name === 'Designer'
     ) {
       specificData = {
-        githubUsername: user.ProgrammerData?.github_username,
+        githubUsername: user.ProgrammerData?.github_username || null,
         myPageProjects: user.MyPageProject
           ? {
               title: user.MyPageProject.title,
@@ -291,6 +292,24 @@ export class UserService {
     };
   }
 
+  async updateUserJobDetail(
+    userId: number,
+    category: string,
+    jobDetail: string
+  ) {
+    const jobDetailString = `${category} / ${jobDetail}`;
+
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: { job_detail: jobDetailString },
+    });
+
+    return {
+      message: '직무 정보가 성공적으로 업데이트되었습니다.',
+      jobDetail: user.job_detail,
+    };
+  }
+
   async patchUserIntroduce(userId: number, introduce: string) {
     // 사용자의 한 줄 소개 업데이트
     const updatedUser = await this.prisma.user.update({
@@ -504,6 +523,261 @@ export class UserService {
 
     return {
       message: '사용자와 관련된 모든 데이터가 삭제되었습니다.',
+    };
+  }
+
+  async getUserResume(loggedInUserId: number, targetUserId: number) {
+    // 지원서와 사용자 정보를 함께 조회
+    const resume = await this.prisma.resume.findFirst({
+      where: { user_id: targetUserId },
+      select: {
+        title: true,
+        portfolio_url: true,
+        detail: true,
+        user: {
+          select: {
+            id: true,
+            nickname: true,
+            job_detail: true, // 직무 상세
+            UserSkills: {
+              // 기술 스택
+              include: {
+                skill: true, // 기술 이름
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!resume) {
+      throw new NotFoundException('지원서를 찾을 수 없습니다.');
+    }
+
+    // 자기 자신의 프로필인지 확인
+    const isOwnProfile = loggedInUserId === targetUserId;
+
+    // 반환 데이터 구성
+    return {
+      title: resume.title,
+      jobDetail: resume.user.job_detail, // 직무 상세
+      skills: resume.user.UserSkills.map(userSkill => userSkill.skill.name), // 기술 스택 이름 리스트
+      portfolioUrl: resume.portfolio_url,
+      detail: resume.detail,
+      user: {
+        id: resume.user.id,
+        nickname: resume.user.nickname,
+      },
+      isOwnProfile, // 본인 프로필 여부
+    };
+  }
+
+  // 지원서 생성
+  async createUserResume(
+    userId: number,
+    data: { title: string; portfolioUrl?: string; detail: string }
+  ) {
+    const newResume = await this.prisma.resume.create({
+      data: {
+        user_id: userId,
+        title: data.title,
+        portfolio_url: data.portfolioUrl,
+        detail: data.detail, // detail 정보를 introduce 필드에 저장
+      },
+    });
+
+    return newResume;
+  }
+
+  // 지원서 수정
+  async updateUserResume(
+    userId: number,
+    resumeId: number,
+    data: { title?: string; portfolioUrl?: string; detail?: string }
+  ) {
+    // 해당 지원서가 본인의 것인지 확인
+    const resume = await this.prisma.resume.findUnique({
+      where: { id: resumeId },
+    });
+
+    if (!resume) {
+      throw new NotFoundException('지원서를 찾을 수 없습니다.');
+    }
+
+    if (resume.user_id !== userId) {
+      throw new ForbiddenException('권한이 없습니다.');
+    }
+
+    // 업데이트 로직
+    const updatedResume = await this.prisma.resume.update({
+      where: { id: resumeId },
+      data: {
+        title: data.title,
+        portfolio_url: data.portfolioUrl,
+        detail: data.detail,
+      },
+    });
+
+    return updatedResume;
+  }
+
+  // 지원서 삭제
+  async deleteUserResume(userId: number, resumeId: number) {
+    // 해당 지원서가 본인의 것인지 확인
+    const resume = await this.prisma.resume.findUnique({
+      where: { id: resumeId },
+    });
+
+    if (!resume) {
+      throw new NotFoundException('지원서를 찾을 수 없습니다.');
+    }
+
+    if (resume.user_id !== userId) {
+      throw new ForbiddenException('권한이 없습니다.');
+    }
+
+    // 삭제 로직
+    await this.prisma.resume.delete({
+      where: { id: resumeId },
+    });
+
+    return { message: '지원서가 삭제되었습니다.' };
+  }
+
+  async getFeeds(userId: number, page: number = 1, limit: number = 10) {
+    // Offset 계산
+    const offset = (page - 1) * limit;
+
+    // 피드 조회
+    const feeds = await this.prisma.feedPost.findMany({
+      skip: offset,
+      take: limit,
+      orderBy: { created_at: 'desc' }, // 최신 순 정렬
+      include: {
+        user: {
+          select: {
+            id: true,
+            nickname: true,
+            profile_url: true,
+          },
+        },
+        Tags: {
+          include: {
+            tag: true, // 태그 이름 가져오기
+          },
+        },
+      },
+    });
+
+    // 총 피드 개수 (페이지네이션 용)
+    const totalCount = await this.prisma.feedPost.count();
+
+    // 반환 데이터 구성
+    return {
+      feeds: feeds.map(feed => ({
+        id: feed.id,
+        title: feed.title,
+        content: feed.content,
+        thumbnailUrl: feed.thumbnail_url,
+        createdAt: feed.created_at,
+        view: feed.view,
+        likeCount: feed.like_count,
+        commentCount: feed.comment_count,
+        user: {
+          id: feed.user.id,
+          nickname: feed.user.nickname,
+          profileUrl: feed.user.profile_url,
+        },
+        tags: feed.Tags.map(tag => tag.tag.name), // 태그 리스트
+      })),
+      totalCount,
+      currentPage: page,
+      totalPages: Math.ceil(totalCount / limit),
+    };
+  }
+
+  async getConnectionHubProjects(
+    userId: number,
+    type: 'applied' | 'created',
+    page: number = 1,
+    limit: number = 10
+  ) {
+    const offset = (page - 1) * limit;
+
+    let projectsQuery, totalCountQuery;
+
+    // 쿼리 조건 설정
+    if (type === 'applied') {
+      projectsQuery = this.prisma.userApplyProject.findMany({
+        where: { user_id: userId },
+        skip: offset,
+        take: limit,
+        include: {
+          post: {
+            include: {
+              Tags: {
+                include: { tag: true }, // 태그 정보 포함
+              },
+            },
+          },
+        },
+        orderBy: {
+          post: {
+            created_at: 'desc', // post의 created_at 기준으로 정렬
+          },
+        },
+      });
+
+      totalCountQuery = this.prisma.userApplyProject.count({
+        where: { user_id: userId },
+      });
+    } else if (type === 'created') {
+      projectsQuery = this.prisma.projectPost.findMany({
+        where: { user_id: userId },
+        skip: offset,
+        take: limit,
+        include: {
+          Tags: {
+            include: { tag: true }, // 태그 정보 포함
+          },
+        },
+        orderBy: { created_at: 'desc' },
+      });
+
+      totalCountQuery = this.prisma.projectPost.count({
+        where: { user_id: userId },
+      });
+    } else {
+      throw new BadRequestException('유효하지 않은 타입입니다.');
+    }
+
+    // 쿼리 실행
+    const [projects, totalCount] = await Promise.all([
+      projectsQuery,
+      totalCountQuery,
+    ]);
+
+    // 데이터 매핑
+    const formattedProjects = projects.map(project => {
+      const projectData = type === 'applied' ? project.post : project;
+      return {
+        projectPostId: projectData.id,
+        title: projectData.title,
+        content: projectData.content,
+        thumbnailUrl: projectData.thumbnail_url,
+        startDate: projectData.start_date,
+        duration: `${projectData.unit}`,
+        recruiting: projectData.recruiting,
+        view: projectData.view,
+        tags: projectData.Tags.map(tag => tag.tag.name),
+      };
+    });
+
+    return {
+      projects: formattedProjects,
+      totalCount,
+      currentPage: page,
+      totalPages: Math.ceil(totalCount / limit),
     };
   }
 }
