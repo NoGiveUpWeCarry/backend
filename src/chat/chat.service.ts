@@ -129,11 +129,14 @@ export class ChatService {
       where: { user_id: id },
       select: { channel_id: true },
     });
-    const data = result.map(v => ({
-      channelId: v.channel_id,
-    }));
 
-    return data;
+    const channels = [];
+    for (const res of result) {
+      const channel = await this.getChannleObj(res.channel_id);
+      channels.push(channel);
+    }
+
+    return channels;
   }
 
   // 메세지 상태 업데이트
@@ -156,67 +159,8 @@ export class ChatService {
         throw new Error('권한 X');
       }
 
-      // 채널 데이터 조회
-      const result = await this.prisma.channel.findUnique({
-        where: { id: channelId },
-        include: {
-          Channel_users: {
-            select: {
-              user: {
-                select: {
-                  id: true,
-                  email: true,
-                  name: true,
-                  nickname: true,
-                  profile_url: true,
-                  auth_provider: true,
-                  role_id: true,
-                },
-              },
-            },
-          },
-          Message: {
-            take: 1,
-            orderBy: { id: 'desc' },
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  email: true,
-                  name: true,
-                  nickname: true,
-                  profile_url: true,
-                  auth_provider: true,
-                  role_id: true,
-                },
-              },
-            },
-          },
-        },
-      });
+      const channel = await this.getChannleObj(channelId);
 
-      // 채널 데이터 양식화
-      const channel = {
-        channelId: result.id,
-        title: result.name,
-        type: result.Channel_users.length > 2 ? 'group' : 'private',
-        users: result.Channel_users.map(res => ({
-          userId: res.user.id,
-          email: res.user.email,
-          name: res.user.name,
-          nickname: res.user.nickname,
-          profileUrl: res.user.profile_url,
-          authProvider: res.user.auth_provider,
-          roleId: res.user.role_id,
-        })),
-        lastMessage: {
-          type: result.Message[0].type,
-          content: result.Message[0].content,
-          channelId: result.Message[0].channel_id,
-          date: result.Message[0].created_at,
-          userId: result.Message[0].user_id,
-        },
-      };
       const message = {
         code: 200,
         text: '데이터 패칭 성공',
@@ -225,6 +169,73 @@ export class ChatService {
     } catch (err) {
       return err.message;
     }
+  }
+
+  // 채널 객체 리턴 로직
+  async getChannleObj(channelId) {
+    // 채널 데이터 조회
+    const result = await this.prisma.channel.findUnique({
+      where: { id: channelId },
+      include: {
+        Channel_users: {
+          select: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                name: true,
+                nickname: true,
+                profile_url: true,
+                auth_provider: true,
+                role_id: true,
+              },
+            },
+          },
+        },
+        Message: {
+          take: 1,
+          orderBy: { id: 'desc' },
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                name: true,
+                nickname: true,
+                profile_url: true,
+                auth_provider: true,
+                role_id: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // 채널 데이터 양식화
+    const channel = {
+      channelId: result.id,
+      title: result.name,
+      type: result.Channel_users.length > 2 ? 'group' : 'private',
+      users: result.Channel_users.map(res => ({
+        userId: res.user.id,
+        email: res.user.email,
+        name: res.user.name,
+        nickname: res.user.nickname,
+        profileUrl: res.user.profile_url,
+        authProvider: res.user.auth_provider,
+        roleId: res.user.role_id,
+      })),
+      lastMessage: {
+        type: result.Message[0].type,
+        content: result.Message[0].content,
+        channelId: result.Message[0].channel_id,
+        date: result.Message[0].created_at,
+        userId: result.Message[0].user_id,
+      },
+    };
+
+    return channel;
   }
 
   // 채널 메세지 조회
