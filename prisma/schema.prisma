@@ -13,7 +13,7 @@ model User {
   name             String
   nickname         String
   auth_provider    String
-  profile_url      String?            @db.Text
+  profile_url      String?
   role_id          Int
   introduce        String?
   status_id        Int
@@ -25,6 +25,7 @@ model User {
   created_at       DateTime           @default(now())
   updated_at       DateTime           @updatedAt
   password         String?
+  job_detail       String?
   ArtistData       ArtistData?
   Channel_users    Channel_users[]
   FeedComments     FeedComment[]
@@ -70,12 +71,10 @@ model ProgrammerData {
 }
 
 model ArtistData {
-  id         Int     @id @default(autoincrement())
-  user_id    Int     @unique
-  music_data String?
-  music_url  String
-  platform   String
-  user       User    @relation(fields: [user_id], references: [id])
+  id        Int    @id @default(autoincrement())
+  user_id   Int    @unique
+  music_url String
+  user      User   @relation(fields: [user_id], references: [id])
 }
 
 model Status {
@@ -85,11 +84,12 @@ model Status {
 }
 
 model Resume {
-  id        Int    @id @default(autoincrement())
-  user_id   Int
-  title     String
-  introduce String
-  user      User   @relation(fields: [user_id], references: [id])
+  id            Int     @id @default(autoincrement())
+  user_id       Int
+  title         String
+  detail        String  @db.Text
+  portfolio_url String?
+  user          User    @relation(fields: [user_id], references: [id])
 
   @@index([user_id], map: "Resume_user_id_fkey")
 }
@@ -212,6 +212,7 @@ model ProjectPost {
   applicant_count Int
   view            Int
   saved_count     Int
+  created_at      DateTime            @default(now())
   Details         ProjectDetailRole[]
   user            User                @relation(fields: [user_id], references: [id])
   work_type       WorkType            @relation(fields: [work_type_id], references: [id])
