@@ -227,11 +227,11 @@ export class ChatService {
         roleId: res.user.role_id,
       })),
       lastMessage: {
-        type: result.Message[0].type,
-        content: result.Message[0].content,
-        channelId: result.Message[0].channel_id,
-        date: result.Message[0].created_at,
-        userId: result.Message[0].user_id,
+        type: result.Message[0]?.type,
+        content: result.Message[0]?.content,
+        channelId: result.Message[0]?.channel_id,
+        date: result.Message[0]?.created_at,
+        userId: result.Message[0]?.user_id,
       },
     };
 
