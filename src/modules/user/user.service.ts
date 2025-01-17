@@ -235,6 +235,36 @@ export class UserService {
     };
   }
 
+  async deleteProject(userId: number, projectId: number) {
+    // 1. 프로젝트 존재 여부 확인
+    const existingProject = await this.prisma.myPageProject.findFirst({
+      where: {
+        id: projectId,
+        user_id: userId,
+      },
+    });
+
+    if (!existingProject) {
+      throw new NotFoundException('작업물을 찾을 수 없습니다.');
+    }
+
+    // 2. 트랜잭션을 사용하여 ProjectLinks와 myPageProject 삭제
+    await this.prisma.$transaction([
+      this.prisma.myPageProjectLink.deleteMany({
+        where: { project_id: projectId },
+      }),
+      this.prisma.myPageProject.delete({
+        where: { id: projectId },
+      }),
+    ]);
+
+    // 3. 반환 데이터 구성
+    return {
+      message: '작업물이 성공적으로 삭제되었습니다.',
+      projectId,
+    };
+  }
+
   async getUserSetting(userId: number) {
     // 사용자 정보를 가져옵니다.
     const user = await this.prisma.user.findUnique({
