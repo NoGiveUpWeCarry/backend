@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -50,6 +51,14 @@ export class FeedController {
   async createPost(@Req() req, @Body() createPostDto: CreatePostDto) {
     const userId = req.user.user_id;
     return this.feedService.createPost(createPostDto, userId);
+  }
+
+  // 피드 삭제
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard)
+  async deletePost(@Req() req, @Param('id') feedId: number) {
+    const userId = req.user.user_id;
+    return this.feedService.deletePost(userId, feedId);
   }
 
   // 댓글 등록

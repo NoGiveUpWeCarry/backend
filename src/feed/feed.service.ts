@@ -276,6 +276,58 @@ export class FeedService {
     }
   }
 
+  // 피드 삭제
+  async deletePost(userId, feedId) {
+    try {
+      // 권한 확인
+      const auth = await this.prisma.feedPost.findUnique({
+        where: { id: feedId },
+        select: { user_id: true },
+      });
+      if (!auth) {
+        throw new HttpException(
+          '게시글을 찾을 수 없습니다.',
+          HttpStatus.NOT_FOUND
+        );
+      }
+      // 권한 예외 처리
+      if (userId !== auth.user_id) {
+        throw new HttpException('권한이 없습니다.', HttpStatus.FORBIDDEN);
+      }
+
+      // 트랜잭션으로 한번에 처리
+      // 태그(매핑 테이블), 댓글, 좋아요(매핑 테이블), 게시글 삭제
+      await this.prisma.$transaction([
+        this.prisma.feedPostTag.deleteMany({
+          where: { post_id: feedId },
+        }),
+
+        this.prisma.feedComment.deleteMany({
+          where: { post_id: feedId },
+        }),
+
+        this.prisma.feedLike.deleteMany({
+          where: { post_id: feedId },
+        }),
+
+        this.prisma.feedPost.delete({
+          where: { id: feedId },
+        }),
+      ]);
+
+      return { success: true, message: '피드가 삭제되었습니다.' };
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      }
+
+      throw new HttpException(
+        '서버에서 오류가 발생했습니다.',
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
   // 썸네일 추출
   async getThumnailUrl(text) {
     try {
