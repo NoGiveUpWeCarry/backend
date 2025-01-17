@@ -189,7 +189,7 @@ export class FeedService {
   }
 
   // 피드 좋아요 추가/제거
-  async handlePostLikes(feedId, userId) {
+  async handleFeedLikes(feedId, userId) {
     try {
       const exist = await this.prisma.feedLike.findMany({
         where: {
@@ -237,7 +237,7 @@ export class FeedService {
   }
 
   // 피드 등록
-  async createPost(createPostDto: CreatePostDto, userId: number) {
+  async createFeed(createPostDto: CreatePostDto, userId: number) {
     const { title, tags, content } = createPostDto;
     try {
       // 썸네일 url 추출
@@ -277,7 +277,7 @@ export class FeedService {
   }
 
   // 피드 삭제
-  async deletePost(userId, feedId) {
+  async deleteFeed(userId, feedId) {
     try {
       // 권한 확인
       const auth = await this.prisma.feedPost.findUnique({
