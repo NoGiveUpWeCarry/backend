@@ -72,4 +72,16 @@ export class FeedController {
     const userId = req.user.user_id;
     return this.feedService.createComment(userId, feedId, comment.content);
   }
+
+  // 댓글 삭제
+  @Delete(':id/comment/:commentId')
+  @UseGuards(JwtAuthGuard)
+  async deleteComment(
+    @Req() req,
+    @Param('id') feedId: number,
+    @Param('commentId') commentId: number
+  ) {
+    const userId = req.user.user_id;
+    return this.feedService.deleteComment(userId, feedId, commentId);
+  }
 }
