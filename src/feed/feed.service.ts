@@ -9,9 +9,11 @@ export class FeedService {
   /** 피드 전체 조회 / 남은 구현 과제
    * 최신순 정렬
    **/
-  async getAllFeeds(user) {
+  async getAllFeeds(user, latest) {
     try {
       const userId = user ? user.user_id : 0;
+
+      const orderKey = latest ? 'created_at' : 'like_count';
 
       const result = await this.prisma.feedPost.findMany({
         include: {
@@ -38,7 +40,7 @@ export class FeedService {
           },
         },
         // 인기순 정렬 : 좋아요 순
-        orderBy: { like_count: 'desc' },
+        orderBy: { [orderKey]: 'desc' },
       });
 
       const posts = result.map(post => ({

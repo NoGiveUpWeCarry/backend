@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -18,8 +19,8 @@ export class FeedController {
   // 메인 페이지 조회
   @Get()
   @UseGuards(OptionalAuthGuard)
-  async getAllFeed(@Req() req) {
-    return this.feedService.getAllFeeds(req.user);
+  async getAllFeed(@Req() req, @Query('latest') latest: boolean) {
+    return this.feedService.getAllFeeds(req.user, latest);
   }
 
   // 피드 조회 (게시글)
