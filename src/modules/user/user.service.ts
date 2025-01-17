@@ -810,4 +810,74 @@ export class UserService {
       totalPages: Math.ceil(totalCount / limit),
     };
   }
+
+  async addArtistWork(userId: number, musicUrl: string) {
+    const addMusicUrl = musicUrl;
+
+    if (!addMusicUrl) {
+      throw new BadRequestException('음악 URL이 필요합니다.');
+    }
+
+    const newWork = await this.prisma.artistData.create({
+      data: {
+        user_id: userId,
+        music_url: addMusicUrl,
+      },
+    });
+
+    return {
+      id: newWork.id,
+      musicUrl: newWork.music_url,
+    };
+  }
+
+  async updateArtistWork(userId: number, workId: number, musicUrl: string) {
+    const newMusicUrl = musicUrl;
+
+    if (!newMusicUrl) {
+      throw new BadRequestException('음악 URL이 필요합니다.');
+    }
+
+    const existingWork = await this.prisma.artistData.findFirst({
+      where: {
+        id: workId,
+        user_id: userId,
+      },
+    });
+
+    if (!existingWork) {
+      throw new NotFoundException('작업물을 찾을 수 없습니다.');
+    }
+
+    const updatedWork = await this.prisma.artistData.update({
+      where: { id: workId },
+      data: {
+        music_url: newMusicUrl,
+      },
+    });
+
+    return {
+      id: updatedWork.id,
+      musicUrl: updatedWork.music_url,
+    };
+  }
+
+  async deleteArtistWork(userId: number, workId: number) {
+    const existingWork = await this.prisma.artistData.findFirst({
+      where: {
+        id: workId,
+        user_id: userId,
+      },
+    });
+
+    if (!existingWork) {
+      throw new NotFoundException('작업물을 찾을 수 없습니다.');
+    }
+
+    await this.prisma.artistData.delete({
+      where: { id: workId },
+    });
+
+    return { message: '작업물이 삭제되었습니다.' };
+  }
 }
