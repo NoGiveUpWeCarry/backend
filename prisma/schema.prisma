@@ -17,6 +17,7 @@ model User {
   role_id          Int
   introduce        String?
   status_id        Int
+  job_detail       String?            // "카테고리 / 직무명" 형식으로 저장
   apply_count      Int?               @default(0)
   post_count       Int?               @default(0)
   push_alert       Boolean            @default(false)
@@ -94,12 +95,10 @@ model ProgrammerData {
 }
 
 model ArtistData {
-  id             Int    @id @default(autoincrement())
-  user_id        Int    @unique
-  music_url      String
-  platform       String
-  music_data     String?
-  user           User   @relation(fields: [user_id], references: [id])
+  id         Int     @id @default(autoincrement())
+  user_id    Int     @unique
+  music_url  String
+  user       User    @relation(fields: [user_id], references: [id])
 }
 
 model Status {
@@ -136,10 +135,10 @@ model UserSkill {
 }
 
 model MyPageUserLink {
-  id       Int    @id @default(autoincrement())
-  user_id  Int
-  link     String
-  user     User   @relation(fields: [user_id], references: [id])
+  id      Int    @id @default(autoincrement())
+  user_id Int
+  link    String
+  user    User   @relation(fields: [user_id], references: [id])
 
   @@index([user_id], map: "UserLink_user_id_fkey")
 }
@@ -160,13 +159,13 @@ model FeedPost {
   id            Int           @id @default(autoincrement())
   user_id       Int
   title         String
-  content       String
-  thumbnail_url String
+  content       String        @db.Text
+  thumbnail_url String?
   created_at    DateTime      @default(now())
   updated_at    DateTime      @updatedAt
-  view          Int
-  comment_count Int
-  like_count    Int
+  view          Int           @default(0)
+  comment_count Int           @default(0)
+  like_count    Int           @default(0)
   Comments      FeedComment[]
   Likes         FeedLike[]
   user          User          @relation(fields: [user_id], references: [id])
