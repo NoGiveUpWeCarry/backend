@@ -163,7 +163,15 @@ export class ChatService {
           Channel_users: {
             select: {
               user: {
-                select: { nickname: true },
+                select: {
+                  id: true,
+                  email: true,
+                  name: true,
+                  nickname: true,
+                  profile_url: true,
+                  auth_provider: true,
+                  role_id: true,
+                },
               },
             },
           },
@@ -192,10 +200,23 @@ export class ChatService {
         channelId: result.id,
         title: result.name,
         type: result.Channel_users.length > 2 ? 'group' : 'private',
-        users: result.Channel_users.map(v => v.user.nickname),
-        lastMessage: result.Message[0],
+        users: result.Channel_users.map(res => ({
+          userId: res.user.id,
+          email: res.user.email,
+          name: res.user.name,
+          nickname: res.user.nickname,
+          profileUrl: res.user.profile_url,
+          authProvider: res.user.auth_provider,
+          roleId: res.user.role_id,
+        })),
+        lastMessage: {
+          type: result.Message[0].type,
+          content: result.Message[0].content,
+          channelId: result.Message[0].channel_id,
+          date: result.Message[0].created_at,
+          userId: result.Message[0].user_id,
+        },
       };
-
       const message = {
         code: 200,
         text: '데이터 패칭 성공',
@@ -241,10 +262,10 @@ export class ChatService {
           },
         },
         orderBy: {
-          id: 'asc',
+          id: 'desc',
         },
         take: limit,
-        skip: currentPage - 1,
+        skip: (currentPage - 1) * limit,
       });
 
       // 메세지 데이터 양식화
