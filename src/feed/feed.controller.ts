@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   Req,
@@ -51,6 +52,17 @@ export class FeedController {
   async createFeed(@Req() req, @Body() feedDto: FeedDto) {
     const userId = req.user.user_id;
     return this.feedService.createFeed(feedDto, userId);
+  }
+
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard)
+  async updateFeed(
+    @Req() req,
+    @Body() feedDto: FeedDto,
+    @Param('id') feedId: number
+  ) {
+    const userId = req.user.user_id;
+    return this.feedService.updateFeed(feedDto, feedId, userId);
   }
 
   // 피드 삭제

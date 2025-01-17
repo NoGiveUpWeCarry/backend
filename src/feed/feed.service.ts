@@ -276,6 +276,62 @@ export class FeedService {
     }
   }
 
+  // 피드 수정
+  async updateFeed(feedDto: FeedDto, feedId: number, userId: number) {
+    try {
+      const { title, tags, content } = feedDto;
+
+      const thumnailUrl = (await this.getThumnailUrl(content)) || null;
+
+      // 권한 확인
+      const originData = await this.prisma.feedPost.findUnique({
+        where: { id: feedId },
+        select: {
+          user_id: true,
+          Tags: { select: { tag: { select: { name: true } } } },
+        },
+      });
+
+      if (originData.user_id !== userId) {
+        throw new HttpException('권한이 없습니다.', HttpStatus.FORBIDDEN);
+      }
+
+      // 태그 이름으로 태그 id 조회
+      const tagIds = await this.prisma.feedTag.findMany({
+        where: { name: { in: tags } },
+        select: { id: true },
+      });
+
+      const tagData = tagIds.map(tag => ({
+        post_id: feedId,
+        tag_id: tag.id,
+      }));
+
+      await this.prisma.feedPost.update({
+        where: { id: feedId },
+        data: {
+          title,
+          content,
+          thumbnail_url: thumnailUrl,
+          Tags: {
+            deleteMany: {},
+
+            create: tagData.map(tag => ({ tag_id: tag.tag_id })),
+          },
+        },
+      });
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      }
+
+      throw new HttpException(
+        '서버에서 오류가 발생했습니다.',
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
   // 피드 삭제
   async deleteFeed(userId, feedId) {
     try {
