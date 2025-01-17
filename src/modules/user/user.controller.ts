@@ -62,6 +62,46 @@ export class UserController {
     return this.userService.updateProject(userId, numProjectId, projectData);
   }
 
+  @Delete('projects/:projectId')
+  async deleteProject(@Req() req, @Param('projectId') projectId: string) {
+    const userId = req.user?.user_id;
+    const numProjectId = parseInt(projectId, 10);
+    return this.userService.deleteProject(userId, numProjectId);
+  }
+
+  @Post('artist/works')
+  async addWork(@Req() req, @Body() musicUrl: string) {
+    const userId = req.user?.user_id;
+    return this.userService.addArtistWork(userId, musicUrl);
+  }
+
+  @Put('artist/works/:workId')
+  async updateWork(
+    @Req() req,
+    @Param('workId') workId: string,
+    @Body() musicUrl: string
+  ) {
+    const userId = req.user?.user_id;
+    const numWorkId = parseInt(workId, 10);
+    return this.userService.updateArtistWork(userId, numWorkId, musicUrl);
+  }
+
+  @Delete('artist/works/:workId')
+  async deleteWork(@Req() req, @Param('workId') workId: string) {
+    const userId = req.user?.user_id;
+    const numWorkId = parseInt(workId, 10);
+    return this.userService.deleteArtistWork(userId, numWorkId);
+  }
+
+  @Patch('githubNickname')
+  async updateGithubUsername(
+    @Req() req,
+    @Body('githubUsername') githubUsername: string
+  ) {
+    const userId = req.user?.user_id;
+    return this.userService.updateGithubUsername(userId, githubUsername);
+  }
+
   @Get('profile/settings')
   async getUserSetting(@Req() req) {
     const userId = req.user?.user_id;
@@ -174,9 +214,10 @@ export class UserController {
   }
 
   @Get('profile/resume/:userId')
-  async getUserResume(@Req() req, @Param('userId') targetUserId: number) {
+  async getUserResume(@Req() req, @Param('userId') targetUserId: string) {
     const loggedInUserId = req.user?.user_id;
-    return this.userService.getUserResume(loggedInUserId, targetUserId);
+    const numUserId = parseInt(targetUserId, 10);
+    return this.userService.getUserResume(loggedInUserId, numUserId);
   }
 
   @Post('profile/resume')
@@ -192,35 +233,44 @@ export class UserController {
   @Patch('profile/resume/:resumeId')
   async updateUserResume(
     @Req() req,
-    @Param('resumeId') resumeId: number,
+    @Param('resumeId') resumeId: string,
     @Body() body: { title?: string; portfolioUrl?: string; detail?: string }
   ) {
     const userId = req.user?.user_id;
-    return this.userService.updateUserResume(userId, resumeId, body);
+    const numResumeId = parseInt(resumeId, 10);
+    return this.userService.updateUserResume(userId, numResumeId, body);
   }
 
   @Delete(':resumeId')
-  async deleteUserResume(@Req() req, @Param('resumeId') resumeId: number) {
+  async deleteUserResume(@Req() req, @Param('resumeId') resumeId: string) {
     const userId = req.user?.user_id;
-    return this.userService.deleteUserResume(userId, resumeId);
+    const numResumeId = parseInt(resumeId, 10);
+    return this.userService.deleteUserResume(userId, numResumeId);
   }
 
   @Get(':userId/feeds')
   async getUserFeedPosts(
-    @Param('userId') userId: number,
+    @Param('userId') userId: string,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10
   ) {
-    return this.userService.getFeeds(userId, page, limit);
+    const numUserId = parseInt(userId, 10);
+    return this.userService.getFeeds(numUserId, page, limit);
   }
 
   @Get(':userId/connection-hub')
   async getUserConnectionHubProjects(
-    @Param('userId') userId: number,
+    @Param('userId') userId: string,
     @Query('type') type: 'applied' | 'created',
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10
   ) {
-    return this.userService.getConnectionHubProjects(userId, type, page, limit);
+    const numUserId = parseInt(userId, 10);
+    return this.userService.getConnectionHubProjects(
+      numUserId,
+      type,
+      page,
+      limit
+    );
   }
 }
