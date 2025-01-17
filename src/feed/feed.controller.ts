@@ -4,8 +4,8 @@ import {
   Delete,
   Get,
   Param,
-  Patch,
   Post,
+  Put,
   Query,
   Req,
   UseGuards,
@@ -54,7 +54,8 @@ export class FeedController {
     return this.feedService.createFeed(feedDto, userId);
   }
 
-  @Patch(':id')
+  // 피드 수정
+  @Put(':id')
   @UseGuards(JwtAuthGuard)
   async updateFeed(
     @Req() req,
