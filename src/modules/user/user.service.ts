@@ -61,7 +61,6 @@ export class UserService {
     if (user.role.name === 'Artist') {
       specificData = {
         musicUrl: user.ArtistData?.music_url,
-        platform: user.ArtistData?.platform,
       };
     } else if (
       user.role.name === 'Programmer' ||
