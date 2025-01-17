@@ -12,6 +12,9 @@ import {
   UploadedFile,
   BadRequestException,
   Delete,
+  Put,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
@@ -41,7 +44,24 @@ export class UserController {
     return this.userService.getUserFollowings(numUserId);
   }
 
-  @Get('setting')
+  @Post('projects')
+  async addProject(@Req() req, @Body() projectData: any) {
+    const userId = req.user?.user_id;
+    return this.userService.addProject(userId, projectData);
+  }
+
+  @Put('projects/:projectId')
+  async updateProject(
+    @Req() req,
+    @Param('projectId') projectId: string,
+    @Body() projectData: any
+  ) {
+    const userId = req.user?.user_id;
+    const numProjectId = parseInt(projectId, 10);
+    return this.userService.updateProject(userId, numProjectId, projectData);
+  }
+
+  @Get('profile/settings')
   async getUserSetting(@Req() req) {
     const userId = req.user?.user_id;
     return this.userService.getUserSetting(userId);
@@ -60,7 +80,7 @@ export class UserController {
   }
 
   @Patch('profile/status')
-  async patchUserStatus(@Req() req, @Body('status') statusId: number) {
+  async patchUserStatus(@Req() req, @Body('statusId') statusId: number) {
     const userId = req.user?.user_id;
     return this.userService.patchUserStatus(userId, statusId);
   }
@@ -68,7 +88,13 @@ export class UserController {
   @Post('profile/skills')
   async patchUserSkills(@Req() req, @Body('skills') skills: string[]) {
     const userId = req.user?.user_id;
-    return this.userService.patchUserSkills(userId, skills);
+    return this.userService.addUserSkills(userId, skills);
+  }
+
+  @Delete('profile/skills')
+  async deleteUserSkills(@Req() req, @Body('skills') skills: string[]) {
+    const userId = req.user?.user_id;
+    return this.userService.deleteUserSkills(userId, skills);
   }
 
   @Patch('profile/image')
@@ -93,18 +119,46 @@ export class UserController {
     };
   }
 
-  @Delete('profile/skills')
-  async deleteUserSkills(@Req() req, @Body('skills') skills: string[]) {
-    const userId = req.user?.user_id;
-    return this.userService.deleteUserSkills(userId, skills);
-  }
-
   @Patch('profile/notification')
   async patchUserNotification(
     @Req() req,
-    @Body('notification') notification: boolean
+    @Body('notification')
+    notifications: {
+      pushAlert: boolean;
+      followingAlert: boolean;
+      projectAlert: boolean;
+    }
   ) {
     const userId = req.user?.user_id;
-    return this.userService.patchUserNotification(userId, notification);
+    return this.userService.patchUserNotification(userId, notifications);
+  }
+
+  @Post('profile/links')
+  async addUserLinks(@Req() req, @Body('links') links: { url: string }[]) {
+    const userId = req.user?.user_id;
+    return this.userService.addUserLinks(userId, links);
+  }
+
+  @Delete('profile/links')
+  async deleteUserLinks(@Req() req, @Body('linkIds') linkIds: number[]) {
+    const userId = req.user?.user_id;
+    return this.userService.deleteUserLinks(userId, linkIds);
+  }
+
+  @Delete('account')
+  async deleteAccount(@Req() req) {
+    const userId = req.user?.user_id; // 인증된 사용자 ID 가져오기
+    if (!userId) {
+      throw new HttpException(
+        '유효하지 않은 사용자입니다.',
+        HttpStatus.FORBIDDEN
+      );
+    }
+
+    await this.userService.deleteAccount(userId);
+
+    return {
+      message: '계정이 성공적으로 삭제되었습니다.',
+    };
   }
 }

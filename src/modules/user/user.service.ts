@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '@prisma/prisma.service';
 import { S3Service } from '@src/s3/s3.service';
 
@@ -148,24 +152,179 @@ export class UserService {
     }));
   }
 
-  async patchUserNickname(userId: number, nickname: string) {
-    return Promise.resolve(undefined);
+  async addProject(userId: number, projectData: any) {
+    const { title, description, links } = projectData;
+
+    // 작업물 추가
+    const newProject = await this.prisma.myPageProject.create({
+      data: {
+        user_id: userId,
+        title,
+        description,
+        ProjectLinks: {
+          create: links.map(link => ({
+            url: link.url,
+            type_id: link.typeId, // LinkType의 ID를 사용
+          })),
+        },
+      },
+      include: {
+        ProjectLinks: {
+          include: { type: true },
+        },
+      },
+    });
+
+    return {
+      id: newProject.id,
+      title: newProject.title,
+      description: newProject.description,
+      links: newProject.ProjectLinks.map(link => ({
+        id: link.id,
+        url: link.url,
+        type: link.type.name,
+      })),
+    };
+  }
+
+  async updateProject(userId: number, projectId: number, projectData: any) {
+    const { title, description, links } = projectData;
+
+    // 기존 프로젝트 확인
+    const existingProject = await this.prisma.myPageProject.findFirst({
+      where: {
+        id: projectId,
+        user_id: userId,
+      },
+    });
+
+    if (!existingProject) {
+      throw new NotFoundException('작업물을 찾을 수 없습니다.');
+    }
+
+    // 프로젝트 업데이트
+    const updatedProject = await this.prisma.myPageProject.update({
+      where: { id: projectId },
+      data: {
+        title,
+        description,
+        ProjectLinks: {
+          deleteMany: {}, // 기존 링크 삭제
+          create: links.map(link => ({
+            url: link.url,
+            type_id: link.typeId, // LinkType의 ID를 사용
+          })),
+        },
+      },
+      include: {
+        ProjectLinks: {
+          include: { type: true },
+        },
+      },
+    });
+
+    return {
+      id: updatedProject.id,
+      title: updatedProject.title,
+      description: updatedProject.description,
+      links: updatedProject.ProjectLinks.map(link => ({
+        id: link.id,
+        url: link.url,
+        type: link.type.name,
+      })),
+    };
   }
 
   async getUserSetting(userId: number) {
-    return Promise.resolve(undefined);
+    // 사용자 정보를 가져옵니다.
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        UserLinks: true, // 링크 정보만 포함
+        UserSkills: {
+          include: {
+            skill: true, // Skill 정보를 포함
+          },
+        },
+        status: true, // 상태 정보 포함
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('사용자를 찾을 수 없습니다.');
+    }
+
+    // 데이터 반환
+    return {
+      nickname: user.nickname,
+      profileUrl: user.profile_url,
+      introduce: user.introduce,
+      status: user.status?.name,
+      links: user.UserLinks.map(link => ({
+        id: link.id,
+        url: link.link, // 링크 정보만 반환
+      })),
+      skills: user.UserSkills.map(skill => skill.skill.name), // 기술 스택
+      notifications: {
+        pushAlert: user.push_alert,
+        followingAlert: user.following_alert,
+        projectAlert: user.project_alert,
+      },
+    };
+  }
+
+  async patchUserNickname(userId: number, nickname: string) {
+    if (!nickname || nickname.trim().length === 0) {
+      throw new BadRequestException('닉네임은 비어 있을 수 없습니다.');
+    }
+
+    // 닉네임 업데이트
+    const updatedUser = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        nickname,
+      },
+    });
+
+    return {
+      message: '닉네임이 성공적으로 업데이트되었습니다.',
+      nickname: updatedUser.nickname,
+    };
   }
 
   async patchUserIntroduce(userId: number, introduce: string) {
-    return Promise.resolve(undefined);
+    // 사용자의 한 줄 소개 업데이트
+    const updatedUser = await this.prisma.user.update({
+      where: { id: userId },
+      data: { introduce },
+    });
+
+    return {
+      message: '사용자의 소개가 성공적으로 업데이트되었습니다.',
+      introduce: updatedUser.introduce,
+    };
   }
 
-  async patchUserStatus(userId: number, status_id: number) {
-    return Promise.resolve(undefined);
-  }
+  async patchUserStatus(userId: number, statusId: number) {
+    // Status ID가 유효한지 확인
+    const status = await this.prisma.status.findUnique({
+      where: { id: statusId },
+    });
 
-  async patchUserSkills(userId: number, skills: string[]) {
-    return Promise.resolve(undefined);
+    if (!status) {
+      throw new NotFoundException('유효하지 않은 상태 ID입니다.');
+    }
+
+    // 사용자의 상태 업데이트
+    const updatedUser = await this.prisma.user.update({
+      where: { id: userId },
+      data: { status_id: statusId },
+    });
+
+    return {
+      message: '사용자의 상태가 성공적으로 업데이트되었습니다.',
+      status: status.name,
+    };
   }
 
   async patchProfileImage(
@@ -186,11 +345,166 @@ export class UserService {
     });
   }
 
-  async deleteUserSkills(userId: number, skills: string[]) {
-    return Promise.resolve(undefined);
+  async patchUserNotification(
+    userId: number,
+    notifications: {
+      pushAlert: boolean;
+      followingAlert: boolean;
+      projectAlert: boolean;
+    }
+  ) {
+    const updatedUser = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        push_alert: notifications.pushAlert,
+        following_alert: notifications.followingAlert,
+        project_alert: notifications.projectAlert,
+      },
+    });
+
+    return {
+      message: '알림 설정이 성공적으로 업데이트되었습니다.',
+      notifications: {
+        pushAlert: updatedUser.push_alert,
+        followingAlert: updatedUser.following_alert,
+        projectAlert: updatedUser.project_alert,
+      },
+    };
   }
 
-  async patchUserNotification(userId: number, notification: boolean) {
-    return Promise.resolve(undefined);
+  async addUserSkills(userId: number, skills: string[]) {
+    // 기존에 없는 스킬만 추가
+    const existingSkills = await this.prisma.skill.findMany({
+      where: { name: { in: skills } },
+    });
+
+    const existingSkillNames = existingSkills.map(skill => skill.name);
+
+    // 새로운 스킬만 추가
+    const newSkills = skills.filter(
+      skill => !existingSkillNames.includes(skill)
+    );
+
+    // 새 스킬 DB에 추가
+    const createdSkills = await Promise.all(
+      newSkills.map(skill =>
+        this.prisma.skill.upsert({
+          where: { name: skill },
+          update: {},
+          create: { name: skill },
+        })
+      )
+    );
+
+    // User와 Skill 관계 연결
+    const skillIds = [...existingSkills, ...createdSkills].map(
+      skill => skill.id
+    );
+    await Promise.all(
+      skillIds.map(skillId =>
+        this.prisma.userSkill.upsert({
+          where: { user_id_skill_id: { user_id: userId, skill_id: skillId } },
+          update: {},
+          create: { user_id: userId, skill_id: skillId },
+        })
+      )
+    );
+
+    return {
+      message: '기술 스택이 성공적으로 추가되었습니다',
+      skills: skills,
+    };
+  }
+
+  async deleteUserSkills(userId: number, skills: string[]) {
+    // 스킬 ID 가져오기
+    const skillRecords = await this.prisma.skill.findMany({
+      where: { name: { in: skills } },
+    });
+
+    const skillIds = skillRecords.map(skill => skill.id);
+
+    // User와 Skill 관계 삭제
+    await this.prisma.userSkill.deleteMany({
+      where: {
+        user_id: userId,
+        skill_id: { in: skillIds },
+      },
+    });
+
+    return {
+      message: '기술 스택이 성공적으로 삭제되었습니다',
+      skills,
+    };
+  }
+
+  async addUserLinks(userId: number, links: { url: string }[]) {
+    const createdLinks = await this.prisma.myPageUserLink.createMany({
+      data: links.map(link => ({
+        user_id: userId,
+        link: link.url,
+      })),
+    });
+
+    return {
+      message: '링크가 성공적으로 추가되었습니다.',
+      count: createdLinks.count,
+    };
+  }
+
+  async deleteUserLinks(userId: number, linkIds: number[]) {
+    const deletedLinks = await this.prisma.myPageUserLink.deleteMany({
+      where: {
+        id: { in: linkIds },
+        user_id: userId,
+      },
+    });
+
+    return {
+      message: '링크가 성공적으로 삭제되었습니다.',
+      count: deletedLinks.count,
+    };
+  }
+
+  async deleteAccount(userId: number) {
+    // 유저가 존재하지 않을 경우 처리
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('사용자를 찾을 수 없습니다.');
+    }
+
+    // 관련 데이터 삭제 (예: 팔로우, 프로젝트, 댓글 등)
+    await this.prisma.$transaction([
+      this.prisma.follows.deleteMany({
+        where: {
+          OR: [{ following_user_id: userId }, { followed_user_id: userId }],
+        },
+      }),
+      this.prisma.myPageUserLink.deleteMany({
+        where: { user_id: userId },
+      }),
+      this.prisma.projectSave.deleteMany({
+        where: { user_id: userId },
+      }),
+      this.prisma.feedLike.deleteMany({
+        where: { user_id: userId },
+      }),
+      this.prisma.feedComment.deleteMany({
+        where: { user_id: userId },
+      }),
+      this.prisma.feedPost.deleteMany({
+        where: { user_id: userId },
+      }),
+      this.prisma.user.delete({
+        where: { id: userId },
+      }),
+    ]);
+
+    return {
+      message: '사용자와 관련된 모든 데이터가 삭제되었습니다.',
+    };
   }
 }
