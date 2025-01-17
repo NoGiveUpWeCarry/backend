@@ -25,6 +25,7 @@ export class FeedService {
               id: true,
               name: true,
               email: true,
+              nickname: true,
               role: {
                 select: { name: true },
               },
@@ -43,22 +44,11 @@ export class FeedService {
         orderBy: { [orderKey]: 'desc' },
       });
 
-      const posts = result.map(post => ({
-        userId: post.user.id,
-        userName: post.user.name,
-        userRole: post.user.role.name,
-        userProfileUrl: post.user.profile_url,
-        title: post.title,
-        postId: post.id,
-        thumnailUrl: post.thumbnail_url,
-        content: post.content,
-        tags: post.Tags.map(v => v.tag.name),
-        commentCount: post.comment_count,
-        likeCount: post.like_count,
-        viewCount: post.view,
-        createdAt: post.created_at,
-        liked: !!post.Likes.length,
-      }));
+      const posts = [];
+      for (const res of result) {
+        const post = await this.getPostObj(res);
+        posts.push(post);
+      }
 
       return { posts };
     } catch (err) {
@@ -85,6 +75,7 @@ export class FeedService {
               id: true,
               name: true,
               email: true,
+              nickname: true,
               role: {
                 select: { name: true },
               },
@@ -108,22 +99,8 @@ export class FeedService {
         );
       }
 
-      const post = {
-        userId: result.user.id,
-        userName: result.user.name,
-        userRole: result.user.role.name,
-        userProfileUrl: result.user.profile_url,
-        title: result.title,
-        postId: result.id,
-        thumnailUrl: result.thumbnail_url,
-        content: result.content,
-        tags: result.Tags.map(v => v.tag.name),
-        commentCount: result.comment_count,
-        likeCount: result.like_count,
-        viewCount: result.view,
-        createdAt: result.created_at,
-        Liked: !!result.Likes.length,
-      };
+      const post = await this.getPostObj(result);
+
       return { post };
     } catch (err) {
       console.log(err);
@@ -136,6 +113,28 @@ export class FeedService {
         HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
+  }
+
+  // 피드 데이터 응답 양식
+  async getPostObj(result) {
+    const post = {
+      userId: result.user.id,
+      userName: result.user.name,
+      userNickname: result.user.nickname,
+      userRole: result.user.role.name,
+      userProfileUrl: result.user.profile_url,
+      title: result.title,
+      postId: result.id,
+      thumnailUrl: result.thumbnail_url,
+      content: result.content,
+      tags: result.Tags.map(v => v.tag.name),
+      commentCount: result.comment_count,
+      likeCount: result.like_count,
+      viewCount: result.view,
+      createdAt: result.created_at,
+      Liked: !!result.Likes.length,
+    };
+    return post;
   }
 
   // 피드 개별 조회 (댓글)
