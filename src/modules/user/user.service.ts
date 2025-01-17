@@ -880,4 +880,30 @@ export class UserService {
 
     return { message: '작업물이 삭제되었습니다.' };
   }
+
+  async updateGithubUsername(userId: number, githubUsername: string) {
+    if (!githubUsername) {
+      throw new NotFoundException('깃허브 닉네임이 필요합니다.');
+    }
+
+    // 기존 ProgrammerData 확인
+    const programmerData = await this.prisma.programmerData.findFirst({
+      where: { user_id: userId },
+    });
+
+    if (!programmerData) {
+      // 프로그래머 데이터가 없는 경우 새로 생성
+      const newData = await this.prisma.programmerData.create({
+        data: {
+          user_id: userId,
+          github_username: githubUsername,
+        },
+      });
+
+      return {
+        message: '깃허브 닉네임이 성공적으로 추가되었습니다.',
+        githubUsername: newData.github_username,
+      };
+    }
+  }
 }
