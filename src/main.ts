@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { HttpExceptionFilter } from '@common/filters/http-exception.filter';
 import { config } from 'dotenv';
 import * as cookieParser from 'cookie-parser';
+import { ValidationPipe } from '@nestjs/common';
 config();
 
 async function bootstrap() {
@@ -13,6 +14,15 @@ async function bootstrap() {
     credentials: true,
     exposedHeaders: ['Authorization'],
   });
+
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: true,
+    })
+  );
+
   app.useGlobalFilters(new HttpExceptionFilter());
   await app.listen(process.env.PORT);
 }
