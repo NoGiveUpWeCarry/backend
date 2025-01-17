@@ -111,7 +111,8 @@ model Resume {
   id        Int    @id @default(autoincrement())
   user_id   Int
   title     String
-  introduce String
+  portfolio_url String?
+  detail    String @db.Text
   user      User   @relation(fields: [user_id], references: [id])
 
   @@index([user_id], map: "Resume_user_id_fkey")
@@ -239,7 +240,7 @@ model ProjectPost {
   Tags            ProjectPostTag[]
   Saves           ProjectSave[]
   Applications    UserApplyProject[]
-
+  created_at      DateTime @default(now())
   @@index([user_id], map: "ProjectPost_user_id_fkey")
   @@index([work_type_id], map: "ProjectPost_work_type_id_fkey")
 }
