@@ -15,6 +15,7 @@ import {
   Put,
   HttpException,
   HttpStatus,
+  Query,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
@@ -83,6 +84,16 @@ export class UserController {
   async patchUserStatus(@Req() req, @Body('statusId') statusId: number) {
     const userId = req.user?.user_id;
     return this.userService.patchUserStatus(userId, statusId);
+  }
+
+  @Patch('profile/job')
+  async updateUserJobDetail(
+    @Req() req,
+    @Body('category') category: string,
+    @Body('jobDetail') jobDetail: string
+  ) {
+    const userId = req.user?.user_id;
+    return this.userService.updateUserJobDetail(userId, category, jobDetail);
   }
 
   @Post('profile/skills')
@@ -160,5 +171,56 @@ export class UserController {
     return {
       message: '계정이 성공적으로 삭제되었습니다.',
     };
+  }
+
+  @Get('profile/resume/:userId')
+  async getUserResume(@Req() req, @Param('userId') targetUserId: number) {
+    const loggedInUserId = req.user?.user_id;
+    return this.userService.getUserResume(loggedInUserId, targetUserId);
+  }
+
+  @Post('profile/resume')
+  async createUserResume(
+    @Req() req,
+    @Body() body: { title: string; portfolioUrl?: string; detail: string }
+  ) {
+    const userId = req.user?.user_id;
+    return this.userService.createUserResume(userId, body);
+  }
+
+  // 지원서 수정
+  @Patch('profile/resume/:resumeId')
+  async updateUserResume(
+    @Req() req,
+    @Param('resumeId') resumeId: number,
+    @Body() body: { title?: string; portfolioUrl?: string; detail?: string }
+  ) {
+    const userId = req.user?.user_id;
+    return this.userService.updateUserResume(userId, resumeId, body);
+  }
+
+  @Delete(':resumeId')
+  async deleteUserResume(@Req() req, @Param('resumeId') resumeId: number) {
+    const userId = req.user?.user_id;
+    return this.userService.deleteUserResume(userId, resumeId);
+  }
+
+  @Get(':userId/feeds')
+  async getUserFeedPosts(
+    @Param('userId') userId: number,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10
+  ) {
+    return this.userService.getFeeds(userId, page, limit);
+  }
+
+  @Get(':userId/connection-hub')
+  async getUserConnectionHubProjects(
+    @Param('userId') userId: number,
+    @Query('type') type: 'applied' | 'created',
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10
+  ) {
+    return this.userService.getConnectionHubProjects(userId, type, page, limit);
   }
 }
