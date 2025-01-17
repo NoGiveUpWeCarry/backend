@@ -320,6 +320,8 @@ export class FeedService {
           },
         },
       });
+
+      return { success: true, message: '피드 수정이 완료되었습니다.' };
     } catch (err) {
       if (err instanceof HttpException) {
         throw err;
