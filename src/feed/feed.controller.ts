@@ -12,7 +12,7 @@ import {
 import { FeedService } from './feed.service';
 import { OptionalAuthGuard } from '@src/modules/auth/guards/optional-auth.guard';
 import { JwtAuthGuard } from '@src/modules/auth/guards/jwt-auth.guard';
-import { CreatePostDto } from './dto/create-post.dto';
+import { FeedDto } from './dto/feed.dto';
 
 @Controller('feed')
 export class FeedController {
@@ -48,9 +48,9 @@ export class FeedController {
   // 피드 등록
   @Post()
   @UseGuards(JwtAuthGuard)
-  async createFeed(@Req() req, @Body() createPostDto: CreatePostDto) {
+  async createFeed(@Req() req, @Body() feedDto: FeedDto) {
     const userId = req.user.user_id;
-    return this.feedService.createFeed(createPostDto, userId);
+    return this.feedService.createFeed(feedDto, userId);
   }
 
   // 피드 삭제

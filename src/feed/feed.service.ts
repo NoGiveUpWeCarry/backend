@@ -1,6 +1,6 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '@src/prisma/prisma.service';
-import { CreatePostDto } from './dto/create-post.dto';
+import { FeedDto } from './dto/feed.dto';
 import * as cheerio from 'cheerio';
 
 @Injectable()
@@ -237,8 +237,8 @@ export class FeedService {
   }
 
   // 피드 등록
-  async createFeed(createPostDto: CreatePostDto, userId: number) {
-    const { title, tags, content } = createPostDto;
+  async createFeed(feedDto: FeedDto, userId: number) {
+    const { title, tags, content } = feedDto;
     try {
       // 썸네일 url 추출
       const thumnailUrl = await this.getThumnailUrl(content);
