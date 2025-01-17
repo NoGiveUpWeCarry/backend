@@ -18,7 +18,7 @@ export class S3Service {
     fileType: string
   ): Promise<string> {
     try {
-      const fileName = `mypli_users/profile_${crypto.randomUUID()}.${fileType}`;
+      const fileName = `pad_users/profile_${crypto.randomUUID()}.${fileType}`;
       const uploadResult = await this.s3
         .upload({
           Bucket: this.bucketName,
