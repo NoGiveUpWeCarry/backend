@@ -6,9 +6,7 @@ import * as cheerio from 'cheerio';
 @Injectable()
 export class FeedService {
   constructor(private readonly prisma: PrismaService) {}
-  /** 피드 전체 조회 / 남은 구현 과제
-   * 최신순 정렬
-   **/
+  // 피드 전체 조회
   async getAllFeeds(user, latest) {
     try {
       const userId = user ? user.user_id : 0;
@@ -132,7 +130,7 @@ export class FeedService {
       likeCount: result.like_count,
       viewCount: result.view,
       createdAt: result.created_at,
-      Liked: !!result.Likes.length,
+      isLiked: !!result.Likes.length,
     };
     return post;
   }
