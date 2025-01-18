@@ -21,7 +21,18 @@ import {
 import { UserService } from './user.service';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { GetUserFollowersDocs, GetUserFollowingsDocs, GetUserProfileDocs, GetUserProfileHeaderDocs,AddProjectDocs, UpdateProjectDocs, DeleteProjectDocs } from './docs/user.docs';
+import {
+  GetUserFollowersDocs,
+  GetUserFollowingsDocs,
+  GetUserProfileDocs,
+  GetUserProfileHeaderDocs,
+  AddProjectDocs,
+  UpdateProjectDocs,
+  DeleteProjectDocs,
+  AddWorkDocs,
+  UpdateWorkDocs,
+  DeleteWorkDocs,
+} from './docs/user.docs';
 import {ApiBearerAuth} from '@nestjs/swagger';
 
 @ApiBearerAuth()
@@ -101,12 +112,19 @@ export class UserController {
   }
 
   @Post('artist/works')
+  @AddWorkDocs.ApiOperation
+  @AddWorkDocs.ApiBody
+  @AddWorkDocs.ApiResponse
   async addWork(@Req() req, @Body('musicUrl') musicUrl: string) {
     const userId = req.user?.user_id;
     return this.userService.addArtistWork(userId, musicUrl);
   }
 
   @Put('artist/works/:workId')
+  @UpdateWorkDocs.ApiOperation
+  @UpdateWorkDocs.ApiParam
+  @UpdateWorkDocs.ApiBody
+  @UpdateWorkDocs.ApiResponse
   async updateWork(
     @Req() req,
     @Param('workId') workId: string,
@@ -118,6 +136,9 @@ export class UserController {
   }
 
   @Delete('artist/works/:workId')
+  @DeleteWorkDocs.ApiOperation
+  @DeleteWorkDocs.ApiParam
+  @DeleteWorkDocs.ApiResponse
   async deleteWork(@Req() req, @Param('workId') workId: string) {
     const userId = req.user?.user_id;
     const numWorkId = parseInt(workId, 10);
