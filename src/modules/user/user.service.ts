@@ -62,15 +62,15 @@ export class UserService {
       specificData = {
         githubUsername: user.ProgrammerData?.github_username || null,
         myPageProjects: user.MyPageProject
-          ? {
-              title: user.MyPageProject.title,
-              description: user.MyPageProject.description,
-              links: user.MyPageProject.ProjectLinks.map(link => ({
+          ? user.MyPageProject.map(project => ({
+              title: project.title,
+              description: project.description,
+              links: project.ProjectLinks.map(link => ({
                 type: link.type.name,
                 url: link.url,
               })),
-            }
-          : null,
+            }))
+          : [],
       };
     }
 
@@ -117,9 +117,7 @@ export class UserService {
       profileUrl: user.profile_url,
       role: user.role.name,
       introduce: user.introduce,
-      userLinks: user.UserLinks.map(link => ({
-        url: link.link,
-      })), // 연결
+      userLinks: user.UserLinks.map(link => link.link), // 단순 URL 배열로 변경
       isOwnProfile: loggedInUserId === targetUserId, // 자신의 프로필인지 확인
       isFollowing: !!isFollowing, // 팔로우 여부 확인
     };
@@ -198,7 +196,7 @@ export class UserService {
     });
 
     return {
-      id: newProject.id,
+      myPageProjectId: newProject.id,
       title: newProject.title,
       description: newProject.description,
       links: newProject.ProjectLinks.map(link => ({
@@ -246,7 +244,7 @@ export class UserService {
     });
 
     return {
-      id: updatedProject.id,
+      myPageProjectId: updatedProject.id,
       title: updatedProject.title,
       description: updatedProject.description,
       links: updatedProject.ProjectLinks.map(link => ({
@@ -509,8 +507,33 @@ export class UserService {
   }
 
   async addUserLinks(userId: number, links: { url: string }[]) {
+    // 넘어온 URL 목록
+    const urls = links.map(link => link.url);
+
+    // 이미 존재하는 URL 조회
+    const existingLinks = await this.prisma.myPageUserLink.findMany({
+      where: {
+        user_id: userId,
+        link: { in: urls },
+      },
+      select: { link: true },
+    });
+
+    // 이미 존재하는 URL 필터링
+    const existingUrls = existingLinks.map(link => link.link);
+    const newLinks = links.filter(link => !existingUrls.includes(link.url));
+
+    // 추가할 URL이 없으면 바로 반환
+    if (newLinks.length === 0) {
+      return {
+        message: '추가할 링크가 없습니다.',
+        count: 0,
+      };
+    }
+
+    // 새 URL만 추가
     const createdLinks = await this.prisma.myPageUserLink.createMany({
-      data: links.map(link => ({
+      data: newLinks.map(link => ({
         user_id: userId,
         link: link.url,
       })),
@@ -611,15 +634,12 @@ export class UserService {
 
     // 반환 데이터 구성
     return {
+      userId: resume.user.id,
       title: resume.title,
       jobDetail: resume.user.job_detail, // 직무 상세
       skills: resume.user.UserSkills.map(userSkill => userSkill.skill.name), // 기술 스택 이름 리스트
       portfolioUrl: resume.portfolio_url,
       detail: resume.detail,
-      user: {
-        id: resume.user.id,
-        nickname: resume.user.nickname,
-      },
       isOwnProfile, // 본인 프로필 여부
     };
   }
