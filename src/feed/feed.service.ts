@@ -6,6 +6,7 @@ import * as cheerio from 'cheerio';
 @Injectable()
 export class FeedService {
   constructor(private readonly prisma: PrismaService) {}
+
   // 피드 전체 조회
   async getAllFeeds(user, latest) {
     try {
@@ -47,8 +48,10 @@ export class FeedService {
         const post = await this.getPostObj(res);
         posts.push(post);
       }
-
-      return { posts };
+      return {
+        posts,
+        message: { code: 200, message: '전체 피드를 정상적으로 조회했습니다.' },
+      };
     } catch (err) {
       console.log(err);
       throw new HttpException(
@@ -99,7 +102,10 @@ export class FeedService {
 
       const post = await this.getPostObj(result);
 
-      return { post };
+      return {
+        post,
+        message: { code: 200, message: '개별 피드를 정상적으로 조회했습니다.' },
+      };
     } catch (err) {
       console.log(err);
       if (err instanceof HttpException) {
@@ -174,7 +180,13 @@ export class FeedService {
         createdAt: c.created_at,
       }));
 
-      return { comments };
+      return {
+        comments,
+        message: {
+          code: 200,
+          message: '개별 피드(댓글)를 정상적으로 조회했습니다.',
+        },
+      };
     } catch (err) {
       console.log(err);
       if (err instanceof HttpException) {
@@ -211,7 +223,7 @@ export class FeedService {
           data: { like_count: { decrement: 1 } },
         });
 
-        return { success: true, message: '좋아요가 취소되었습니다. ' };
+        return { message: { code: 200, message: '좋아요가 취소되었습니다.' } };
       } else {
         await this.prisma.feedLike.create({
           data: {
@@ -225,7 +237,7 @@ export class FeedService {
           data: { like_count: { increment: 1 } },
         });
 
-        return { success: true, message: '좋아요가 추가되었습니다. ' };
+        return { message: { code: 200, message: '좋아요가 추가되었습니다.' } };
       }
     } catch (err) {
       console.log(err);
@@ -270,7 +282,10 @@ export class FeedService {
         data: tagData,
       });
 
-      return { success: true, message: '게시글 작성이 완료되었습니다.' };
+      return {
+        message: { code: 201, message: '피드 작성이 완료되었습니다.' },
+        post: { id: feedData.id },
+      };
     } catch (err) {
       throw err;
     }
@@ -321,7 +336,7 @@ export class FeedService {
         },
       });
 
-      return { success: true, message: '피드 수정이 완료되었습니다.' };
+      return { message: { code: 200, message: '피드 수정이 완료되었습니다.' } };
     } catch (err) {
       if (err instanceof HttpException) {
         throw err;
@@ -373,7 +388,7 @@ export class FeedService {
         }),
       ]);
 
-      return { success: true, message: '피드가 삭제되었습니다.' };
+      return { message: { code: 200, message: '피드가 삭제되었습니다.' } };
     } catch (err) {
       if (err instanceof HttpException) {
         throw err;
@@ -415,7 +430,7 @@ export class FeedService {
         data: { comment_count: { increment: 1 } },
       });
 
-      return { success: true, message: '댓글 등록이 완료되었습니다.' };
+      return { message: { code: 201, message: '댓글 등록이 완료되었습니다.' } };
     } catch (err) {
       console.log(err);
       throw new HttpException(
@@ -461,8 +476,7 @@ export class FeedService {
           data: { comment_count: { decrement: 1 } },
         }),
       ]);
-
-      return { success: true, message: '댓글이 삭제되었습니다.' };
+      return { message: { code: 200, message: '댓글이 삭제되었습니다.' } };
     } catch (err) {
       if (err instanceof HttpException) {
         throw err;
