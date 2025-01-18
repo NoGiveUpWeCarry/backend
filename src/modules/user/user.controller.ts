@@ -16,36 +16,207 @@ import {
   HttpException,
   HttpStatus,
   Query,
+  HttpCode,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+} from '@nestjs/swagger';
 
+@ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Get(':userId')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: '유저 프로필 조회',
+    description: '특정 유저의 프로필을 조회합니다.',
+  })
+  @ApiParam({
+    name: 'userId',
+    description: '조회하려는 유저의 ID',
+    schema: { type: 'string', example: '1' },
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: '유저 프로필 조회 성공',
+    schema: {
+      example: {
+        id: 1,
+        name: 'John Doe',
+        nickname: 'nickname123',
+        profileUrl: 'https://example.com/profile.jpg',
+        introduce: '안녕하세요!',
+        followers: 10,
+        followings: 5,
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: '유저를 찾을 수 없는 경우',
+    schema: {
+      example: {
+        statusCode: 404,
+        message: 'User not found',
+      },
+    },
+  })
   async getUserProfile(@Param('userId') userId: string, @Req() req) {
     const loggedInUserId = req.user?.user_id;
     const numUserId = parseInt(userId); // 인증된 사용자 ID
     return this.userService.getUserProfile(loggedInUserId, numUserId);
   }
 
+  @Get(':userId/headers')
+  async getUserProfileHeader(@Param('userId') userId: string, @Req() req) {
+    const loggedInUserId = req.user?.user_id;
+    const numUserId = parseInt(userId); // 인증된 사용자 ID
+    return this.userService.getUserProfileHeader(loggedInUserId, numUserId);
+  }
+
   @Get(':userId/followers')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: '유저 팔로워 조회',
+    description: '특정 유저의 팔로워 목록을 조회합니다.',
+  })
+  @ApiParam({
+    name: 'userId',
+    description: '조회하려는 유저의 ID',
+    schema: { type: 'string', example: '1' },
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: '유저 팔로워 조회 성공',
+    schema: {
+      example: [
+        { id: 1, name: 'Follower1', nickname: 'nick1', profileUrl: null },
+        {
+          id: 2,
+          name: 'Follower2',
+          nickname: 'nick2',
+          profileUrl: 'https://example.com/avatar.jpg',
+        },
+      ],
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: '유저를 찾을 수 없는 경우',
+    schema: {
+      example: {
+        statusCode: 404,
+        message: 'User not found',
+      },
+    },
+  })
   async getUserFollowers(@Param('userId') userId: string) {
     const numUserId = parseInt(userId); // 인증된 사용자 ID
     return this.userService.getUserFollowers(numUserId);
   }
 
-  @Get(':userId/followers')
+  @Get(':userId/following')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: '유저 팔로잉 조회',
+    description: '특정 유저가 팔로우 중인 사용자 목록을 조회합니다.',
+  })
+  @ApiParam({
+    name: 'userId',
+    description: '조회하려는 유저의 ID',
+    schema: { type: 'string', example: '1' },
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: '유저 팔로잉 조회 성공',
+    schema: {
+      example: [
+        { id: 3, name: 'Following1', nickname: 'nick3', profileUrl: null },
+        {
+          id: 4,
+          name: 'Following2',
+          nickname: 'nick4',
+          profileUrl: 'https://example.com/avatar.jpg',
+        },
+      ],
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: '유저를 찾을 수 없는 경우',
+    schema: {
+      example: {
+        statusCode: 404,
+        message: 'User not found',
+      },
+    },
+  })
   async getUserFollowings(@Param('userId') userId: string) {
     const numUserId = parseInt(userId); // 인증된 사용자 ID
     return this.userService.getUserFollowings(numUserId);
   }
 
   @Post('projects')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: '프로젝트 추가',
+    description: '로그인한 유저가 자신의 프로젝트를 추가합니다.',
+  })
+  @ApiBody({
+    description: '추가할 프로젝트 데이터',
+    schema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', example: '프로젝트 제목' },
+        description: { type: 'string', example: '프로젝트 설명' },
+        links: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              url: { type: 'string', example: 'https://github.com/project' },
+              typeId: { type: 'number', example: 1 },
+            },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    description: '프로젝트 추가 성공',
+    schema: {
+      example: {
+        id: 1,
+        title: '프로젝트 제목',
+        description: '프로젝트 설명',
+        links: [
+          { id: 1, url: 'https://github.com/project', type: 'GitHub' },
+          { id: 2, url: 'https://project.com', type: 'Website' },
+        ],
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: '잘못된 입력 데이터',
+    schema: {
+      example: {
+        statusCode: 400,
+        message: 'Invalid project data',
+      },
+    },
+  })
   async addProject(@Req() req, @Body() projectData: any) {
     const userId = req.user?.user_id;
     return this.userService.addProject(userId, projectData);
@@ -185,9 +356,10 @@ export class UserController {
   }
 
   @Post('profile/links')
-  async addUserLinks(@Req() req, @Body('links') links: { url: string }[]) {
+  async addUserLinks(@Req() req, @Body('links') links: string[]) {
     const userId = req.user?.user_id;
-    return this.userService.addUserLinks(userId, links);
+    const formattedLinks = links.map(url => ({ url }));
+    return this.userService.addUserLinks(userId, formattedLinks);
   }
 
   @Delete('profile/links')
