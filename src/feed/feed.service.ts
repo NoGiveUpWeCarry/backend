@@ -3,19 +3,22 @@ import { PrismaService } from '@src/prisma/prisma.service';
 import { FeedDto } from './dto/feed.dto';
 import * as cheerio from 'cheerio';
 import { CommentDto } from './dto/comment.dto';
+import { GetFeedsQueryDto } from './dto/getFeedsQuery.dto';
 
 @Injectable()
 export class FeedService {
   constructor(private readonly prisma: PrismaService) {}
 
   // 피드 전체 조회
-  async getAllFeeds(user, latest) {
+  async getAllFeeds(user, queryDto: GetFeedsQueryDto) {
     try {
       const userId = user ? user.user_id : 0;
+      const { latest = false, limit = 10, cursor = 0 } = queryDto;
 
       const orderKey = latest ? 'created_at' : 'like_count';
 
       const result = await this.prisma.feedPost.findMany({
+        where: cursor ? { id: { gt: cursor } } : {},
         include: {
           Likes: {
             where: { user_id: userId },
@@ -40,6 +43,7 @@ export class FeedService {
             },
           },
         },
+        take: limit,
         // 인기순 정렬 : 좋아요 순
         orderBy: { [orderKey]: 'desc' },
       });
@@ -49,8 +53,13 @@ export class FeedService {
         const post = await this.getPostObj(res);
         posts.push(post);
       }
+
+      // 라스트 커서
+      const lastCursor = posts[posts.length - 1]?.postId || null;
+
       return {
         posts,
+        pagination: { lastCursor },
         message: { code: 200, message: '전체 피드를 정상적으로 조회했습니다.' },
       };
     } catch (err) {

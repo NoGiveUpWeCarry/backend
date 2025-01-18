@@ -15,6 +15,7 @@ import { OptionalAuthGuard } from '@src/modules/auth/guards/optional-auth.guard'
 import { JwtAuthGuard } from '@src/modules/auth/guards/jwt-auth.guard';
 import { FeedDto } from './dto/feed.dto';
 import { CommentDto } from './dto/comment.dto';
+import { GetFeedsQueryDto } from './dto/getFeedsQuery.dto';
 
 @Controller('feed')
 export class FeedController {
@@ -22,8 +23,8 @@ export class FeedController {
   // 메인 페이지 조회
   @Get()
   @UseGuards(OptionalAuthGuard)
-  async getAllFeed(@Req() req, @Query('latest') latest: boolean) {
-    return this.feedService.getAllFeeds(req.user, latest);
+  async getAllFeed(@Req() req, @Query() queryDto: GetFeedsQueryDto) {
+    return this.feedService.getAllFeeds(req.user, queryDto);
   }
 
   // 피드 조회 (게시글)
