@@ -40,14 +40,6 @@ export class UserService {
       throw new NotFoundException('사용자를 찾을 수 없습니다.');
     }
 
-    // 로그인한 사용자가 해당 유저를 팔로우하고 있는지 확인
-    const isFollowing = await this.prisma.follows.findFirst({
-      where: {
-        following_user_id: loggedInUserId,
-        followed_user_id: targetUserId,
-      },
-    });
-
     // 팔로워 수와 팔로잉 수 계산
     const followerCount = await this.prisma.follows.count({
       where: { followed_user_id: targetUserId },
@@ -84,20 +76,50 @@ export class UserService {
 
     // 반환 데이터 구성
     return {
-      id: user.id,
-      nickname: user.nickname,
+      userId: user.id,
       profileUrl: user.profile_url,
       role: user.role.name,
-      introduce: user.introduce,
       status: user.status.name,
       applyCount: user.apply_count,
       postCount: user.post_count,
       followerCount, // 팔로워 수
       followingCount, // 팔로잉 수
+      specificData, // 직업군 맞춤 데이터
+      isOwnProfile: loggedInUserId === targetUserId, // 자신의 프로필인지 확인
+    };
+  }
+
+  async getUserProfileHeader(loggedInUserId: number, targetUserId: number) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: targetUserId },
+      include: {
+        role: true, // 역할 정보
+        UserLinks: true, // 연결된 링크
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('사용자를 찾을 수 없습니다.');
+    }
+
+    // 로그인한 사용자가 해당 유저를 팔로우하고 있는지 확인
+    const isFollowing = await this.prisma.follows.findFirst({
+      where: {
+        following_user_id: loggedInUserId,
+        followed_user_id: targetUserId,
+      },
+    });
+
+    // 반환 데이터 구성
+    return {
+      userId: user.id,
+      nickname: user.nickname,
+      profileUrl: user.profile_url,
+      role: user.role.name,
+      introduce: user.introduce,
       userLinks: user.UserLinks.map(link => ({
         url: link.link,
-      })), // 연결된 링크
-      specificData, // 직업군 맞춤 데이터
+      })), // 연결
       isOwnProfile: loggedInUserId === targetUserId, // 자신의 프로필인지 확인
       isFollowing: !!isFollowing, // 팔로우 여부 확인
     };
