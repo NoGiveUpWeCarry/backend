@@ -8,7 +8,9 @@ import {
   Put,
   Query,
   Req,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { FeedService } from './feed.service';
 import { OptionalAuthGuard } from '@src/modules/auth/guards/optional-auth.guard';
@@ -16,6 +18,7 @@ import { JwtAuthGuard } from '@src/modules/auth/guards/jwt-auth.guard';
 import { FeedDto } from './dto/feed.dto';
 import { CommentDto } from './dto/comment.dto';
 import { GetFeedsQueryDto } from './dto/getFeedsQuery.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('feed')
 export class FeedController {
@@ -116,5 +119,14 @@ export class FeedController {
   ) {
     const userId = req.user.user_id;
     return this.feedService.deleteComment(userId, feedId, commentId);
+  }
+
+  // 이미지 업로드
+  @Post('image')
+  @UseInterceptors(FileInterceptor('file'))
+  @UseGuards(JwtAuthGuard)
+  async func(@Req() req, @UploadedFile() file: Express.Multer.File) {
+    const userId = req.user.user_id;
+    return await this.feedService.uploadFeedImage(userId, file);
   }
 }

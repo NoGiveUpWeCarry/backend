@@ -4,10 +4,14 @@ import { FeedDto } from './dto/feed.dto';
 import * as cheerio from 'cheerio';
 import { CommentDto } from './dto/comment.dto';
 import { GetFeedsQueryDto } from './dto/getFeedsQuery.dto';
+import { S3Service } from '@src/s3/s3.service';
 
 @Injectable()
 export class FeedService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly s3: S3Service
+  ) {}
 
   // 피드 전체 조회
   async getAllFeeds(user, queryDto: GetFeedsQueryDto) {
@@ -515,5 +519,21 @@ export class FeedService {
     }
 
     return auth.user_id == userId;
+  }
+
+  // 이미지 업로드
+  async uploadFeedImage(userId: number, file: Express.Multer.File) {
+    const fileType = file.mimetype.split('/')[1];
+    const imageUrl = await this.s3.uploadImage(
+      8,
+      file.buffer,
+      fileType,
+      'pad_feed'
+    );
+
+    return {
+      imageUrl,
+      message: { code: 200, message: '이미지 업로드가 완료되었습니다.' },
+    };
   }
 }
