@@ -51,7 +51,7 @@ export class ChatService {
 
   // 메세지 저장
   async createMessage(type, channelId, userId, content) {
-    await this.prisma.message.create({
+    return await this.prisma.message.create({
       data: {
         type,
         content,
@@ -81,6 +81,7 @@ export class ChatService {
     const data = {
       userId: result.id,
       email: result.email,
+      name: result.name,
       nickname: result.nickname,
       profileUrl: result.profile_url,
       authProvide: result.auth_provider,
@@ -128,11 +129,14 @@ export class ChatService {
       where: { user_id: id },
       select: { channel_id: true },
     });
-    const data = result.map(v => ({
-      channelId: v.channel_id,
-    }));
 
-    return data;
+    const channels = [];
+    for (const res of result) {
+      const channel = await this.getChannleObj(res.channel_id);
+      channels.push(channel);
+    }
+
+    return channels;
   }
 
   // 메세지 상태 업데이트
@@ -155,45 +159,7 @@ export class ChatService {
         throw new Error('권한 X');
       }
 
-      // 채널 데이터 조회
-      const result = await this.prisma.channel.findUnique({
-        where: { id: channelId },
-        include: {
-          Channel_users: {
-            select: {
-              user: {
-                select: { nickname: true },
-              },
-            },
-          },
-          Message: {
-            take: 1,
-            orderBy: { id: 'desc' },
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  email: true,
-                  name: true,
-                  nickname: true,
-                  profile_url: true,
-                  auth_provider: true,
-                  role_id: true,
-                },
-              },
-            },
-          },
-        },
-      });
-
-      // 채널 데이터 양식화
-      const channel = {
-        channelId: result.id,
-        title: result.name,
-        type: result.Channel_users.length > 2 ? 'group' : 'private',
-        users: result.Channel_users.map(v => v.user.nickname),
-        lastMessage: result.Message[0],
-      };
+      const channel = await this.getChannleObj(channelId);
 
       const message = {
         code: 200,
@@ -203,6 +169,73 @@ export class ChatService {
     } catch (err) {
       return err.message;
     }
+  }
+
+  // 채널 객체 리턴 로직
+  async getChannleObj(channelId) {
+    // 채널 데이터 조회
+    const result = await this.prisma.channel.findUnique({
+      where: { id: channelId },
+      include: {
+        Channel_users: {
+          select: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                name: true,
+                nickname: true,
+                profile_url: true,
+                auth_provider: true,
+                role_id: true,
+              },
+            },
+          },
+        },
+        Message: {
+          take: 1,
+          orderBy: { id: 'desc' },
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                name: true,
+                nickname: true,
+                profile_url: true,
+                auth_provider: true,
+                role_id: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // 채널 데이터 양식화
+    const channel = {
+      channelId: result.id,
+      title: result.name,
+      type: result.Channel_users.length > 2 ? 'group' : 'private',
+      users: result.Channel_users.map(res => ({
+        userId: res.user.id,
+        email: res.user.email,
+        name: res.user.name,
+        nickname: res.user.nickname,
+        profileUrl: res.user.profile_url,
+        authProvider: res.user.auth_provider,
+        roleId: res.user.role_id,
+      })),
+      lastMessage: {
+        type: result.Message[0]?.type,
+        content: result.Message[0]?.content,
+        channelId: result.Message[0]?.channel_id,
+        date: result.Message[0]?.created_at,
+        userId: result.Message[0]?.user_id,
+      },
+    };
+
+    return channel;
   }
 
   // 채널 메세지 조회
@@ -222,56 +255,47 @@ export class ChatService {
       }
 
       // 메세지 데이터 조회
-      const [result, totalMessageCount] = await Promise.all([
-        this.prisma.message.findMany({
-          where: {
-            channel_id: channelId,
-          },
-          include: {
-            user: {
-              select: {
-                id: true,
-                email: true,
-                name: true,
-                nickname: true,
-                role: true,
-                profile_url: true,
-                auth_provider: true,
-              },
+      const result = await this.prisma.message.findMany({
+        where: {
+          channel_id: channelId,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              name: true,
+              nickname: true,
+              role: true,
+              profile_url: true,
+              auth_provider: true,
             },
           },
-          orderBy: {
-            id: 'desc',
-          },
-          take: limit,
-        }),
-        this.prisma.message.count({
-          where: {
-            channel_id: channelId,
-          },
-        }),
-      ]);
+        },
+        orderBy: {
+          id: 'desc',
+        },
+        take: limit,
+        skip: (currentPage - 1) * limit,
+      });
 
       // 메세지 데이터 양식화
       const data = result.map(msg => ({
-        id: msg.id,
+        messageId: msg.id,
         type: msg.type,
         content: msg.content,
         channelId: msg.channel_id,
         date: msg.created_at,
         user: {
-          id: msg.user.id,
+          userId: msg.user.id,
           email: msg.user.email,
+          name: msg.user.name,
           nickname: msg.user.nickname,
-          role: msg.user.role.name,
           profileUrl: msg.user.profile_url,
+          authProvider: msg.user.auth_provider,
+          roleId: msg.user.role.id,
         },
       }));
-      // 페이지네이션
-      const pagenation = {
-        totalMessageCount,
-        currentPage: currentPage,
-      };
 
       const message = {
         code: 200,
@@ -279,7 +303,7 @@ export class ChatService {
       };
 
       // 응답데이터 {메세지데이터, 페이지네이션}
-      return { messages: data, pagenation, message };
+      return { messages: data, message };
     } catch (err) {
       return err.message;
     }
