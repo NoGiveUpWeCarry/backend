@@ -41,7 +41,13 @@ import {
   PatchUserSkillsDocs,
   DeleteUserSkillsDocs,
   PatchProfileImageDocs,
-  PatchUserNotificationDocs
+  PatchUserNotificationDocs,
+  AddUserLinksDocs,
+  DeleteUserLinksDocs,
+  GetUserResumeDocs,
+  CreateUserResumeDocs,
+  UpdateUserResumeDocs,
+  DeleteUserResumeDocs
 } from './docs/user.docs';
 import {ApiBearerAuth} from '@nestjs/swagger';
 
@@ -269,6 +275,9 @@ export class UserController {
   }
 
   @Post('profile/links')
+  @AddUserLinksDocs.ApiOperation
+  @AddUserLinksDocs.ApiBody
+  @AddUserLinksDocs.ApiResponse
   async addUserLinks(@Req() req, @Body('links') links: string[]) {
     const userId = req.user?.user_id;
     const formattedLinks = links.map(url => ({ url }));
@@ -276,6 +285,9 @@ export class UserController {
   }
 
   @Delete('profile/links')
+  @DeleteUserLinksDocs.ApiOperation
+  @DeleteUserLinksDocs.ApiBody
+  @DeleteUserLinksDocs.ApiResponse
   async deleteUserLinks(@Req() req, @Body('linkIds') linkIds: number[]) {
     const userId = req.user?.user_id;
     return this.userService.deleteUserLinks(userId, linkIds);
@@ -299,6 +311,9 @@ export class UserController {
   }
 
   @Get('profile/resume/:userId')
+  @GetUserResumeDocs.ApiOperation
+  @GetUserResumeDocs.ApiParam
+  @GetUserResumeDocs.ApiResponse
   async getUserResume(@Req() req, @Param('userId') targetUserId: string) {
     const loggedInUserId = req.user?.user_id;
     const numUserId = parseInt(targetUserId, 10);
@@ -306,6 +321,9 @@ export class UserController {
   }
 
   @Post('profile/resume')
+  @CreateUserResumeDocs.ApiOperation
+  @CreateUserResumeDocs.ApiBody
+  @CreateUserResumeDocs.ApiResponse
   async createUserResume(
     @Req() req,
     @Body() body: { title: string; portfolioUrl?: string; detail: string }
@@ -316,6 +334,10 @@ export class UserController {
 
   // 지원서 수정
   @Patch('profile/resume/:resumeId')
+  @UpdateUserResumeDocs.ApiOperation
+  @UpdateUserResumeDocs.ApiParam
+  @UpdateUserResumeDocs.ApiBody
+  @UpdateUserResumeDocs.ApiResponse
   async updateUserResume(
     @Req() req,
     @Param('resumeId') resumeId: string,
@@ -327,6 +349,9 @@ export class UserController {
   }
 
   @Delete('profile/resume/:resumeId')
+  @DeleteUserResumeDocs.ApiOperation
+  @DeleteUserResumeDocs.ApiParam
+  @DeleteUserResumeDocs.ApiResponse
   async deleteUserResume(@Req() req, @Param('resumeId') resumeId: string) {
     const userId = req.user?.user_id;
     const numResumeId = parseInt(resumeId, 10);
