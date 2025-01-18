@@ -241,7 +241,7 @@ export class UserController {
   }
 
   @Post('artist/works')
-  async addWork(@Req() req, @Body() musicUrl: string) {
+  async addWork(@Req() req, @Body('musicUrl') musicUrl: string) {
     const userId = req.user?.user_id;
     return this.userService.addArtistWork(userId, musicUrl);
   }
@@ -330,15 +330,7 @@ export class UserController {
       throw new BadRequestException('파일이 업로드되지 않았습니다');
     }
     const fileType = file.mimetype.split('/')[1];
-    const updateUser = await this.userService.patchProfileImage(
-      userId,
-      file.buffer,
-      fileType
-    );
-    return {
-      message: '프로필 이미지가 성공적으로 업데이트되었습니다.',
-      user: updateUser,
-    };
+    return this.userService.patchProfileImage(userId, file.buffer, fileType);
   }
 
   @Patch('profile/notification')
