@@ -459,6 +459,23 @@ export class FeedService {
     }
   }
 
+  // 댓글 수정
+  async updateComment(userId, feedId, commentId, content) {
+    // 권한 확인
+    const auth = await this.commentAuth(userId, feedId, commentId);
+
+    if (!auth) {
+      throw new HttpException('권한이 없습니다.', HttpStatus.FORBIDDEN);
+    }
+
+    await this.prisma.feedComment.update({
+      where: { id: commentId },
+      data: { content },
+    });
+
+    return { message: { code: 200, message: '댓글 수정이 완료되었습니다.' } };
+  }
+
   // 게시글 권한 확인
   async feedAuth(userId: number, feedId: number) {
     const auth = await this.prisma.feedPost.findUnique({

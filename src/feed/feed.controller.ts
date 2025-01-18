@@ -86,6 +86,24 @@ export class FeedController {
     return this.feedService.createComment(userId, feedId, comment.content);
   }
 
+  // 댓글 수정
+  @Put(':id/comment/:commentId')
+  @UseGuards(JwtAuthGuard)
+  async updateComment(
+    @Req() req,
+    @Param('id') feedId: number,
+    @Param('commentId') commentId: number,
+    @Body() comment
+  ) {
+    const userId = req.user.user_id;
+    return await this.feedService.updateComment(
+      userId,
+      feedId,
+      commentId,
+      comment.content
+    );
+  }
+
   // 댓글 삭제
   @Delete(':id/comment/:commentId')
   @UseGuards(JwtAuthGuard)
