@@ -216,7 +216,7 @@ export class UserService {
 
     return {
       message: {
-        code: 200,
+        code: 201,
         text: '마이페이지에 프로젝트 추가에 성공했습니다',
       },
       myPageProjectId: newProject.id,
