@@ -429,24 +429,9 @@ export class FeedService {
   async deleteComment(userId, feedId, commentId) {
     try {
       // 권한 확인
-      const auth = await this.prisma.feedComment.findUnique({
-        where: { id: commentId },
-        select: { user_id: true, post_id: true },
-      });
+      const auth = await this.commentAuth(userId, feedId, commentId);
 
-      // 권한 예외 처리
       if (!auth) {
-        throw new HttpException(
-          '게시글을 찾을 수 없습니다.',
-          HttpStatus.NOT_FOUND
-        );
-      }
-
-      if (feedId !== auth.post_id) {
-        throw new HttpException('잘못된 요청입니다', HttpStatus.BAD_REQUEST);
-      }
-
-      if (userId !== auth.user_id) {
         throw new HttpException('권한이 없습니다.', HttpStatus.FORBIDDEN);
       }
 
@@ -482,5 +467,19 @@ export class FeedService {
     });
 
     return auth.user_id === userId;
+  }
+
+  // 댓글 권한 확인
+  async commentAuth(userId: number, feedId: number, commentId: number) {
+    const auth = await this.prisma.feedComment.findUnique({
+      where: { id: commentId },
+      select: { user_id: true, post_id: true },
+    });
+
+    if (feedId !== auth.post_id) {
+      throw new HttpException('잘못된 요청입니다', HttpStatus.BAD_REQUEST);
+    }
+
+    return auth.user_id == userId;
   }
 }
