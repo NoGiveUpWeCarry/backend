@@ -76,6 +76,10 @@ export class UserService {
 
     // 반환 데이터 구성
     return {
+      message: {
+        code: 200,
+        text: '유저 프로필 조회에 성공했습니다',
+      },
       userId: user.id,
       profileUrl: user.profile_url,
       role: user.role.name,
@@ -112,6 +116,10 @@ export class UserService {
 
     // 반환 데이터 구성
     return {
+      message: {
+        code: 200,
+        text: '유저 프로필(헤더 부분) 조회에 성공했습니다',
+      },
       userId: user.id,
       nickname: user.nickname,
       profileUrl: user.profile_url,
@@ -196,6 +204,10 @@ export class UserService {
     });
 
     return {
+      message: {
+        code: 200,
+        text: '마이페이지에 프로젝트 추가에 성공했습니다',
+      },
       myPageProjectId: newProject.id,
       title: newProject.title,
       description: newProject.description,
@@ -244,6 +256,10 @@ export class UserService {
     });
 
     return {
+      message: {
+        code: 200,
+        text: '마이페이지에 프로젝트 수정에 성공했습니다',
+      },
       myPageProjectId: updatedProject.id,
       title: updatedProject.title,
       description: updatedProject.description,
@@ -280,7 +296,10 @@ export class UserService {
 
     // 3. 반환 데이터 구성
     return {
-      message: '작업물이 성공적으로 삭제되었습니다.',
+      message: {
+        code: 200,
+        text: '마이페이지에 프로젝트 삭제에 성공했습니다',
+      },
       projectId,
     };
   }
@@ -306,6 +325,10 @@ export class UserService {
 
     // 데이터 반환
     return {
+      message: {
+        code: 200,
+        text: '유저 정보 세팅페이지 정보 조회에 성공했습니다',
+      },
       nickname: user.nickname,
       profileUrl: user.profile_url,
       introduce: user.introduce,
@@ -337,7 +360,10 @@ export class UserService {
     });
 
     return {
-      message: '닉네임이 성공적으로 업데이트되었습니다.',
+      message: {
+        code: 200,
+        text: '유저 닉네임이 성공적으로 변경되었습니다',
+      },
       nickname: updatedUser.nickname,
     };
   }
@@ -355,7 +381,10 @@ export class UserService {
     });
 
     return {
-      message: '직무 정보가 성공적으로 업데이트되었습니다.',
+      message: {
+        code: 200,
+        text: '직무 정보가 성공적으로 업데이트되었습니다.',
+      },
       jobDetail: user.job_detail,
     };
   }
@@ -368,7 +397,10 @@ export class UserService {
     });
 
     return {
-      message: '사용자의 소개가 성공적으로 업데이트되었습니다.',
+      message: {
+        code: 200,
+        text: '사용자의 소개가 성공적으로 업데이트되었습니다.',
+      },
       introduce: updatedUser.introduce,
     };
   }
@@ -390,7 +422,10 @@ export class UserService {
     });
 
     return {
-      message: '사용자의 상태가 성공적으로 업데이트되었습니다.',
+      message: {
+        code: 200,
+        text: '사용자의 상태가 성공적으로 업데이트되었습니다.',
+      },
       status: status.name,
     };
   }
@@ -412,7 +447,10 @@ export class UserService {
       select: { id: true, nickname: true, profile_url: true },
     });
     return {
-      message: '프로필 이미지가 성공적으로 업데이트되었습니다.',
+      message: {
+        code: 200,
+        text: '프로필 이미지가 성공적으로 업데이트되었습니다.',
+      },
       user: {
         userId: user.id,
         nickname: user.nickname,
@@ -439,7 +477,10 @@ export class UserService {
     });
 
     return {
-      message: '알림 설정이 성공적으로 업데이트되었습니다.',
+      message: {
+        code: 200,
+        text: '알림 설정이 성공적으로 업데이트되었습니다.',
+      },
       notifications: {
         pushAlert: updatedUser.push_alert,
         followingAlert: updatedUser.following_alert,
@@ -487,7 +528,10 @@ export class UserService {
     );
 
     return {
-      message: '기술 스택이 성공적으로 추가되었습니다',
+      message: {
+        code: 200,
+        text: '기술 스택이 성공적으로 추가되었습니다',
+      },
       skills: skills,
     };
   }
@@ -509,7 +553,10 @@ export class UserService {
     });
 
     return {
-      message: '기술 스택이 성공적으로 삭제되었습니다',
+      message: {
+        code: 200,
+        text: '기술 스택이 성공적으로 삭제되었습니다',
+      },
       skills,
     };
   }
@@ -534,7 +581,10 @@ export class UserService {
     // 추가할 URL이 없으면 바로 반환
     if (newLinks.length === 0) {
       return {
-        message: '추가할 링크가 없습니다.',
+        message: {
+          code: 200,
+          text: '추가할 링크가 없습니다.',
+        },
         count: 0,
       };
     }
@@ -548,7 +598,10 @@ export class UserService {
     });
 
     return {
-      message: '링크가 성공적으로 추가되었습니다.',
+      message: {
+        code: 200,
+        text: '링크가 성공적으로 추가되었습니다.',
+      },
       count: createdLinks.count,
     };
   }
@@ -562,7 +615,10 @@ export class UserService {
     });
 
     return {
-      message: '링크가 성공적으로 삭제되었습니다.',
+      message: {
+        code: 200,
+        text: '링크가 성공적으로 삭제되었습니다.',
+      },
       count: deletedLinks.count,
     };
   }
@@ -605,7 +661,10 @@ export class UserService {
     ]);
 
     return {
-      message: '사용자와 관련된 모든 데이터가 삭제되었습니다.',
+      message: {
+        code: 200,
+        text: '사용자와 관련된 모든 데이터가 삭제되었습니다.',
+      },
     };
   }
 
@@ -642,6 +701,10 @@ export class UserService {
 
     // 반환 데이터 구성
     return {
+      message: {
+        code: 200,
+        text: '사용자 이력서 조회에 성공했습니다.',
+      },
       userId: resume.user.id,
       title: resume.title,
       jobDetail: resume.user.job_detail, // 직무 상세
@@ -666,7 +729,13 @@ export class UserService {
       },
     });
 
-    return newResume;
+    return {
+      message: {
+        code: 200,
+        text: '사용자 이력서 작성에 성공했습니다.',
+      },
+      newResume,
+    };
   }
 
   // 지원서 수정
@@ -698,7 +767,13 @@ export class UserService {
       },
     });
 
-    return updatedResume;
+    return {
+      message: {
+        code: 200,
+        text: '사용자 이력서 수정에 성공했습니다.',
+      },
+      updatedResume,
+    };
   }
 
   // 지원서 삭제
@@ -721,7 +796,12 @@ export class UserService {
       where: { id: resumeId },
     });
 
-    return { message: '지원서가 삭제되었습니다.' };
+    return {
+      message: {
+        code: 200,
+        text: '사용자 이력서 삭제에 성공했습니다.',
+      },
+    };
   }
 
   async getFeeds(userId: number, page: number = 1, limit: number = 10) {
@@ -754,6 +834,10 @@ export class UserService {
 
     // 반환 데이터 구성
     return {
+      message: {
+        code: 200,
+        text: '사용자 피드 조회에 성공했습니다.',
+      },
       feeds: feeds.map(feed => ({
         id: feed.id,
         title: feed.title,
@@ -854,6 +938,10 @@ export class UserService {
     });
 
     return {
+      message: {
+        code: 200,
+        text: '사용자 커넥션허브 조회에 성공했습니다.',
+      },
       projects: formattedProjects,
       totalCount,
       currentPage: page,
@@ -876,7 +964,11 @@ export class UserService {
     });
 
     return {
-      id: newWork.id,
+      message: {
+        code: 200,
+        text: '아티스트 작업물 추가에 성공했습니다.',
+      },
+      musicId: newWork.id,
       musicUrl: newWork.music_url,
     };
   }
@@ -907,7 +999,11 @@ export class UserService {
     });
 
     return {
-      id: updatedWork.id,
+      message: {
+        code: 200,
+        text: '아티스트 작업물 수정에 성공했습니다.',
+      },
+      musicId: updatedWork.id,
       musicUrl: updatedWork.music_url,
     };
   }
@@ -928,7 +1024,12 @@ export class UserService {
       where: { id: workId },
     });
 
-    return { message: '작업물이 삭제되었습니다.' };
+    return {
+      message: {
+        code: 200,
+        text: '아티스트 작업물 삭제에 성공했습니다.',
+      },
+    };
   }
 
   async updateGithubUsername(userId: number, githubUsername: string) {
@@ -951,7 +1052,10 @@ export class UserService {
       });
 
       return {
-        message: '깃허브 닉네임이 성공적으로 추가되었습니다.',
+        message: {
+          code: 200,
+          text: '깃허브 유저네임 등록에 성공했습니다.',
+        },
         githubUsername: newData.github_username,
       };
     }
