@@ -17,7 +17,6 @@ model User {
   role_id          Int
   introduce        String?
   status_id        Int
-  job_detail       String?            // "카테고리 / 직무명" 형식으로 저장
   apply_count      Int?               @default(0)
   post_count       Int?               @default(0)
   push_alert       Boolean            @default(false)
@@ -26,7 +25,8 @@ model User {
   created_at       DateTime           @default(now())
   updated_at       DateTime           @updatedAt
   password         String?
-  ArtistData       ArtistData?
+  job_detail       String?
+  ArtistData       ArtistData[]
   Channel_users    Channel_users[]
   FeedComments     FeedComment[]
   FeedCommentLikes FeedCommentLikes[]
@@ -36,17 +36,16 @@ model User {
   Follows          Follows[]          @relation("UserFollows")
   Message          Message[]
   Message_status   Message_status[]
+  MyPageProject    MyPageProject[]
+  UserLinks        MyPageUserLink[]
   ProgrammerData   ProgrammerData?
-  MyPageProject    MyPageProject?
   ProjectPost      ProjectPost[]
   ProjectSaves     ProjectSave[]
   Resume           Resume[]
   role             Role               @relation(fields: [role_id], references: [id])
   status           Status             @relation(fields: [status_id], references: [id])
   UserApplyProject UserApplyProject[]
-  UserLinks        MyPageUserLink[]
   UserSkills       UserSkill[]
-
 
   @@index([role_id], map: "User_role_id_fkey")
   @@index([status_id], map: "User_status_id_fkey")
@@ -59,46 +58,50 @@ model Role {
 }
 
 model MyPageProject {
-  id           Int           @id @default(autoincrement())
-  user_id      Int           @unique
+  id           Int                 @id @default(autoincrement())
+  user_id      Int
   title        String
   description  String
-  created_at   DateTime      @default(now())
-  updated_at   DateTime      @updatedAt
-  user         User          @relation(fields: [user_id], references: [id])
+  created_at   DateTime            @default(now())
+  updated_at   DateTime            @updatedAt
+  user         User                @relation(fields: [user_id], references: [id])
   ProjectLinks MyPageProjectLink[]
+
+  @@index([user_id])
 }
 
 model MyPageProjectLink {
-  id         Int      @id @default(autoincrement())
+  id         Int           @id @default(autoincrement())
   project_id Int
   type_id    Int
   url        String
-  project    MyPageProject  @relation(fields: [project_id], references: [id])
-  type       LinkType @relation(fields: [type_id], references: [id])
+  project    MyPageProject @relation(fields: [project_id], references: [id])
+  type       LinkType      @relation(fields: [type_id], references: [id])
 
   @@index([project_id], map: "ProjectLink_project_id_fkey")
   @@index([type_id], map: "ProjectLink_type_id_fkey")
 }
 
 model LinkType {
-  id    Int           @id @default(autoincrement())
-  name  String        @unique
+  id    Int                 @id @default(autoincrement())
+  name  String              @unique
   Links MyPageProjectLink[]
 }
 
 model ProgrammerData {
-  id                Int    @id @default(autoincrement())
-  user_id           Int    @unique
-  github_username   String
-  user              User   @relation(fields: [user_id], references: [id])
+  id              Int    @id @default(autoincrement())
+  user_id         Int    @unique
+  github_username String
+  user            User   @relation(fields: [user_id], references: [id])
 }
 
 model ArtistData {
-  id         Int     @id @default(autoincrement())
-  user_id    Int     @unique
-  music_url  String
-  user       User    @relation(fields: [user_id], references: [id])
+  id        Int    @id @default(autoincrement())
+  user_id   Int
+  music_url String
+  user      User   @relation(fields: [user_id], references: [id])
+
+  @@index([user_id], map: "ArtistData_user_id_fkey")
 }
 
 model Status {
@@ -108,12 +111,12 @@ model Status {
 }
 
 model Resume {
-  id        Int    @id @default(autoincrement())
-  user_id   Int
-  title     String
+  id            Int     @id @default(autoincrement())
+  user_id       Int
+  title         String
+  detail        String  @db.Text
   portfolio_url String?
-  detail    String @db.Text
-  user      User   @relation(fields: [user_id], references: [id])
+  user          User    @relation(fields: [user_id], references: [id])
 
   @@index([user_id], map: "Resume_user_id_fkey")
 }
@@ -234,13 +237,14 @@ model ProjectPost {
   applicant_count Int
   view            Int
   saved_count     Int
+  created_at      DateTime            @default(now())
   Details         ProjectDetailRole[]
   user            User                @relation(fields: [user_id], references: [id])
   work_type       WorkType            @relation(fields: [work_type_id], references: [id])
   Tags            ProjectPostTag[]
   Saves           ProjectSave[]
   Applications    UserApplyProject[]
-  created_at      DateTime @default(now())
+
   @@index([user_id], map: "ProjectPost_user_id_fkey")
   @@index([work_type_id], map: "ProjectPost_work_type_id_fkey")
 }
