@@ -72,7 +72,7 @@ export class FeedService {
   }
 
   // 피드 조회 (게시글 부분)
-  async getFeed(feedId, user) {
+  async getFeed(feedId: number, user) {
     try {
       const userId = user ? user.user_id : 0;
       const result = await this.prisma.feedPost.findUnique({
@@ -152,7 +152,7 @@ export class FeedService {
   }
 
   // 피드 개별 조회 (댓글)
-  async getFeedComments(feedId) {
+  async getFeedComments(feedId: number) {
     try {
       const result = await this.prisma.feedComment.findMany({
         where: {
@@ -211,7 +211,7 @@ export class FeedService {
   }
 
   // 피드 좋아요 추가/제거
-  async handleFeedLikes(feedId, userId) {
+  async handleFeedLikes(feedId: number, userId: number) {
     try {
       const exist = await this.prisma.feedLike.findMany({
         where: {
@@ -354,7 +354,7 @@ export class FeedService {
   }
 
   // 피드 삭제
-  async deleteFeed(userId, feedId) {
+  async deleteFeed(userId: number, feedId: number) {
     try {
       // 권한 확인
       const auth = await this.feedAuth(userId, feedId);
@@ -397,7 +397,7 @@ export class FeedService {
   }
 
   // 썸네일 추출
-  async getThumnailUrl(text) {
+  async getThumnailUrl(text: string) {
     try {
       const $ = cheerio.load(text);
       const thumnailUrl = $('img').first().attr('src');
@@ -408,7 +408,7 @@ export class FeedService {
   }
 
   // 댓글 등록
-  async createComment(userId, feedId, commentDto: CommentDto) {
+  async createComment(userId: number, feedId: number, commentDto: CommentDto) {
     try {
       // 댓글 데이터 저장
       const content = commentDto.content;
@@ -437,7 +437,7 @@ export class FeedService {
   }
 
   // 댓글 삭제
-  async deleteComment(userId, feedId, commentId) {
+  async deleteComment(userId: number, feedId: number, commentId: number) {
     try {
       // 권한 확인
       const auth = await this.commentAuth(userId, feedId, commentId);
@@ -471,7 +471,12 @@ export class FeedService {
   }
 
   // 댓글 수정
-  async updateComment(userId, feedId, commentId, commentDto: CommentDto) {
+  async updateComment(
+    userId: number,
+    feedId: number,
+    commentId: number,
+    commentDto: CommentDto
+  ) {
     // 권한 확인
     const auth = await this.commentAuth(userId, feedId, commentId);
 
