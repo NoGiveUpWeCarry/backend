@@ -299,15 +299,9 @@ export class FeedService {
       const thumnailUrl = (await this.getThumnailUrl(content)) || null;
 
       // 권한 확인
-      const originData = await this.prisma.feedPost.findUnique({
-        where: { id: feedId },
-        select: {
-          user_id: true,
-          Tags: { select: { tag: { select: { name: true } } } },
-        },
-      });
+      const auth = await this.feedAuth(userId, feedId);
 
-      if (originData.user_id !== userId) {
+      if (!auth) {
         throw new HttpException('권한이 없습니다.', HttpStatus.FORBIDDEN);
       }
 
@@ -353,18 +347,9 @@ export class FeedService {
   async deleteFeed(userId, feedId) {
     try {
       // 권한 확인
-      const auth = await this.prisma.feedPost.findUnique({
-        where: { id: feedId },
-        select: { user_id: true },
-      });
+      const auth = await this.feedAuth(userId, feedId);
+
       if (!auth) {
-        throw new HttpException(
-          '게시글을 찾을 수 없습니다.',
-          HttpStatus.NOT_FOUND
-        );
-      }
-      // 권한 예외 처리
-      if (userId !== auth.user_id) {
         throw new HttpException('권한이 없습니다.', HttpStatus.FORBIDDEN);
       }
 
@@ -487,5 +472,15 @@ export class FeedService {
         HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
+  }
+
+  // 게시글 권한 확인
+  async feedAuth(userId: number, feedId: number) {
+    const auth = await this.prisma.feedPost.findUnique({
+      where: { id: feedId },
+      select: { user_id: true },
+    });
+
+    return auth.user_id === userId;
   }
 }
