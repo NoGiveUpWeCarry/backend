@@ -32,6 +32,13 @@ import {
   AddWorkDocs,
   UpdateWorkDocs,
   DeleteWorkDocs,
+  PatchUserNicknameDocs,
+  GetUserSettingDocs,
+  UpdateGithubUsernameDocs,
+  UpdateUserJobDetailDocs,
+  PatchUserStatusDocs,
+  PatchUserIntroduceDocs,
+  PatchUserSkillsDocs
 } from './docs/user.docs';
 import {ApiBearerAuth} from '@nestjs/swagger';
 
@@ -146,6 +153,9 @@ export class UserController {
   }
 
   @Patch('githubNickname')
+  @UpdateGithubUsernameDocs.ApiOperation
+  @UpdateGithubUsernameDocs.ApiBody
+  @UpdateGithubUsernameDocs.ApiResponse
   async updateGithubUsername(
     @Req() req,
     @Body('githubUsername') githubUsername: string
@@ -155,30 +165,44 @@ export class UserController {
   }
 
   @Get('profile/settings')
+  @GetUserSettingDocs.ApiOperation
+  @GetUserSettingDocs.ApiResponse
   async getUserSetting(@Req() req) {
     const userId = req.user?.user_id;
     return this.userService.getUserSetting(userId);
   }
 
   @Patch('profile/nickname')
+  @PatchUserNicknameDocs.ApiOperation
+  @PatchUserNicknameDocs.ApiBody
+  @PatchUserNicknameDocs.ApiResponse
   async patchUserNickname(@Req() req, @Body('nickname') nickname: string) {
     const userId = req.user?.user_id;
     return this.userService.patchUserNickname(userId, nickname);
   }
 
   @Patch('profile/introduce')
+  @PatchUserIntroduceDocs.ApiOperation
+  @PatchUserIntroduceDocs.ApiBody
+  @PatchUserIntroduceDocs.ApiResponse
   async patchUserIntroduce(@Req() req, @Body('introduce') introduce: string) {
     const userId = req.user?.user_id;
     return this.userService.patchUserIntroduce(userId, introduce);
   }
 
   @Patch('profile/status')
+  @PatchUserStatusDocs.ApiOperation
+  @PatchUserStatusDocs.ApiBody
+  @PatchUserStatusDocs.ApiResponse
   async patchUserStatus(@Req() req, @Body('statusId') statusId: number) {
     const userId = req.user?.user_id;
     return this.userService.patchUserStatus(userId, statusId);
   }
 
   @Patch('profile/job')
+  @UpdateUserJobDetailDocs.ApiOperation
+  @UpdateUserJobDetailDocs.ApiBody
+  @UpdateUserJobDetailDocs.ApiResponse
   async updateUserJobDetail(
     @Req() req,
     @Body('category') category: string,
@@ -189,6 +213,9 @@ export class UserController {
   }
 
   @Post('profile/skills')
+  @PatchUserSkillsDocs.ApiOperation
+  @PatchUserSkillsDocs.ApiBody
+  @PatchUserSkillsDocs.ApiResponse
   async patchUserSkills(@Req() req, @Body('skills') skills: string[]) {
     const userId = req.user?.user_id;
     return this.userService.addUserSkills(userId, skills);
@@ -219,9 +246,9 @@ export class UserController {
     @Req() req,
     @Body('notification')
     notifications: {
-      pushAlert: boolean;
-      followingAlert: boolean;
-      projectAlert: boolean;
+      pushAlert?: boolean;
+      followingAlert?: boolean;
+      projectAlert?: boolean;
     }
   ) {
     const userId = req.user?.user_id;
