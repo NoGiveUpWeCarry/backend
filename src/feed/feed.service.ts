@@ -2,6 +2,7 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '@src/prisma/prisma.service';
 import { FeedDto } from './dto/feed.dto';
 import * as cheerio from 'cheerio';
+import { CommentDto } from './dto/comment.dto';
 
 @Injectable()
 export class FeedService {
@@ -398,14 +399,15 @@ export class FeedService {
   }
 
   // 댓글 등록
-  async createComment(userId, feedId, content) {
+  async createComment(userId, feedId, commentDto: CommentDto) {
     try {
       // 댓글 데이터 저장
+      const content = commentDto.content;
       await this.prisma.feedComment.create({
         data: {
           user_id: userId,
           post_id: feedId,
-          content: content,
+          content,
         },
       });
 
@@ -460,7 +462,7 @@ export class FeedService {
   }
 
   // 댓글 수정
-  async updateComment(userId, feedId, commentId, content) {
+  async updateComment(userId, feedId, commentId, commentDto: CommentDto) {
     // 권한 확인
     const auth = await this.commentAuth(userId, feedId, commentId);
 
@@ -468,6 +470,7 @@ export class FeedService {
       throw new HttpException('권한이 없습니다.', HttpStatus.FORBIDDEN);
     }
 
+    const content = commentDto.content;
     await this.prisma.feedComment.update({
       where: { id: commentId },
       data: { content },

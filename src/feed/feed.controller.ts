@@ -14,6 +14,7 @@ import { FeedService } from './feed.service';
 import { OptionalAuthGuard } from '@src/modules/auth/guards/optional-auth.guard';
 import { JwtAuthGuard } from '@src/modules/auth/guards/jwt-auth.guard';
 import { FeedDto } from './dto/feed.dto';
+import { CommentDto } from './dto/comment.dto';
 
 @Controller('feed')
 export class FeedController {
@@ -80,10 +81,10 @@ export class FeedController {
   async createComment(
     @Req() req,
     @Param('id') feedId: number,
-    @Body() comment
+    @Body() commentDto: CommentDto
   ) {
     const userId = req.user.user_id;
-    return this.feedService.createComment(userId, feedId, comment.content);
+    return this.feedService.createComment(userId, feedId, commentDto);
   }
 
   // 댓글 수정
@@ -93,14 +94,14 @@ export class FeedController {
     @Req() req,
     @Param('id') feedId: number,
     @Param('commentId') commentId: number,
-    @Body() comment
+    @Body() commentDto: CommentDto
   ) {
     const userId = req.user.user_id;
     return await this.feedService.updateComment(
       userId,
       feedId,
       commentId,
-      comment.content
+      commentDto
     );
   }
 
