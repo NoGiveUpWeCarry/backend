@@ -21,14 +21,8 @@ import {
 import { UserService } from './user.service';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { GetUserFollowersDocs, GetUserFollowingsDocs, GetUserProfileDocs, GetUserProfileHeaderDocs } from './docs/user.docs';
-import {
-  ApiBearerAuth,
-  ApiBody,
-  ApiOperation,
-  ApiParam,
-  ApiResponse,
-} from '@nestjs/swagger';
+import { GetUserFollowersDocs, GetUserFollowingsDocs, GetUserProfileDocs, GetUserProfileHeaderDocs,AddProjectDocs, UpdateProjectDocs, DeleteProjectDocs } from './docs/user.docs';
+import {ApiBearerAuth} from '@nestjs/swagger';
 
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
@@ -73,12 +67,19 @@ export class UserController {
   }
 
   @Post('projects')
+  @AddProjectDocs.ApiOperation
+  @AddProjectDocs.ApiBody
+  @AddProjectDocs.ApiResponse
   async addProject(@Req() req, @Body() projectData: any) {
     const userId = req.user?.user_id;
     return this.userService.addProject(userId, projectData);
   }
 
   @Put('projects/:projectId')
+  @UpdateProjectDocs.ApiOperation
+  @UpdateProjectDocs.ApiParam
+  @UpdateProjectDocs.ApiBody
+  @UpdateProjectDocs.ApiResponse
   async updateProject(
     @Req() req,
     @Param('projectId') projectId: string,
@@ -90,6 +91,9 @@ export class UserController {
   }
 
   @Delete('projects/:projectId')
+  @DeleteProjectDocs.ApiOperation
+  @DeleteProjectDocs.ApiParam
+  @DeleteProjectDocs.ApiResponse
   async deleteProject(@Req() req, @Param('projectId') projectId: string) {
     const userId = req.user?.user_id;
     const numProjectId = parseInt(projectId, 10);
