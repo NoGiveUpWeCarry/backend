@@ -81,7 +81,6 @@ export class UserService {
         text: '유저 프로필 조회에 성공했습니다',
       },
       userId: user.id,
-      profileUrl: user.profile_url,
       role: user.role.name,
       status: user.status.name,
       applyCount: user.apply_count,
