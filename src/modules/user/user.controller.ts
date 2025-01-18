@@ -21,7 +21,7 @@ import {
 import { UserService } from './user.service';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { GetUserFollowersDocs, GetUserFollowingsDocs } from './docs/user.docs';
+import { GetUserFollowersDocs, GetUserFollowingsDocs, GetUserProfileDocs, GetUserProfileHeaderDocs } from './docs/user.docs';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -37,6 +37,9 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Get(':userId')
+  @GetUserProfileDocs.ApiOperation
+  @GetUserProfileDocs.ApiParam
+  @GetUserProfileDocs.ApiResponse
   async getUserProfile(@Param('userId') userId: string, @Req() req) {
     const loggedInUserId = req.user?.user_id;
     const numUserId = parseInt(userId); // 인증된 사용자 ID
@@ -44,6 +47,9 @@ export class UserController {
   }
 
   @Get(':userId/headers')
+  @GetUserProfileHeaderDocs.ApiOperation
+  @GetUserProfileHeaderDocs.ApiParam
+  @GetUserProfileHeaderDocs.ApiResponse
   async getUserProfileHeader(@Param('userId') userId: string, @Req() req) {
     const loggedInUserId = req.user?.user_id;
     const numUserId = parseInt(userId); // 인증된 사용자 ID
@@ -67,56 +73,6 @@ export class UserController {
   }
 
   @Post('projects')
-  @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({
-    summary: '프로젝트 추가',
-    description: '로그인한 유저가 자신의 프로젝트를 추가합니다.',
-  })
-  @ApiBody({
-    description: '추가할 프로젝트 데이터',
-    schema: {
-      type: 'object',
-      properties: {
-        title: { type: 'string', example: '프로젝트 제목' },
-        description: { type: 'string', example: '프로젝트 설명' },
-        links: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              url: { type: 'string', example: 'https://github.com/project' },
-              typeId: { type: 'number', example: 1 },
-            },
-          },
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: HttpStatus.CREATED,
-    description: '프로젝트 추가 성공',
-    schema: {
-      example: {
-        id: 1,
-        title: '프로젝트 제목',
-        description: '프로젝트 설명',
-        links: [
-          { id: 1, url: 'https://github.com/project', type: 'GitHub' },
-          { id: 2, url: 'https://project.com', type: 'Website' },
-        ],
-      },
-    },
-  })
-  @ApiResponse({
-    status: HttpStatus.BAD_REQUEST,
-    description: '잘못된 입력 데이터',
-    schema: {
-      example: {
-        statusCode: 400,
-        message: 'Invalid project data',
-      },
-    },
-  })
   async addProject(@Req() req, @Body() projectData: any) {
     const userId = req.user?.user_id;
     return this.userService.addProject(userId, projectData);
