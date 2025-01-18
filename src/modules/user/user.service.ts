@@ -53,7 +53,7 @@ export class UserService {
     let specificData = null;
     if (user.role.name === 'Artist') {
       specificData = {
-        musicUrl: user.ArtistData?.music_url,
+        works: user.ArtistData.map(works => works.music_url), // 단순 URL 배열로 변환
       };
     } else if (
       user.role.name === 'Programmer' ||
@@ -406,11 +406,19 @@ export class UserService {
       fileType
     );
 
-    return this.prisma.user.update({
+    const user = await this.prisma.user.update({
       where: { id: userId },
       data: { profile_url: imageUrl },
       select: { id: true, nickname: true, profile_url: true },
     });
+    return {
+      message: '프로필 이미지가 성공적으로 업데이트되었습니다.',
+      user: {
+        userId: user.id,
+        nickname: user.nickname,
+        profileUrl: user.profile_url,
+      },
+    };
   }
 
   async patchUserNotification(
