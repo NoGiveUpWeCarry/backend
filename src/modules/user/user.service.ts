@@ -149,11 +149,17 @@ export class UserService {
     });
 
     // 반환 데이터 생성
-    return followers.map(follower => ({
-      id: follower.following_user.id,
-      nickname: follower.following_user.nickname,
-      profileUrl: follower.following_user.profile_url,
-    }));
+    return {
+      message: {
+        code: 200,
+        text: '팔로잉 목록 조회에 성공했습니다',
+      },
+      followerUsers: followers.map(follower => ({
+        userId: follower.following_user.id,
+        nickname: follower.following_user.nickname,
+        profileUrl: follower.following_user.profile_url,
+      })),
+    };
   }
 
   async getUserFollowings(targetUserId: number) {
@@ -173,11 +179,17 @@ export class UserService {
     });
 
     // 반환 데이터 생성
-    return followings.map(following => ({
-      id: following.followed_user.id,
-      nickname: following.followed_user.nickname,
-      profileUrl: following.followed_user.profile_url,
-    }));
+    return {
+      message: {
+        code: 200,
+        text: '팔로잉 목록 조회에 성공했습니다',
+      },
+      followingUsers: followings.map(following => ({
+        userId: following.followed_user.id,
+        nickname: following.followed_user.nickname,
+        profileUrl: following.followed_user.profile_url,
+      })),
+    };
   }
 
   async addProject(userId: number, projectData: any) {
