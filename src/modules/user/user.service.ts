@@ -573,50 +573,68 @@ export class UserService {
     };
   }
 
-  async addUserLinks(userId: number, links: { url: string }[]) {
-    // 넘어온 URL 목록
-    const urls = links.map(link => link.url);
+ async addUserLinks(userId: number, links: { url: string }[]) {
+  // 넘어온 URL 목록
+  const urls = links.map(link => link.url);
 
-    // 이미 존재하는 URL 조회
-    const existingLinks = await this.prisma.myPageUserLink.findMany({
-      where: {
-        user_id: userId,
-        link: { in: urls },
-      },
-      select: { link: true },
-    });
+  // 이미 존재하는 URL 조회
+  const existingLinks = await this.prisma.myPageUserLink.findMany({
+    where: {
+      user_id: userId,
+      link: { in: urls },
+    },
+    select: { link: true },
+  });
 
-    // 이미 존재하는 URL 필터링
-    const existingUrls = existingLinks.map(link => link.link);
-    const newLinks = links.filter(link => !existingUrls.includes(link.url));
+  // 이미 존재하는 URL 필터링
+  const existingUrls = existingLinks.map(link => link.link);
+  const newLinks = links.filter(link => !existingUrls.includes(link.url));
 
-    // 추가할 URL이 없으면 바로 반환
-    if (newLinks.length === 0) {
-      return {
-        message: {
-          code: 200,
-          text: '추가할 링크가 없습니다.',
-        },
-        count: 0,
-      };
-    }
-
-    // 새 URL만 추가
-    const createdLinks = await this.prisma.myPageUserLink.createMany({
-      data: newLinks.map(link => ({
-        user_id: userId,
-        link: link.url,
-      })),
+  // 추가할 URL이 없으면 바로 반환
+  if (newLinks.length === 0) {
+    // 유저의 현재 링크 조회
+    const currentLinks = await this.prisma.myPageUserLink.findMany({
+      where: { user_id: userId },
+      select: { id: true, link: true },
     });
 
     return {
       message: {
         code: 200,
-        text: '링크가 성공적으로 추가되었습니다.',
+        text: '추가할 링크가 없습니다.',
       },
-      count: createdLinks.count,
+      links: currentLinks.map(link => ({
+        id: link.id,
+        url: link.link,
+      })),
     };
   }
+
+  // 새 URL만 추가
+  await this.prisma.myPageUserLink.createMany({
+    data: newLinks.map(link => ({
+      user_id: userId,
+      link: link.url,
+    })),
+  });
+
+  // 유저의 모든 링크 조회
+  const updatedLinks = await this.prisma.myPageUserLink.findMany({
+    where: { user_id: userId },
+    select: { id: true, link: true },
+  });
+
+  return {
+    message: {
+      code: 200,
+      text: '링크가 성공적으로 추가되었습니다.',
+    },
+    links: updatedLinks.map(link => ({
+      linkId: link.id,
+      url: link.link,
+      })),
+    };
+}
 
   async deleteUserLinks(userId: number, linkIds: number[]) {
     const deletedLinks = await this.prisma.myPageUserLink.deleteMany({
@@ -625,13 +643,19 @@ export class UserService {
         user_id: userId,
       },
     });
-
+    const updatedLinks = await this.prisma.myPageUserLink.findMany({
+      where: { user_id: userId },
+      select: { id: true, link: true },
+    });
     return {
       message: {
         code: 200,
         text: '링크가 성공적으로 삭제되었습니다.',
       },
-      count: deletedLinks.count,
+      links: updatedLinks.map(link => ({
+        linkId: link.id,
+        url: link.link,
+      })),
     };
   }
 
@@ -743,10 +767,16 @@ export class UserService {
 
     return {
       message: {
-        code: 200,
+        code: 201,
         text: '사용자 이력서 작성에 성공했습니다.',
       },
-      newResume,
+      resume: {
+        userId: newResume.user_id,
+        resumeId: newResume.id,
+        title: newResume.title,
+        portfolioUrl: newResume.portfolio_url,
+        detail:newResume.detail
+      }
     };
   }
 
@@ -784,7 +814,13 @@ export class UserService {
         code: 200,
         text: '사용자 이력서 수정에 성공했습니다.',
       },
-      updatedResume,
+      resume: {
+        userId: updatedResume.user_id,
+        resumeId: updatedResume.id,
+        title: updatedResume.title,
+        portfolioUrl: updatedResume.portfolio_url,
+        detail:updatedResume.detail
+      }
     };
   }
 
