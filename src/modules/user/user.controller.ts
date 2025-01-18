@@ -38,7 +38,10 @@ import {
   UpdateUserJobDetailDocs,
   PatchUserStatusDocs,
   PatchUserIntroduceDocs,
-  PatchUserSkillsDocs
+  PatchUserSkillsDocs,
+  DeleteUserSkillsDocs,
+  PatchProfileImageDocs,
+  PatchUserNotificationDocs
 } from './docs/user.docs';
 import {ApiBearerAuth} from '@nestjs/swagger';
 
@@ -222,12 +225,19 @@ export class UserController {
   }
 
   @Delete('profile/skills')
+  @DeleteUserSkillsDocs.ApiOperation
+  @DeleteUserSkillsDocs.ApiBody
+  @DeleteUserSkillsDocs.ApiResponse
   async deleteUserSkills(@Req() req, @Body('skills') skills: string[]) {
     const userId = req.user?.user_id;
     return this.userService.deleteUserSkills(userId, skills);
   }
 
   @Patch('profile/image')
+  @PatchProfileImageDocs.ApiOperation
+  @PatchProfileImageDocs.ApiConsumes
+  @PatchProfileImageDocs.ApiBody
+  @PatchProfileImageDocs.ApiResponse
   @UseInterceptors(FileInterceptor('file'))
   async patchProfileImage(
     @Req() req,
@@ -242,6 +252,9 @@ export class UserController {
   }
 
   @Patch('profile/notification')
+  @PatchUserNotificationDocs.ApiOperation
+  @PatchUserNotificationDocs.ApiBody
+  @PatchUserNotificationDocs.ApiResponse
   async patchUserNotification(
     @Req() req,
     @Body('notification')
@@ -313,7 +326,7 @@ export class UserController {
     return this.userService.updateUserResume(userId, numResumeId, body);
   }
 
-  @Delete(':resumeId')
+  @Delete('profile/resume/:resumeId')
   async deleteUserResume(@Req() req, @Param('resumeId') resumeId: string) {
     const userId = req.user?.user_id;
     const numResumeId = parseInt(resumeId, 10);
