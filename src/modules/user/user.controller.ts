@@ -21,6 +21,7 @@ import {
 import { UserService } from './user.service';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { GetUserFollowersDocs, GetUserFollowingsDocs } from './docs/user.docs';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -36,41 +37,6 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Get(':userId')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: '유저 프로필 조회',
-    description: '특정 유저의 프로필을 조회합니다.',
-  })
-  @ApiParam({
-    name: 'userId',
-    description: '조회하려는 유저의 ID',
-    schema: { type: 'string', example: '1' },
-  })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: '유저 프로필 조회 성공',
-    schema: {
-      example: {
-        id: 1,
-        name: 'John Doe',
-        nickname: 'nickname123',
-        profileUrl: 'https://example.com/profile.jpg',
-        introduce: '안녕하세요!',
-        followers: 10,
-        followings: 5,
-      },
-    },
-  })
-  @ApiResponse({
-    status: HttpStatus.NOT_FOUND,
-    description: '유저를 찾을 수 없는 경우',
-    schema: {
-      example: {
-        statusCode: 404,
-        message: 'User not found',
-      },
-    },
-  })
   async getUserProfile(@Param('userId') userId: string, @Req() req) {
     const loggedInUserId = req.user?.user_id;
     const numUserId = parseInt(userId); // 인증된 사용자 ID
@@ -85,82 +51,16 @@ export class UserController {
   }
 
   @Get(':userId/followers')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: '유저 팔로워 조회',
-    description: '특정 유저의 팔로워 목록을 조회합니다.',
-  })
-  @ApiParam({
-    name: 'userId',
-    description: '조회하려는 유저의 ID',
-    schema: { type: 'string', example: '1' },
-  })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: '유저 팔로워 조회 성공',
-    schema: {
-      example: [
-        { id: 1, name: 'Follower1', nickname: 'nick1', profileUrl: null },
-        {
-          id: 2,
-          name: 'Follower2',
-          nickname: 'nick2',
-          profileUrl: 'https://example.com/avatar.jpg',
-        },
-      ],
-    },
-  })
-  @ApiResponse({
-    status: HttpStatus.NOT_FOUND,
-    description: '유저를 찾을 수 없는 경우',
-    schema: {
-      example: {
-        statusCode: 404,
-        message: 'User not found',
-      },
-    },
-  })
+  @GetUserFollowersDocs.ApiOperation
+  @GetUserFollowersDocs.ApiResponse
   async getUserFollowers(@Param('userId') userId: string) {
     const numUserId = parseInt(userId); // 인증된 사용자 ID
     return this.userService.getUserFollowers(numUserId);
   }
 
   @Get(':userId/following')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: '유저 팔로잉 조회',
-    description: '특정 유저가 팔로우 중인 사용자 목록을 조회합니다.',
-  })
-  @ApiParam({
-    name: 'userId',
-    description: '조회하려는 유저의 ID',
-    schema: { type: 'string', example: '1' },
-  })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: '유저 팔로잉 조회 성공',
-    schema: {
-      example: [
-        { id: 3, name: 'Following1', nickname: 'nick3', profileUrl: null },
-        {
-          id: 4,
-          name: 'Following2',
-          nickname: 'nick4',
-          profileUrl: 'https://example.com/avatar.jpg',
-        },
-      ],
-    },
-  })
-  @ApiResponse({
-    status: HttpStatus.NOT_FOUND,
-    description: '유저를 찾을 수 없는 경우',
-    schema: {
-      example: {
-        statusCode: 404,
-        message: 'User not found',
-      },
-    },
-  })
+  @GetUserFollowingsDocs.ApiOperation
+  @GetUserFollowingsDocs.ApiResponse
   async getUserFollowings(@Param('userId') userId: string) {
     const numUserId = parseInt(userId); // 인증된 사용자 ID
     return this.userService.getUserFollowings(numUserId);
