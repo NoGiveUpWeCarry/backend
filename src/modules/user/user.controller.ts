@@ -16,42 +16,99 @@ import {
   HttpException,
   HttpStatus,
   Query,
+  HttpCode,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
+import {
+  GetUserFollowersDocs,
+  GetUserFollowingsDocs,
+  GetUserProfileDocs,
+  GetUserProfileHeaderDocs,
+  AddProjectDocs,
+  UpdateProjectDocs,
+  DeleteProjectDocs,
+  AddWorkDocs,
+  UpdateWorkDocs,
+  DeleteWorkDocs,
+  PatchUserNicknameDocs,
+  GetUserSettingDocs,
+  UpdateGithubUsernameDocs,
+  UpdateUserJobDetailDocs,
+  PatchUserStatusDocs,
+  PatchUserIntroduceDocs,
+  PatchUserSkillsDocs,
+  DeleteUserSkillsDocs,
+  PatchProfileImageDocs,
+  PatchUserNotificationDocs,
+  AddUserLinksDocs,
+  DeleteUserLinksDocs,
+  GetUserResumeDocs,
+  CreateUserResumeDocs,
+  UpdateUserResumeDocs,
+  DeleteUserResumeDocs,
+  GetUserFeedPostsDocs,
+  GetUserConnectionHubProjectsDocs,
+} from './docs/user.docs';
+import { ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 
+@ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Get(':userId')
+  @GetUserProfileDocs.ApiOperation
+  @GetUserProfileDocs.ApiParam
+  @GetUserProfileDocs.ApiResponse
   async getUserProfile(@Param('userId') userId: string, @Req() req) {
     const loggedInUserId = req.user?.user_id;
     const numUserId = parseInt(userId); // 인증된 사용자 ID
     return this.userService.getUserProfile(loggedInUserId, numUserId);
   }
 
+  @Get(':userId/headers')
+  @GetUserProfileHeaderDocs.ApiOperation
+  @GetUserProfileHeaderDocs.ApiParam
+  @GetUserProfileHeaderDocs.ApiResponse
+  async getUserProfileHeader(@Param('userId') userId: string, @Req() req) {
+    const loggedInUserId = req.user?.user_id;
+    const numUserId = parseInt(userId); // 인증된 사용자 ID
+    return this.userService.getUserProfileHeader(loggedInUserId, numUserId);
+  }
+
   @Get(':userId/followers')
+  @GetUserFollowersDocs.ApiOperation
+  @GetUserFollowersDocs.ApiResponse
   async getUserFollowers(@Param('userId') userId: string) {
     const numUserId = parseInt(userId); // 인증된 사용자 ID
     return this.userService.getUserFollowers(numUserId);
   }
 
-  @Get(':userId/followers')
+  @Get(':userId/following')
+  @GetUserFollowingsDocs.ApiOperation
+  @GetUserFollowingsDocs.ApiResponse
   async getUserFollowings(@Param('userId') userId: string) {
     const numUserId = parseInt(userId); // 인증된 사용자 ID
     return this.userService.getUserFollowings(numUserId);
   }
 
   @Post('projects')
+  @AddProjectDocs.ApiOperation
+  @AddProjectDocs.ApiBody
+  @AddProjectDocs.ApiResponse
   async addProject(@Req() req, @Body() projectData: any) {
     const userId = req.user?.user_id;
     return this.userService.addProject(userId, projectData);
   }
 
   @Put('projects/:projectId')
+  @UpdateProjectDocs.ApiOperation
+  @UpdateProjectDocs.ApiParam
+  @UpdateProjectDocs.ApiBody
+  @UpdateProjectDocs.ApiResponse
   async updateProject(
     @Req() req,
     @Param('projectId') projectId: string,
@@ -63,6 +120,9 @@ export class UserController {
   }
 
   @Delete('projects/:projectId')
+  @DeleteProjectDocs.ApiOperation
+  @DeleteProjectDocs.ApiParam
+  @DeleteProjectDocs.ApiResponse
   async deleteProject(@Req() req, @Param('projectId') projectId: string) {
     const userId = req.user?.user_id;
     const numProjectId = parseInt(projectId, 10);
@@ -70,12 +130,19 @@ export class UserController {
   }
 
   @Post('artist/works')
-  async addWork(@Req() req, @Body() musicUrl: string) {
+  @AddWorkDocs.ApiOperation
+  @AddWorkDocs.ApiBody
+  @AddWorkDocs.ApiResponse
+  async addWork(@Req() req, @Body('musicUrl') musicUrl: string) {
     const userId = req.user?.user_id;
     return this.userService.addArtistWork(userId, musicUrl);
   }
 
   @Put('artist/works/:workId')
+  @UpdateWorkDocs.ApiOperation
+  @UpdateWorkDocs.ApiParam
+  @UpdateWorkDocs.ApiBody
+  @UpdateWorkDocs.ApiResponse
   async updateWork(
     @Req() req,
     @Param('workId') workId: string,
@@ -87,6 +154,9 @@ export class UserController {
   }
 
   @Delete('artist/works/:workId')
+  @DeleteWorkDocs.ApiOperation
+  @DeleteWorkDocs.ApiParam
+  @DeleteWorkDocs.ApiResponse
   async deleteWork(@Req() req, @Param('workId') workId: string) {
     const userId = req.user?.user_id;
     const numWorkId = parseInt(workId, 10);
@@ -94,6 +164,9 @@ export class UserController {
   }
 
   @Patch('githubNickname')
+  @UpdateGithubUsernameDocs.ApiOperation
+  @UpdateGithubUsernameDocs.ApiBody
+  @UpdateGithubUsernameDocs.ApiResponse
   async updateGithubUsername(
     @Req() req,
     @Body('githubUsername') githubUsername: string
@@ -103,30 +176,44 @@ export class UserController {
   }
 
   @Get('profile/settings')
+  @GetUserSettingDocs.ApiOperation
+  @GetUserSettingDocs.ApiResponse
   async getUserSetting(@Req() req) {
     const userId = req.user?.user_id;
     return this.userService.getUserSetting(userId);
   }
 
   @Patch('profile/nickname')
+  @PatchUserNicknameDocs.ApiOperation
+  @PatchUserNicknameDocs.ApiBody
+  @PatchUserNicknameDocs.ApiResponse
   async patchUserNickname(@Req() req, @Body('nickname') nickname: string) {
     const userId = req.user?.user_id;
     return this.userService.patchUserNickname(userId, nickname);
   }
 
   @Patch('profile/introduce')
+  @PatchUserIntroduceDocs.ApiOperation
+  @PatchUserIntroduceDocs.ApiBody
+  @PatchUserIntroduceDocs.ApiResponse
   async patchUserIntroduce(@Req() req, @Body('introduce') introduce: string) {
     const userId = req.user?.user_id;
     return this.userService.patchUserIntroduce(userId, introduce);
   }
 
   @Patch('profile/status')
+  @PatchUserStatusDocs.ApiOperation
+  @PatchUserStatusDocs.ApiBody
+  @PatchUserStatusDocs.ApiResponse
   async patchUserStatus(@Req() req, @Body('statusId') statusId: number) {
     const userId = req.user?.user_id;
     return this.userService.patchUserStatus(userId, statusId);
   }
 
   @Patch('profile/job')
+  @UpdateUserJobDetailDocs.ApiOperation
+  @UpdateUserJobDetailDocs.ApiBody
+  @UpdateUserJobDetailDocs.ApiResponse
   async updateUserJobDetail(
     @Req() req,
     @Body('category') category: string,
@@ -137,18 +224,28 @@ export class UserController {
   }
 
   @Post('profile/skills')
+  @PatchUserSkillsDocs.ApiOperation
+  @PatchUserSkillsDocs.ApiBody
+  @PatchUserSkillsDocs.ApiResponse
   async patchUserSkills(@Req() req, @Body('skills') skills: string[]) {
     const userId = req.user?.user_id;
     return this.userService.addUserSkills(userId, skills);
   }
 
   @Delete('profile/skills')
+  @DeleteUserSkillsDocs.ApiOperation
+  @DeleteUserSkillsDocs.ApiBody
+  @DeleteUserSkillsDocs.ApiResponse
   async deleteUserSkills(@Req() req, @Body('skills') skills: string[]) {
     const userId = req.user?.user_id;
     return this.userService.deleteUserSkills(userId, skills);
   }
 
   @Patch('profile/image')
+  @PatchProfileImageDocs.ApiOperation
+  @PatchProfileImageDocs.ApiConsumes
+  @PatchProfileImageDocs.ApiBody
+  @PatchProfileImageDocs.ApiResponse
   @UseInterceptors(FileInterceptor('file'))
   async patchProfileImage(
     @Req() req,
@@ -159,25 +256,20 @@ export class UserController {
       throw new BadRequestException('파일이 업로드되지 않았습니다');
     }
     const fileType = file.mimetype.split('/')[1];
-    const updateUser = await this.userService.patchProfileImage(
-      userId,
-      file.buffer,
-      fileType
-    );
-    return {
-      message: '프로필 이미지가 성공적으로 업데이트되었습니다.',
-      user: updateUser,
-    };
+    return this.userService.patchProfileImage(userId, file.buffer, fileType);
   }
 
   @Patch('profile/notification')
+  @PatchUserNotificationDocs.ApiOperation
+  @PatchUserNotificationDocs.ApiBody
+  @PatchUserNotificationDocs.ApiResponse
   async patchUserNotification(
     @Req() req,
     @Body('notification')
     notifications: {
-      pushAlert: boolean;
-      followingAlert: boolean;
-      projectAlert: boolean;
+      pushAlert?: boolean;
+      followingAlert?: boolean;
+      projectAlert?: boolean;
     }
   ) {
     const userId = req.user?.user_id;
@@ -185,12 +277,19 @@ export class UserController {
   }
 
   @Post('profile/links')
-  async addUserLinks(@Req() req, @Body('links') links: { url: string }[]) {
+  @AddUserLinksDocs.ApiOperation
+  @AddUserLinksDocs.ApiBody
+  @AddUserLinksDocs.ApiResponse
+  async addUserLinks(@Req() req, @Body('links') links: string[]) {
     const userId = req.user?.user_id;
-    return this.userService.addUserLinks(userId, links);
+    const formattedLinks = links.map(url => ({ url }));
+    return this.userService.addUserLinks(userId, formattedLinks);
   }
 
   @Delete('profile/links')
+  @DeleteUserLinksDocs.ApiOperation
+  @DeleteUserLinksDocs.ApiBody
+  @DeleteUserLinksDocs.ApiResponse
   async deleteUserLinks(@Req() req, @Body('linkIds') linkIds: number[]) {
     const userId = req.user?.user_id;
     return this.userService.deleteUserLinks(userId, linkIds);
@@ -214,6 +313,9 @@ export class UserController {
   }
 
   @Get('profile/resume/:userId')
+  @GetUserResumeDocs.ApiOperation
+  @GetUserResumeDocs.ApiParam
+  @GetUserResumeDocs.ApiResponse
   async getUserResume(@Req() req, @Param('userId') targetUserId: string) {
     const loggedInUserId = req.user?.user_id;
     const numUserId = parseInt(targetUserId, 10);
@@ -221,6 +323,9 @@ export class UserController {
   }
 
   @Post('profile/resume')
+  @CreateUserResumeDocs.ApiOperation
+  @CreateUserResumeDocs.ApiBody
+  @CreateUserResumeDocs.ApiResponse
   async createUserResume(
     @Req() req,
     @Body() body: { title: string; portfolioUrl?: string; detail: string }
@@ -231,6 +336,10 @@ export class UserController {
 
   // 지원서 수정
   @Patch('profile/resume/:resumeId')
+  @UpdateUserResumeDocs.ApiOperation
+  @UpdateUserResumeDocs.ApiParam
+  @UpdateUserResumeDocs.ApiBody
+  @UpdateUserResumeDocs.ApiResponse
   async updateUserResume(
     @Req() req,
     @Param('resumeId') resumeId: string,
@@ -241,7 +350,10 @@ export class UserController {
     return this.userService.updateUserResume(userId, numResumeId, body);
   }
 
-  @Delete(':resumeId')
+  @Delete('profile/resume/:resumeId')
+  @DeleteUserResumeDocs.ApiOperation
+  @DeleteUserResumeDocs.ApiParam
+  @DeleteUserResumeDocs.ApiResponse
   async deleteUserResume(@Req() req, @Param('resumeId') resumeId: string) {
     const userId = req.user?.user_id;
     const numResumeId = parseInt(resumeId, 10);
@@ -249,6 +361,21 @@ export class UserController {
   }
 
   @Get(':userId/feeds')
+  @GetUserFeedPostsDocs.ApiOperation
+  @GetUserFeedPostsDocs.ApiParam
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    description: '페이지 번호 (기본값: 1)',
+    type: 'number',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: '페이지 당 항목 수 (기본값: 10)',
+    type: 'number',
+  })
+  @GetUserFeedPostsDocs.ApiResponse
   async getUserFeedPosts(
     @Param('userId') userId: string,
     @Query('page') page: number = 1,
@@ -259,6 +386,27 @@ export class UserController {
   }
 
   @Get(':userId/connection-hub')
+  @GetUserConnectionHubProjectsDocs.ApiOperation
+  @GetUserConnectionHubProjectsDocs.ApiParam
+  @ApiQuery({
+    name: 'type',
+    required: true,
+    description: "프로젝트 유형 ('applied' 또는 'created')",
+    enum: ['applied', 'created'],
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    description: '페이지 번호 (기본값: 1)',
+    type: 'number',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: '페이지 당 항목 수 (기본값: 10)',
+    type: 'number',
+  })
+  @GetUserConnectionHubProjectsDocs.ApiResponse
   async getUserConnectionHubProjects(
     @Param('userId') userId: string,
     @Query('type') type: 'applied' | 'created',
