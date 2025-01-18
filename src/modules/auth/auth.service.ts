@@ -203,7 +203,7 @@ export class AuthService {
     });
 
     return {
-      user_id: newUser.id,
+      userId: newUser.id,
       email: newUser.email,
       nickname: newUser.nickname,
     };
@@ -236,13 +236,13 @@ export class AuthService {
   }
   private filterUserFields(user: any) {
     return {
-      user_id: user.id,
+      userId: user.id,
       email: user.email,
       name: user.name,
       nickname: user.nickname,
-      profile_url: user.profile_url,
-      auth_provider: user.auth_provider,
-      role_id: user.role_id,
+      profileUrl: user.profile_url,
+      authProvider: user.auth_provider,
+      roleId: user.role_id,
     };
   }
 
