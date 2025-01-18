@@ -47,9 +47,11 @@ import {
   GetUserResumeDocs,
   CreateUserResumeDocs,
   UpdateUserResumeDocs,
-  DeleteUserResumeDocs
+  DeleteUserResumeDocs,
+  GetUserFeedPostsDocs,
+  GetUserConnectionHubProjectsDocs,
 } from './docs/user.docs';
-import {ApiBearerAuth} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
@@ -359,6 +361,21 @@ export class UserController {
   }
 
   @Get(':userId/feeds')
+  @GetUserFeedPostsDocs.ApiOperation
+  @GetUserFeedPostsDocs.ApiParam
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    description: '페이지 번호 (기본값: 1)',
+    type: 'number',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: '페이지 당 항목 수 (기본값: 10)',
+    type: 'number',
+  })
+  @GetUserFeedPostsDocs.ApiResponse
   async getUserFeedPosts(
     @Param('userId') userId: string,
     @Query('page') page: number = 1,
@@ -369,6 +386,27 @@ export class UserController {
   }
 
   @Get(':userId/connection-hub')
+  @GetUserConnectionHubProjectsDocs.ApiOperation
+  @GetUserConnectionHubProjectsDocs.ApiParam
+  @ApiQuery({
+    name: 'type',
+    required: true,
+    description: "프로젝트 유형 ('applied' 또는 'created')",
+    enum: ['applied', 'created'],
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    description: '페이지 번호 (기본값: 1)',
+    type: 'number',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: '페이지 당 항목 수 (기본값: 10)',
+    type: 'number',
+  })
+  @GetUserConnectionHubProjectsDocs.ApiResponse
   async getUserConnectionHubProjects(
     @Param('userId') userId: string,
     @Query('type') type: 'applied' | 'created',
