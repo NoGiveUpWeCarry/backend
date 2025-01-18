@@ -349,6 +349,7 @@ export class UserService {
         url: link.link, // 링크 정보만 반환
       })),
       skills: user.UserSkills.map(skill => skill.skill.name), // 기술 스택
+      jobDeatil: user.job_detail,
       notifications: {
         pushAlert: user.push_alert,
         followingAlert: user.following_alert,
@@ -473,9 +474,9 @@ export class UserService {
   async patchUserNotification(
     userId: number,
     notifications: {
-      pushAlert: boolean;
-      followingAlert: boolean;
-      projectAlert: boolean;
+      pushAlert?: boolean;
+      followingAlert?: boolean;
+      projectAlert?: boolean;
     }
   ) {
     const updatedUser = await this.prisma.user.update({
@@ -976,7 +977,7 @@ export class UserService {
 
     return {
       message: {
-        code: 200,
+        code: 201,
         text: '아티스트 작업물 추가에 성공했습니다.',
       },
       musicId: newWork.id,
