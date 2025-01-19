@@ -1,4 +1,4 @@
-export class ApiResponse<T> {
+export class MyApiResponse<T> {
   message: {
     code: number; // HTTP 상태 코드
     text: string; // 메시지

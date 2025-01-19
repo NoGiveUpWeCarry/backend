@@ -9,14 +9,16 @@ import {
   HttpException,
   Res,
   HttpStatus,
+  HttpCode,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from '@src/modules/auth/auth.service';
 import { JwtAuthGuard } from '@src/modules/auth/guards/jwt-auth.guard';
 import { JwtService } from '@nestjs/jwt';
-import { ApiResponse } from '@common/dto/response.dto';
+import { MyApiResponse } from '@common/dto/response.dto';
 import { HttpStatusCodes } from '@common/constants/http-status-code';
 import { Response } from 'express';
+import { ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -130,10 +132,51 @@ export class AuthController {
     await this.authService.deleteRefreshToken(userId);
     return res
       .status(HttpStatusCodes.OK)
-      .json(new ApiResponse(HttpStatusCodes.OK, '로그아웃 성공'));
+      .json(new MyApiResponse(HttpStatusCodes.OK, '로그아웃 성공'));
   }
 
   @Post('signup')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: '회원가입',
+    description: '이메일, 닉네임, 비밀번호로 회원가입을 합니다.',
+  })
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    description: '회원가입 성공',
+    schema: {
+      example: {
+        message: '일반 회원가입 성공',
+        user: {
+          userId: 1,
+          email: 'user@example.com',
+          nickname: 'nickname123',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: '이메일이 이미 존재할 경우',
+    schema: {
+      example: {
+        statusCode: 400,
+        message: 'Email already exists',
+      },
+    },
+  })
+  @ApiBody({
+    description: '회원가입 요청 데이터',
+    schema: {
+      type: 'object',
+      properties: {
+        email: { type: 'string', example: 'user@example.com' },
+        nickname: { type: 'string', example: 'nickname123' },
+        password: { type: 'string', example: 'password123' },
+      },
+      required: ['email', 'nickname', 'password'],
+    },
+  })
   async signup(
     @Body() body: { email: string; nickname: string; password: string }
   ) {
@@ -143,16 +186,61 @@ export class AuthController {
       body.password
     );
     return {
-      message: 'Signup successful',
+      message: '일반 회원가입 성공',
       user: result,
     };
   }
 
   @Post('login')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: '로그인',
+    description: '이메일과 비밀번호로 로그인을 수행합니다.',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: '로그인 성공',
+    schema: {
+      example: {
+        message: '일반 로그인 성공',
+        user: {
+          userId: 1,
+          email: 'user@example.com',
+          name: 'nickname123',
+          nickname: 'nickname123',
+          profileUrl: null,
+          authProvider: 'pad',
+          roleId: 1,
+        },
+        accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description: '잘못된 이메일 또는 비밀번호',
+    schema: {
+      example: {
+        statusCode: 401,
+        message: '유효하지 않는 이메일 또는 비밀번호 입니다',
+      },
+    },
+  })
+  @ApiBody({
+    description: '로그인 요청 데이터',
+    schema: {
+      type: 'object',
+      properties: {
+        email: { type: 'string', example: 'user@example.com' },
+        password: { type: 'string', example: 'password123' },
+      },
+      required: ['email', 'password'],
+    },
+  })
   async login(@Body() body: { email: string; password: string }) {
     const result = await this.authService.login(body.email, body.password);
     return {
-      message: 'Login successful',
+      message: '일반 로그인 성공',
       user: result.user,
       accessToken: result.accessToken,
     };

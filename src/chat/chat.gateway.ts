@@ -56,7 +56,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const channelId = await this.chatService.getChannelId(userId1, userId2);
 
     // 채널 객체
-    const channel = { channelId };
+    const channelData = await this.chatService.getChannel(userId1, channelId);
+    const channel = channelData.channel;
 
     // 채널에 유저 참여
     client.join(channelId.toString());
@@ -115,15 +116,17 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       channelId: number;
     }
   ) {
-    const { userId, ...resData } = data;
+    const { userId } = data;
 
     // 메세지 데이터 저장
-    await this.chatService.createMessage(
+    const messageData = await this.chatService.createMessage(
       data.type,
       data.channelId,
       userId,
       data.content
     );
+
+    const messageId = messageData.id;
 
     // 유저 정보 추가
     const user = await this.chatService.getSenderProfile(userId);
@@ -131,7 +134,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const date = new Date();
 
     // 전달 데이터 양식
-    const sendData = { ...resData, user, date };
+    const sendData = {
+      type: data.type,
+      content: data.content,
+      channelId: data.channelId,
+      messageId,
+      user,
+      date,
+    };
     console.log(sendData);
     this.server.to(data.channelId.toString()).emit('message', sendData);
   }
