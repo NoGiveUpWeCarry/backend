@@ -38,7 +38,6 @@ model User {
   MyPageProject    MyPageProject[]
   UserLinks        MyPageUserLink[]
   ProgrammerData   ProgrammerData?
-  MyPageProject    MyPageProject[]
   ProjectPost      ProjectPost[]
   ProjectSaves     ProjectSave[]
   Resume           Resume[]
