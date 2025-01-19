@@ -120,7 +120,7 @@ export class ChatService {
         client_id: true,
       },
     });
-    return socketId[0].client_id;
+    return socketId[0]?.client_id;
   }
 
   // 유저가 참여한 채널 전체 조회
