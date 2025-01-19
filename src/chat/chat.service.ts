@@ -29,7 +29,11 @@ export class ChatService {
     if (channel) return channel.channel_id;
 
     // 없다면 새로운 채널 생성 후
-    const newChannel = await this.prisma.channel.create({});
+    const newChannel = await this.prisma.channel.create({
+      data: {
+        type: 'private',
+      },
+    });
 
     // 매핑 테이블에 데이터 저장
     await this.prisma.channel_users.createMany({
@@ -59,6 +63,7 @@ export class ChatService {
       data: {
         title,
         thumbnail_url: thumnailUrl,
+        type: 'group',
       },
     });
     const channelId = channel.id;
@@ -250,7 +255,7 @@ export class ChatService {
     const channel = {
       channelId: result.id,
       title: result.title,
-      type: result.Channel_users.length > 2 ? 'group' : 'private',
+      type: result.type,
       thumnailUrl: result.thumbnail_url,
       users: result.Channel_users.map(res => ({
         userId: res.user.id,
