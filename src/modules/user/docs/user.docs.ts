@@ -656,20 +656,17 @@ export const AddUserLinksDocs = {
     description: '추가할 링크 목록',
     schema: {
       example: {
-        links: [
-          { url: 'https://github.com/user' },
-          { url: 'https://linkedin.com/in/user' },
-        ],
+        links: ['https://github.com/user', 'https://linkedin.com/in/user'],
       },
     },
   }),
   ApiResponse: ApiResponse({
-    status: 200,
+    status: 201,
     description: '링크 추가 성공',
     schema: {
       example: {
         message: {
-          code: 200,
+          code: 201,
           text: '링크가 성공적으로 추가되었습니다.',
         },
         links: [
