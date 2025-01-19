@@ -217,8 +217,8 @@ export class AuthService {
     });
     if (!user || user.password !== password) {
       throw new HttpException(
-        'Invalid email or password',
-        HttpStatus.UNAUTHORIZED
+        '유효하지 않는 이메일 혹은 비밀번호 입니다',
+        HttpStatus.FORBIDDEN
       );
     }
 
