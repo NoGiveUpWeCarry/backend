@@ -121,6 +121,13 @@ export class FeedController {
     return this.feedService.deleteComment(userId, feedId, commentId);
   }
 
+  @Post('comment/:id')
+  @UseGuards(JwtAuthGuard)
+  async handleCommentLikes(@Req() req, @Param('id') commentId: number) {
+    const userId = req.user.user_id;
+    return await this.feedService.handleCommentLikes(userId, commentId);
+  }
+
   // 이미지 업로드
   @Post('image')
   @UseInterceptors(FileInterceptor('file'))

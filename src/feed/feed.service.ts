@@ -500,6 +500,29 @@ export class FeedService {
     return { message: { code: 200, message: '댓글 수정이 완료되었습니다.' } };
   }
 
+  // 댓글 좋아요 추가/제거
+  async handleCommentLikes(userId: number, commentId: number) {
+    // 좋아요 여부 확인
+    const exist = await this.prisma.feedCommentLikes.findMany({
+      where: { user_id: userId, comment_id: commentId },
+    });
+
+    if (exist.length) {
+      // 있을 시 좋아요 제거
+      await this.prisma.feedCommentLikes.deleteMany({
+        where: { user_id: userId, comment_id: commentId },
+      });
+
+      return { message: { code: 200, message: '좋아요가 취소되었습니다.' } };
+    } else {
+      // 없을 시 좋아요 추가
+      await this.prisma.feedCommentLikes.create({
+        data: { user_id: userId, comment_id: commentId },
+      });
+      return { message: { code: 200, message: '좋아요가 추가되었습니다.' } };
+    }
+  }
+
   // 게시글 권한 확인
   async feedAuth(userId: number, feedId: number) {
     const auth = await this.prisma.feedPost.findUnique({
