@@ -46,7 +46,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   // 1대1 새 채팅방 생성 (userId1(클라이언트/본인), userId2(상대방))
   @SubscribeMessage('createChannel')
   async handleCreateChannel(
-    @MessageBody() data: { userId1: number; userId2: number },
+    @MessageBody()
+    data: { userId1: number; userId2: number },
     @ConnectedSocket() client: Socket
   ) {
     const { userId1, userId2 } = data;
@@ -89,15 +90,20 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('createGroup')
   async handleCreateGroup(
-    @MessageBody() data: { userIds: number[] },
+    @MessageBody()
+    data: { userIds: number[]; title: string; thumnailUrl: string },
     @ConnectedSocket() client: Socket
   ) {
-    const { userIds } = data;
+    const { userIds, title, thumnailUrl } = data;
     // userIds[0] => 클라이언트(그룹 채팅 마스터)
     const userId = userIds[0];
 
     // 채널 id 조회
-    const channelId = await this.chatService.getGroupChannelId(userIds);
+    const channelId = await this.chatService.getGroupChannelId(
+      userIds,
+      title,
+      thumnailUrl
+    );
 
     // 채널 객체 조회
     const channelData = await this.chatService.getChannel(userId, channelId);

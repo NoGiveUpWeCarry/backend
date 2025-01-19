@@ -49,9 +49,18 @@ export class ChatService {
     return newChannel.id;
   }
 
-  async getGroupChannelId(userIds: number[]) {
+  async getGroupChannelId(
+    userIds: number[],
+    title: string,
+    thumnailUrl: string
+  ) {
     // 새로운 채널 생성
-    const channel = await this.prisma.channel.create({});
+    const channel = await this.prisma.channel.create({
+      data: {
+        title,
+        thumbnail_url: thumnailUrl,
+      },
+    });
     const channelId = channel.id;
 
     const data = userIds.map(userId => ({
@@ -240,8 +249,9 @@ export class ChatService {
     // 채널 데이터 양식화
     const channel = {
       channelId: result.id,
-      title: result.name,
+      title: result.title,
       type: result.Channel_users.length > 2 ? 'group' : 'private',
+      thumnailUrl: result.thumbnail_url,
       users: result.Channel_users.map(res => ({
         userId: res.user.id,
         email: res.user.email,
