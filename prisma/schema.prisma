@@ -25,6 +25,7 @@ model User {
   created_at       DateTime           @default(now())
   updated_at       DateTime           @updatedAt
   password         String?
+  job_detail       String?
   ArtistData       ArtistData[]
   Channel_users    Channel_users[]
   FeedComments     FeedComment[]
@@ -57,7 +58,7 @@ model Role {
 }
 
 model MyPageProject {
-  id           Int           @id @default(autoincrement())
+  id           Int                 @id @default(autoincrement())
   user_id      Int
   title        String
   description  String
@@ -66,7 +67,7 @@ model MyPageProject {
   user         User                @relation(fields: [user_id], references: [id])
   ProjectLinks MyPageProjectLink[]
 
-  @@index([user_id], map: "MyPageProject_user_id_idx") // 인덱스 추가
+  @@index([user_id])
 }
 
 model MyPageProjectLink {
@@ -95,10 +96,12 @@ model ProgrammerData {
 }
 
 model ArtistData {
-  id         Int     @id @default(autoincrement())
-  user_id    Int
-  music_url  String
-  user       User    @relation(fields: [user_id], references: [id])
+  id        Int    @id @default(autoincrement())
+  user_id   Int
+  music_url String
+  user      User   @relation(fields: [user_id], references: [id])
+
+  @@index([user_id], map: "ArtistData_user_id_fkey")
 }
 
 model Status {
