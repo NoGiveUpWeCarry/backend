@@ -146,7 +146,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client.join(channelId.toString());
     console.log(`유저 ${userId} 채널 ${channelId} 참여`);
     // 채널 객체
-    const channel = await this.chatService.getChannel(userId, channelId);
+    const channelData = await this.chatService.getChannel(userId, channelId);
+    const { channel } = channelData;
 
     // 클라이언트에 채널id 전달
     client.emit('channelJoined', channel);
