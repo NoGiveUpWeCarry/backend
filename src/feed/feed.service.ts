@@ -23,6 +23,7 @@ export class FeedService {
 
       const result = await this.prisma.feedPost.findMany({
         where: cursor ? { id: { gt: cursor } } : {},
+
         include: {
           Likes: {
             where: { user_id: userId },
@@ -115,6 +116,12 @@ export class FeedService {
       }
 
       const post = await this.getPostObj(result);
+
+      // 조회수 증가
+      await this.prisma.feedPost.update({
+        where: { id: feedId },
+        data: { view: { increment: 1 } },
+      });
 
       return {
         post,
