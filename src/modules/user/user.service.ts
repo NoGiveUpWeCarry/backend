@@ -49,19 +49,32 @@ export class UserService {
       where: { following_user_id: targetUserId },
     });
 
-    // 사용자 직업군에 따른 맞춤 데이터 생성
-    let specificData = null;
+    // 반환 데이터 구성
+    const response = {
+      message: {
+        code: 200,
+        text: '유저 프로필 조회에 성공했습니다',
+      },
+      status: user.status.name,
+      applyCount: user.apply_count,
+      postCount: user.post_count,
+      followerCount, // 팔로워 수
+      followingCount, // 팔로잉 수
+      isOwnProfile: loggedInUserId === targetUserId, // 자신의 프로필인지 확인
+    };
+
+    // 사용자 직업군에 따라 데이터를 동적으로 추가
     if (user.role.name === 'Artist') {
-      specificData = {
-        works: user.ArtistData.map(works => works.music_url), // 단순 URL 배열로 변환
-      };
+      Object.assign(response, {
+        works: user.ArtistData.map(work => work.music_url), // 단순 URL 배열로 변환
+      });
     } else if (
       user.role.name === 'Programmer' ||
       user.role.name === 'Designer'
     ) {
-      specificData = {
+      Object.assign(response, {
         githubUsername: user.ProgrammerData?.github_username || null,
-        myPageProjects: user.MyPageProject
+        works: user.MyPageProject
           ? user.MyPageProject.map(project => ({
               title: project.title,
               description: project.description,
@@ -71,25 +84,10 @@ export class UserService {
               })),
             }))
           : [],
-      };
+      });
     }
 
-    // 반환 데이터 구성
-    return {
-      message: {
-        code: 200,
-        text: '유저 프로필 조회에 성공했습니다',
-      },
-      //userId: user.id,
-      //role: user.role.name,
-      status: user.status.name,
-      applyCount: user.apply_count,
-      postCount: user.post_count,
-      followerCount, // 팔로워 수
-      followingCount, // 팔로잉 수
-      specificData, // 직업군 맞춤 데이터
-      isOwnProfile: loggedInUserId === targetUserId, // 자신의 프로필인지 확인
-    };
+    return response;
   }
 
   async getUserProfileHeader(loggedInUserId: number, targetUserId: number) {
