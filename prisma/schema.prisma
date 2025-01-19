@@ -314,7 +314,8 @@ model UserApplyProject {
 
 model Channel {
   id            Int             @id @default(autoincrement())
-  title          String          @default("default_channel_title")
+  title         String          @default("default_channel_title")
+  type          String
   thumbnail_url String?
   active        Boolean         @default(true)
   created_at    DateTime        @default(now())
