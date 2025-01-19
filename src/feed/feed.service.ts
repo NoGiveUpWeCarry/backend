@@ -174,6 +174,7 @@ export class FeedService {
               profile_url: true,
             },
           },
+          FeedCommentLikes: true,
         },
       });
 
@@ -195,6 +196,7 @@ export class FeedService {
         userProfileUrl: c.user.profile_url,
         comment: c.content,
         createdAt: c.created_at,
+        likes: c.FeedCommentLikes.length,
       }));
 
       return {
