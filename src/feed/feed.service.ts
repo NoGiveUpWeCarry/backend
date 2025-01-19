@@ -178,10 +178,13 @@ export class FeedService {
       });
 
       if (!result.length) {
-        throw new HttpException(
-          '게시글을 찾을 수 없습니다',
-          HttpStatus.NOT_FOUND
-        );
+        return {
+          comments: [],
+          message: {
+            code: 200,
+            message: '개별 피드(댓글)를 정상적으로 조회했습니다.',
+          },
+        };
       }
 
       const comments = result.map(c => ({
