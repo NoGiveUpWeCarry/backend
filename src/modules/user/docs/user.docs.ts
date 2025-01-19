@@ -79,27 +79,24 @@ export const GetUserProfileDocs = {
           code: 200,
           text: '유저 프로필 조회에 성공했습니다',
         },
-        userId: 1,
-        nickname: 'test',
-        role: 'Programmer',
-        introduce: 'I am a software engineer.',
-        specificData: {
-          githubUsername: 'JohnGit',
-          myPageProjects: [
-            {
-              title: 'My Project',
-              description: 'Project description here.',
-              links: [
-                {
-                  type: 'Github',
-                  url: 'https://github.com/johndoe/myproject',
-                },
-              ],
-            },
-          ],
-        },
+        status: '둘러보는 중',
+        githubUsername: 'JohnGit',
+        works: [
+          {
+            title: 'My Project',
+            description: 'Project description here.',
+            links: [
+              {
+                type: 'Github',
+                url: 'https://github.com/johndoe/myproject',
+              },
+            ],
+          },
+        ],
         followerCount: 12,
         followingCount: 34,
+        applyCount: 12,
+        postCount: 17,
         isOwnProfile: true,
       },
     },
