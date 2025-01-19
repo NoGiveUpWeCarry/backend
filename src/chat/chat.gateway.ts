@@ -87,6 +87,53 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client.emit('channelCreated', channel);
   }
 
+  @SubscribeMessage('createGroup')
+  async handleCreateGroup(
+    @MessageBody() data: { userIds: number[] },
+    @ConnectedSocket() client: Socket
+  ) {
+    const { userIds } = data;
+    // userIds[0] => 클라이언트(그룹 채팅 마스터)
+    const userId = userIds[0];
+
+    // 채널 id 조회
+    const channelId = await this.chatService.getGroupChannelId(userIds);
+
+    // 채널 객체 조회
+    const channelData = await this.chatService.getChannel(userId, channelId);
+    const channel = channelData.channel;
+
+    // 채널에 마스터 유저 참여
+    client.join(channelId.toString());
+    console.log(`client ${client.data.userId}  ${channelId}번 채팅방 입장`);
+
+    // 나머지 유저 온라인 여부 확인
+    const groupMemberIds = userIds.filter(id => id !== userId);
+    const targetSockets = await this.chatService.getSocketIds(groupMemberIds);
+
+    // 온라인인 유저가 있을 때
+    if (targetSockets.length) {
+      // 모든 소켓 확인
+      const sockets = await this.server.fetchSockets();
+
+      const userSockets = sockets.filter(socket =>
+        targetSockets.includes(socket.id)
+      );
+
+      // 유저2의 채널 리스트에 해당 채널 추가
+      client.emit('channelAdded', channel);
+      userSockets.forEach(socket => {
+        socket.emit('channelAdded', channel);
+      });
+    } else {
+      // 오프라인 일때
+      console.log('오프라인인 유저가 있습니다.');
+    }
+
+    // 클라이언트에 채널id 전달
+    client.emit('groupCreated', channel);
+  }
+
   // 채널 참여
   @SubscribeMessage('joinChannel')
   async handleJoinChannel(

@@ -49,6 +49,22 @@ export class ChatService {
     return newChannel.id;
   }
 
+  async getGroupChannelId(userIds: number[]) {
+    // 새로운 채널 생성
+    const channel = await this.prisma.channel.create({});
+    const channelId = channel.id;
+
+    const data = userIds.map(userId => ({
+      channel_id: channelId,
+      user_id: userId,
+    }));
+
+    // 매핑 테이블에 저장
+    await this.prisma.channel_users.createMany({ data });
+
+    return channelId;
+  }
+
   // 메세지 저장
   async createMessage(type, channelId, userId, content) {
     return await this.prisma.message.create({
@@ -121,6 +137,15 @@ export class ChatService {
       },
     });
     return socketId[0]?.client_id;
+  }
+
+  async getSocketIds(Ids: number[]) {
+    const socketIds = await this.prisma.online_users.findMany({
+      where: { user_id: { in: Ids } },
+      select: { client_id: true },
+    });
+
+    return socketIds.map(id => id.client_id);
   }
 
   // 유저가 참여한 채널 전체 조회
