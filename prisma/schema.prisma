@@ -58,15 +58,15 @@ model Role {
 }
 
 model MyPageProject {
-  id           Int                 @id @default(autoincrement())
-  user_id      Int
-  title        String
-  description  String
+  id                Int                 @id @default(autoincrement())
+  user_id           Int
+  title             String
+  description       String
+  created_at        DateTime            @default(now())
+  updated_at        DateTime            @updatedAt
   projectProfileUrl String?
-  created_at   DateTime            @default(now())
-  updated_at   DateTime            @updatedAt
-  user         User                @relation(fields: [user_id], references: [id])
-  ProjectLinks MyPageProjectLink[]
+  user              User                @relation(fields: [user_id], references: [id])
+  ProjectLinks      MyPageProjectLink[]
 
   @@index([user_id])
 }
