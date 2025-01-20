@@ -25,15 +25,15 @@ export class ChatController {
   ) {
     return await this.chatService.getMessages(
       req.user.user_id,
-      +channelId,
-      +limit,
-      +currentPage
+      channelId,
+      limit,
+      currentPage
     );
   }
 
   @Get('channels/:id')
   @UseGuards(JwtAuthGuard)
   async getChannel(@Req() req: any, @Param('id') channelId: number) {
-    return await this.chatService.getChannel(req.user.user_id, +channelId);
+    return await this.chatService.getChannel(req.user.user_id, channelId);
   }
 }

@@ -1083,27 +1083,24 @@ export class UserService {
       throw new NotFoundException('깃허브 닉네임이 필요합니다.');
     }
 
-    // 기존 ProgrammerData 확인
-    const programmerData = await this.prisma.programmerData.findFirst({
+    // upsert를 사용하여 데이터 생성 또는 업데이트
+    const updatedData = await this.prisma.programmerData.upsert({
       where: { user_id: userId },
+      update: {
+        github_username: githubUsername, // 이미 존재하는 경우 업데이트
+      },
+      create: {
+        user_id: userId,
+        github_username: githubUsername, // 존재하지 않는 경우 새로 생성
+      },
     });
 
-    if (!programmerData) {
-      // 프로그래머 데이터가 없는 경우 새로 생성
-      const newData = await this.prisma.programmerData.create({
-        data: {
-          user_id: userId,
-          github_username: githubUsername,
-        },
-      });
-
-      return {
-        message: {
-          code: 200,
-          text: '깃허브 유저네임 등록에 성공했습니다.',
-        },
-        githubUsername: newData.github_username,
-      };
-    }
+    return {
+      message: {
+        code: 200,
+        text: '깃허브 유저네임이 성공적으로 저장되었습니다.',
+      },
+      githubUsername: updatedData.github_username,
+    };
   }
 }
