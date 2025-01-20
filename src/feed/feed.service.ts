@@ -17,12 +17,32 @@ export class FeedService {
   async getAllFeeds(user, queryDto: GetFeedsQueryDto) {
     try {
       const userId = user ? user.user_id : 0;
-      const { latest = false, limit = 10, cursor = 0 } = queryDto;
+      const { latest = false, limit = 10, cursor = 0, tags } = queryDto;
 
+      // 정렬 기준
       const orderKey = latest ? 'created_at' : 'like_count';
 
+      // 쿼리로 전달받은 태그
+      const tagIds = tags ? tags.split(',').map(id => parseInt(id)) : [];
+
+      // 태그를 포함하고 있는 피드 아이디 조회
+      const feedTagIds = tagIds?.length
+        ? (
+            await this.prisma.feedPostTag.groupBy({
+              by: ['post_id'],
+              where: { tag_id: { in: tagIds } },
+              having: {
+                post_id: { _count: { equals: tagIds.length } }, // 태그 개수 일치하는 게시글만 조회
+              },
+            })
+          ).map(p => p.post_id)
+        : null;
+
       const result = await this.prisma.feedPost.findMany({
-        where: cursor ? { id: { gt: cursor } } : {},
+        where: {
+          ...(cursor ? { id: { gt: cursor } } : {}), // cursor 조건 추가 (옵셔널)
+          ...(feedTagIds ? { id: { in: feedTagIds } } : {}), // 태그 조건 추가 (옵셔널)
+        },
 
         include: {
           Likes: {
