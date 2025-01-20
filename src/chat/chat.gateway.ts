@@ -67,18 +67,19 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     console.log(`client ${client.data.userId}  ${channelId}번 채팅방 입장`);
 
     // B 유저 온라인 여부 확인
-    const targetSocket = await this.chatService.getSocketId(userId2);
+    const targetSocket = await this.chatService.getSocketIds([userId2]);
 
     // 온라인 일때
-    if (targetSocket) {
+    if (targetSocket.length) {
       // 유저2의 소켓 가져오기
+      const target = targetSocket[0];
       const sockets = await this.server.fetchSockets();
-      const user2Socket = sockets.find(
-        socket => socket.id === targetSocket.toString()
+      const userSocket = sockets.find(
+        socket => socket.id === target.toString()
       );
 
       // 유저2의 채널 리스트에 해당 채널 추가
-      user2Socket.emit('channelAdded', channel);
+      userSocket.emit('channelAdded', channel);
       console.log(`channel ${channelId} added in ${userId2} channel list`);
     } else {
       // 오프라인 일때
@@ -111,8 +112,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const channelData = await this.chatService.getChannel(userId, channelId);
     const channel = channelData.channel;
 
-    // 채널에 마스터 유저 참여
+    // 채널에 마스터 유저 참여 & 채널리스트에 추가
     client.join(channelId.toString());
+    client.emit('channelAdded', channel);
     console.log(`client ${client.data.userId}  ${channelId}번 채팅방 입장`);
 
     // 나머지 유저 온라인 여부 확인
@@ -130,7 +132,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       );
 
       // 각 멤버들의 채널 리스트에 해당 채널 추가
-      client.emit('channelAdded', channel);
       userSockets.forEach(socket => {
         socket.emit('channelAdded', channel);
       });
