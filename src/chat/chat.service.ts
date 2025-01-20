@@ -5,8 +5,9 @@ import { PrismaService } from '@src/prisma/prisma.service';
 export class ChatService {
   constructor(private readonly prisma: PrismaService) {}
 
-  // 채널 id를 리턴하는 로직
-  async getChannelId(userId1, userId2) {
+  // 기존 채널 조회 or 새 채널 생성
+  // 채널id 리턴 (개인 채팅방)
+  async getChannelId(userId1: number, userId2: number) {
     // 매핑 테이블에서 파라미터로 전달된 유저 아이디에 해당하는 데이터 찾기
     const result = await this.prisma.channel_users.groupBy({
       by: ['channel_id'],
@@ -42,6 +43,8 @@ export class ChatService {
     return channelId;
   }
 
+  // 기존 채널 조회 or 새 채널 생성
+  // 채널id 리턴 (그룹 채팅방)
   async getGroupChannelId(
     userIds: number[],
     title: string,
@@ -84,7 +87,12 @@ export class ChatService {
   }
 
   // 메세지 저장
-  async createMessage(type, channelId, userId, content) {
+  async createMessage(
+    type: string,
+    channelId: number,
+    userId: number,
+    content: string
+  ) {
     return await this.prisma.message.create({
       data: {
         type,
@@ -96,7 +104,7 @@ export class ChatService {
   }
 
   // 유저 정보 확인
-  async getSenderProfile(userId) {
+  async getSenderProfile(userId: number) {
     const result = await this.prisma.user.findUnique({
       where: {
         id: userId,
@@ -126,7 +134,7 @@ export class ChatService {
   }
 
   // 온라인 유저 DB에 저장
-  async addUserOnline(userId, clientId) {
+  async addUserOnline(userId: number, clientId: string) {
     await this.prisma.online_users.create({
       data: {
         user_id: userId,
@@ -211,7 +219,7 @@ export class ChatService {
   }
 
   // 채널 객체 리턴 로직
-  async getChannleObj(channelId) {
+  async getChannleObj(channelId: number) {
     // 채널 데이터 조회
     const result = await this.prisma.channel.findUnique({
       where: { id: channelId },
