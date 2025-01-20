@@ -202,8 +202,8 @@ export class FeedService {
         userRole: c.user.role.name,
         userProfileUrl: c.user.profile_url,
         comment: c.content,
+        likeCount: c.FeedCommentLikes.length,
         createdAt: c.created_at,
-        likes: c.FeedCommentLikes.length,
       }));
 
       return {
