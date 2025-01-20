@@ -84,11 +84,25 @@ export const GetUserProfileDocs = {
         works: [
           {
             title: 'My Project',
+            myPageProjectId: 1,
+            projectProfileUrl: 'projectProfileUrl',
             description: 'Project description here.',
             links: [
               {
                 type: 'Github',
                 url: 'https://github.com/johndoe/myproject',
+              },
+            ],
+          },
+          {
+            title: 'My Project2',
+            myPageProjectId: 2,
+            projectProfileUrl: 'projectProfileUrl2',
+            description: 'Project description here2.',
+            links: [
+              {
+                type: 'Github',
+                url: 'https://github.com/johndoe/myproject2',
               },
             ],
           },
@@ -143,20 +157,39 @@ export const GetUserProfileHeaderDocs = {
 export const AddProjectDocs = {
   ApiOperation: ApiOperation({
     summary: '프로젝트 추가',
-    description: '사용자의 마이페이지에 새 프로젝트를 추가합니다.',
+    description:
+      '사용자의 마이페이지에 새 프로젝트를 추가합니다. 프로젝트 이미지 업로드가 가능합니다.',
   }),
+  ApiConsumes: ApiConsumes('multipart/form-data'),
   ApiBody: ApiBody({
     description:
-      '추가할 프로젝트 데이터 typeId : 1 = Github, 2 = Web, 3 = IOS, 4 = Android',
+      '추가할 프로젝트 데이터. `typeId` : 1 = Github, 2 = Web, 3 = IOS, 4 = Android',
     schema: {
-      example: {
-        title: 'My Project',
-        description: 'This is a description of my project.',
-        links: [
-          { url: 'https://github.com/myproject', typeId: 1 },
-          { url: 'https://myproject.com', typeId: 2 },
-        ],
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: '프로젝트 프로필 이미지 파일',
+        },
+        title: {
+          type: 'string',
+          description: '프로젝트 제목',
+        },
+        description: {
+          type: 'string',
+          description: '프로젝트 설명',
+        },
+        links: {
+          type: 'string',
+          description: '프로젝트 링크 배열 (JSON 문자열)',
+          example: JSON.stringify([
+            { url: 'https://github.com/myproject', typeId: 1 },
+            { url: 'https://myproject.com', typeId: 2 },
+          ]),
+        },
       },
+      required: ['title', 'description', 'links'],
     },
   }),
   ApiResponse: ApiResponse({
@@ -171,9 +204,10 @@ export const AddProjectDocs = {
         myPageProjectId: 1,
         title: 'My Project',
         description: 'This is a description of my project.',
+        projectProfileUrl: 'https://s3.example.com/path/to/image.png',
         links: [
-          { id: 1, url: 'https://github.com/myproject', type: 'Github' },
-          { id: 2, url: 'https://myproject.com', type: 'Website' },
+          { url: 'https://github.com/myproject', type: 'Github' },
+          { url: 'https://myproject.com', type: 'Web' },
         ],
       },
     },
@@ -183,7 +217,8 @@ export const AddProjectDocs = {
 export const UpdateProjectDocs = {
   ApiOperation: ApiOperation({
     summary: '프로젝트 수정',
-    description: '사용자의 특정 프로젝트를 수정합니다.',
+    description:
+      '사용자의 특정 프로젝트를 수정합니다. 프로젝트 이미지도 수정 가능합니다.',
   }),
   ApiParam: ApiParam({
     name: 'projectId',
@@ -191,17 +226,35 @@ export const UpdateProjectDocs = {
     description: '수정할 프로젝트의 ID',
     type: 'string',
   }),
+  ApiConsumes: ApiConsumes('multipart/form-data'),
   ApiBody: ApiBody({
     description: '수정할 프로젝트 데이터',
     schema: {
-      example: {
-        title: 'Updated Project',
-        description: 'This is an updated description.',
-        links: [
-          { url: 'https://github.com/updatedproject', typeId: 1 },
-          { url: 'https://updatedproject.com', typeId: 2 },
-        ],
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: '새로운 프로젝트 프로필 이미지 파일',
+        },
+        title: {
+          type: 'string',
+          description: '수정된 프로젝트 제목',
+        },
+        description: {
+          type: 'string',
+          description: '수정된 프로젝트 설명',
+        },
+        links: {
+          type: 'string',
+          description: '수정된 프로젝트 링크 배열 (JSON 문자열)',
+          example: JSON.stringify([
+            { url: 'https://github.com/updatedproject', typeId: 1 },
+            { url: 'https://updatedproject.com', typeId: 2 },
+          ]),
+        },
       },
+      required: ['title', 'description', 'links'],
     },
   }),
   ApiResponse: ApiResponse({
@@ -211,14 +264,15 @@ export const UpdateProjectDocs = {
       example: {
         message: {
           code: 200,
-          text: '프로젝트 수정에 성공했습니다',
+          text: '마이페이지에 프로젝트 수정에 성공했습니다',
         },
         myPageProjectId: 1,
         title: 'Updated Project',
         description: 'This is an updated description.',
+        projectProfileUrl: 'https://s3.example.com/path/to/updated_image.png',
         links: [
-          { id: 1, url: 'https://github.com/updatedproject', type: 'Github' },
-          { id: 2, url: 'https://updatedproject.com', type: 'Website' },
+          { url: 'https://github.com/updatedproject', type: 'Github' },
+          { url: 'https://updatedproject.com', type: 'Website' },
         ],
       },
     },
@@ -245,6 +299,7 @@ export const DeleteProjectDocs = {
           code: 200,
           text: '프로젝트 삭제에 성공했습니다',
         },
+        projectId: 1,
       },
     },
   }),
@@ -334,6 +389,7 @@ export const DeleteWorkDocs = {
           code: 200,
           text: '작업물이 성공적으로 삭제되었습니다.',
         },
+        musicId: 1,
       },
     },
   }),
@@ -361,6 +417,7 @@ export const UpdateGithubUsernameDocs = {
           code: 200,
           text: '깃허브 유저네임 등록에 성공했습니다.',
         },
+        githubUsername: 'SSomae',
       },
     },
   }),
@@ -385,8 +442,8 @@ export const GetUserSettingDocs = {
         introduce: 'User Introduce',
         status: '구인 중',
         links: [
-          { id: 1, url: 'https://github.com/Ss0Mae' },
-          { id: 2, url: 'https://www.google.com' },
+          { linkId: 1, url: 'https://github.com/Ss0Mae' },
+          { linkId: 2, url: 'https://www.google.com' },
         ],
         skills: ['TypeScript', 'Nest.js'],
         jobDetail: 'IT / 백엔드개발자',
@@ -727,6 +784,7 @@ export const GetUserResumeDocs = {
           text: '사용자 이력서 조회에 성공했습니다.',
         },
         userId: 1,
+        resumeId: 2,
         title: 'Backend Developer',
         jobDetail: '개발자 / 백엔드 엔지니어',
         skills: ['Node.js', 'TypeScript', 'GraphQL'],
@@ -836,6 +894,7 @@ export const DeleteUserResumeDocs = {
           code: 200,
           text: '사용자 이력서 삭제에 성공했습니다.',
         },
+        resumeId: 1,
       },
     },
   }),
