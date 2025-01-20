@@ -5,10 +5,9 @@ import { PrismaService } from '@src/prisma/prisma.service';
 export class ChatService {
   constructor(private readonly prisma: PrismaService) {}
 
-  // ---- Socket ----
-
-  // 채널 id를 리턴하는 로직
-  async getChannelId(userId1, userId2) {
+  // 기존 채널 조회 or 새 채널 생성
+  // 채널id 리턴 (개인 채팅방)
+  async getChannelId(userId1: number, userId2: number) {
     // 매핑 테이블에서 파라미터로 전달된 유저 아이디에 해당하는 데이터 찾기
     const result = await this.prisma.channel_users.groupBy({
       by: ['channel_id'],
@@ -29,28 +28,71 @@ export class ChatService {
     if (channel) return channel.channel_id;
 
     // 없다면 새로운 채널 생성 후
-    const newChannel = await this.prisma.channel.create({});
-
-    // 매핑 테이블에 데이터 저장
-    await this.prisma.channel_users.createMany({
-      data: [
-        {
-          channel_id: newChannel.id,
-          user_id: userId1,
-        },
-        {
-          channel_id: newChannel.id,
-          user_id: userId2,
-        },
-      ],
+    const newChannel = await this.prisma.channel.create({
+      data: {
+        type: 'private',
+      },
     });
 
+    const channelId = newChannel.id;
+
+    // 매핑 테이블에 데이터 저장
+    await this.createChannelUsers(channelId, [userId1, userId2]);
+
     // 채널 id 리턴
-    return newChannel.id;
+    return channelId;
+  }
+
+  // 기존 채널 조회 or 새 채널 생성
+  // 채널id 리턴 (그룹 채팅방)
+  async getGroupChannelId(
+    userIds: number[],
+    title: string,
+    thumnailUrl: string
+  ) {
+    // 기존 채널 조회
+    const exist = await this.prisma.channel.findMany({
+      where: { title },
+      select: { id: true },
+    });
+
+    if (exist.length) {
+      return exist[0].id;
+    }
+
+    // 새로운 채널 생성
+    const channel = await this.prisma.channel.create({
+      data: {
+        title,
+        thumbnail_url: thumnailUrl,
+        type: 'group',
+      },
+    });
+    const channelId = channel.id;
+
+    // 매핑 테이블에 저장
+    await this.createChannelUsers(channelId, userIds);
+
+    return channelId;
+  }
+
+  // channle_users 테이블에 채널-유저 저장
+  async createChannelUsers(channelId: number, userIds: number[]) {
+    const data = userIds.map(userId => ({
+      channel_id: channelId,
+      user_id: userId,
+    }));
+
+    await this.prisma.channel_users.createMany({ data });
   }
 
   // 메세지 저장
-  async createMessage(type, channelId, userId, content) {
+  async createMessage(
+    type: string,
+    channelId: number,
+    userId: number,
+    content: string
+  ) {
     return await this.prisma.message.create({
       data: {
         type,
@@ -62,7 +104,7 @@ export class ChatService {
   }
 
   // 유저 정보 확인
-  async getSenderProfile(userId) {
+  async getSenderProfile(userId: number) {
     const result = await this.prisma.user.findUnique({
       where: {
         id: userId,
@@ -92,7 +134,7 @@ export class ChatService {
   }
 
   // 온라인 유저 DB에 저장
-  async addUserOnline(userId, clientId) {
+  async addUserOnline(userId: number, clientId: string) {
     await this.prisma.online_users.create({
       data: {
         user_id: userId,
@@ -111,16 +153,13 @@ export class ChatService {
   }
 
   // 유저 아이디를 통해 유저의 소켓 아이디 가져오기
-  async getSocketId(userId: number) {
-    const socketId = await this.prisma.online_users.findMany({
-      where: {
-        user_id: userId,
-      },
-      select: {
-        client_id: true,
-      },
+  async getSocketIds(Ids: number[]) {
+    const socketIds = await this.prisma.online_users.findMany({
+      where: { user_id: { in: Ids } },
+      select: { client_id: true },
     });
-    return socketId[0].client_id;
+
+    return socketIds.map(id => id.client_id);
   }
 
   // 유저가 참여한 채널 전체 조회
@@ -138,10 +177,6 @@ export class ChatService {
 
     return channels;
   }
-
-  // 메세지 상태 업데이트
-
-  // ---- HTTP ----
 
   // 채널 개별 조회
   async getChannel(userId: number, channelId: number) {
@@ -172,7 +207,7 @@ export class ChatService {
   }
 
   // 채널 객체 리턴 로직
-  async getChannleObj(channelId) {
+  async getChannleObj(channelId: number) {
     // 채널 데이터 조회
     const result = await this.prisma.channel.findUnique({
       where: { id: channelId },
@@ -215,8 +250,9 @@ export class ChatService {
     // 채널 데이터 양식화
     const channel = {
       channelId: result.id,
-      title: result.name,
-      type: result.Channel_users.length > 2 ? 'group' : 'private',
+      title: result.title,
+      type: result.type,
+      thumnailUrl: result.thumbnail_url,
       users: result.Channel_users.map(res => ({
         userId: res.user.id,
         email: res.user.email,
@@ -239,7 +275,12 @@ export class ChatService {
   }
 
   // 채널 메세지 조회
-  async getMessages(userId, channelId, limit, currentPage) {
+  async getMessages(
+    userId: number,
+    channelId: number,
+    limit: number,
+    currentPage: number
+  ) {
     try {
       // 유저 아이디가 채널에 속해있는지 확인
       const auth = await this.prisma.channel_users.findMany({
