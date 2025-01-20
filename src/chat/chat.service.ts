@@ -5,8 +5,6 @@ import { PrismaService } from '@src/prisma/prisma.service';
 export class ChatService {
   constructor(private readonly prisma: PrismaService) {}
 
-  // ---- Socket ----
-
   // 채널 id를 리턴하는 로직
   async getChannelId(userId1, userId2) {
     // 매핑 테이블에서 파라미터로 전달된 유저 아이디에 해당하는 데이터 찾기
@@ -35,22 +33,13 @@ export class ChatService {
       },
     });
 
+    const channelId = newChannel.id;
+
     // 매핑 테이블에 데이터 저장
-    await this.prisma.channel_users.createMany({
-      data: [
-        {
-          channel_id: newChannel.id,
-          user_id: userId1,
-        },
-        {
-          channel_id: newChannel.id,
-          user_id: userId2,
-        },
-      ],
-    });
+    await this.createChannelUsers(channelId, [userId1, userId2]);
 
     // 채널 id 리턴
-    return newChannel.id;
+    return channelId;
   }
 
   async getGroupChannelId(
@@ -58,6 +47,16 @@ export class ChatService {
     title: string,
     thumnailUrl: string
   ) {
+    // 기존 채널 조회
+    const exist = await this.prisma.channel.findMany({
+      where: { title },
+      select: { id: true },
+    });
+
+    if (exist.length) {
+      return exist[0].id;
+    }
+
     // 새로운 채널 생성
     const channel = await this.prisma.channel.create({
       data: {
@@ -68,15 +67,20 @@ export class ChatService {
     });
     const channelId = channel.id;
 
+    // 매핑 테이블에 저장
+    await this.createChannelUsers(channelId, userIds);
+
+    return channelId;
+  }
+
+  // channle_users 테이블에 채널-유저 저장
+  async createChannelUsers(channelId: number, userIds: number[]) {
     const data = userIds.map(userId => ({
       channel_id: channelId,
       user_id: userId,
     }));
 
-    // 매핑 테이블에 저장
     await this.prisma.channel_users.createMany({ data });
-
-    return channelId;
   }
 
   // 메세지 저장
@@ -177,10 +181,6 @@ export class ChatService {
 
     return channels;
   }
-
-  // 메세지 상태 업데이트
-
-  // ---- HTTP ----
 
   // 채널 개별 조회
   async getChannel(userId: number, channelId: number) {
