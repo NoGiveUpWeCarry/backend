@@ -49,19 +49,32 @@ export class UserService {
       where: { following_user_id: targetUserId },
     });
 
-    // 사용자 직업군에 따른 맞춤 데이터 생성
-    let specificData = null;
+    // 반환 데이터 구성
+    const response = {
+      message: {
+        code: 200,
+        text: '유저 프로필 조회에 성공했습니다',
+      },
+      status: user.status.name,
+      applyCount: user.apply_count,
+      postCount: user.post_count,
+      followerCount, // 팔로워 수
+      followingCount, // 팔로잉 수
+      isOwnProfile: loggedInUserId === targetUserId, // 자신의 프로필인지 확인
+    };
+
+    // 사용자 직업군에 따라 데이터를 동적으로 추가
     if (user.role.name === 'Artist') {
-      specificData = {
-        works: user.ArtistData.map(works => works.music_url), // 단순 URL 배열로 변환
-      };
+      Object.assign(response, {
+        works: user.ArtistData.map(work => work.music_url), // 단순 URL 배열로 변환
+      });
     } else if (
       user.role.name === 'Programmer' ||
       user.role.name === 'Designer'
     ) {
-      specificData = {
+      Object.assign(response, {
         githubUsername: user.ProgrammerData?.github_username || null,
-        myPageProjects: user.MyPageProject
+        works: user.MyPageProject
           ? user.MyPageProject.map(project => ({
               title: project.title,
               description: project.description,
@@ -71,25 +84,10 @@ export class UserService {
               })),
             }))
           : [],
-      };
+      });
     }
 
-    // 반환 데이터 구성
-    return {
-      message: {
-        code: 200,
-        text: '유저 프로필 조회에 성공했습니다',
-      },
-      userId: user.id,
-      role: user.role.name,
-      status: user.status.name,
-      applyCount: user.apply_count,
-      postCount: user.post_count,
-      followerCount, // 팔로워 수
-      followingCount, // 팔로잉 수
-      specificData, // 직업군 맞춤 데이터
-      isOwnProfile: loggedInUserId === targetUserId, // 자신의 프로필인지 확인
-    };
+    return response;
   }
 
   async getUserProfileHeader(loggedInUserId: number, targetUserId: number) {
@@ -1085,27 +1083,24 @@ export class UserService {
       throw new NotFoundException('깃허브 닉네임이 필요합니다.');
     }
 
-    // 기존 ProgrammerData 확인
-    const programmerData = await this.prisma.programmerData.findFirst({
+    // upsert를 사용하여 데이터 생성 또는 업데이트
+    const updatedData = await this.prisma.programmerData.upsert({
       where: { user_id: userId },
+      update: {
+        github_username: githubUsername, // 이미 존재하는 경우 업데이트
+      },
+      create: {
+        user_id: userId,
+        github_username: githubUsername, // 존재하지 않는 경우 새로 생성
+      },
     });
 
-    if (!programmerData) {
-      // 프로그래머 데이터가 없는 경우 새로 생성
-      const newData = await this.prisma.programmerData.create({
-        data: {
-          user_id: userId,
-          github_username: githubUsername,
-        },
-      });
-
-      return {
-        message: {
-          code: 200,
-          text: '깃허브 유저네임 등록에 성공했습니다.',
-        },
-        githubUsername: newData.github_username,
-      };
-    }
+    return {
+      message: {
+        code: 200,
+        text: '깃허브 유저네임이 성공적으로 저장되었습니다.',
+      },
+      githubUsername: updatedData.github_username,
+    };
   }
 }
