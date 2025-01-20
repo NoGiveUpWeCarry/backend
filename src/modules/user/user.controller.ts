@@ -52,12 +52,16 @@ import {
   GetUserConnectionHubProjectsDocs,
 } from './docs/user.docs';
 import { ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { S3Service } from '@src/s3/s3.service';
 
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('users')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly s3Service: S3Service
+  ) {}
 
   @Get(':userId')
   @GetUserProfileDocs.ApiOperation
@@ -96,12 +100,30 @@ export class UserController {
   }
 
   @Post('projects')
+  @UseInterceptors(FileInterceptor('file'))
   @AddProjectDocs.ApiOperation
   @AddProjectDocs.ApiBody
   @AddProjectDocs.ApiResponse
-  async addProject(@Req() req, @Body() projectData: any) {
+  async addProject(
+    @Req() req,
+    @UploadedFile() file: Express.Multer.File,
+    @Body() body: any
+  ) {
     const userId = req.user?.user_id;
-    return this.userService.addProject(userId, projectData);
+    let imageUrl = null;
+    if (file) {
+      imageUrl = await this.s3Service.uploadImage(
+        userId,
+        file.buffer,
+        file.mimetype.split('/')[1], // 파일 확장자 추출
+        'pad_projects/images' // S3 저장 경로 설정
+      );
+    }
+    const projectData = {
+      ...body,
+      links: JSON.parse(body.links), // 문자열을 객체로 변환
+    };
+    return this.userService.addProject(userId, projectData, imageUrl);
   }
 
   @Put('projects/:projectId')
