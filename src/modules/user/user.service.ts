@@ -248,32 +248,68 @@ export class UserService {
         id: projectId,
         user_id: userId,
       },
+      include: {
+        ProjectLinks: true, // 기존 링크를 가져옴
+      },
     });
 
     if (!existingProject) {
       throw new NotFoundException('작업물을 찾을 수 없습니다.');
     }
 
-    // 프로젝트 업데이트
+    // 파일이 없는 경우 기존의 projectProfileUrl 유지
+    const finalImageUrl = imageUrl || existingProject.projectProfileUrl;
+
+    // 링크 업데이트 및 추가
+    if (links) {
+      for (const link of links) {
+        const existingLink = await this.prisma.myPageProjectLink.findFirst({
+          where: {
+            project_id: projectId,
+            type_id: link.typeId,
+          },
+        });
+
+        if (existingLink) {
+          // 기존 링크가 있으면 업데이트
+          await this.prisma.myPageProjectLink.update({
+            where: { id: existingLink.id },
+            data: {
+              url: link.url,
+            },
+          });
+        } else {
+          // 기존 링크가 없으면 새로 생성
+          await this.prisma.myPageProjectLink.create({
+            data: {
+              project_id: projectId,
+              url: link.url,
+              type_id: link.typeId,
+            },
+          });
+        }
+      }
+    }
+
+    // 프로젝트 자체 업데이트
     const updatedProject = await this.prisma.myPageProject.update({
       where: { id: projectId },
       data: {
-        title,
-        description,
-        projectProfileUrl: imageUrl,
-        ProjectLinks: {
-          deleteMany: {}, // 기존 링크 삭제
-          create: links.map(link => ({
-            url: link.url,
-            type_id: link.typeId, // LinkType의 ID를 사용
-          })),
-        },
+        title: title || existingProject.title, // title이 없으면 기존 값 유지
+        description: description || existingProject.description, // description이 없으면 기존 값 유지
+        projectProfileUrl: finalImageUrl, // 이미지 URL 업데이트
       },
       include: {
         ProjectLinks: {
           include: { type: true },
         },
       },
+    });
+
+    // 최종적으로 모든 링크를 가져옴
+    const allLinks = await this.prisma.myPageProjectLink.findMany({
+      where: { project_id: projectId },
+      include: { type: true }, // type 필드 포함
     });
 
     return {
@@ -285,7 +321,7 @@ export class UserService {
       title: updatedProject.title,
       description: updatedProject.description,
       projectProfileUrl: updatedProject.projectProfileUrl,
-      links: updatedProject.ProjectLinks.map(link => ({
+      links: allLinks.map(link => ({
         url: link.url,
         type: link.type.name,
       })),
