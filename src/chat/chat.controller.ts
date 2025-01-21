@@ -1,4 +1,13 @@
-import { Controller, Get, Param, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { JwtAuthGuard } from '@src/modules/auth/guards/jwt-auth.guard';
 
@@ -35,5 +44,11 @@ export class ChatController {
   @UseGuards(JwtAuthGuard)
   async getChannel(@Req() req: any, @Param('id') channelId: number) {
     return await this.chatService.getChannel(req.user.user_id, channelId);
+  }
+
+  // 메세지 검색
+  @Post(':id/search')
+  async searchMessage(@Body() body, @Param('id') id: number) {
+    return await this.chatService.searchMessage(id, body.keyword);
   }
 }

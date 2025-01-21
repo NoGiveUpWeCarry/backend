@@ -349,4 +349,36 @@ export class ChatService {
       return err.message;
     }
   }
+
+  // 메세지 검색
+  async searchMessage(channelId, keyword) {
+    // 키워드에 해당하는 메세지id 검색
+    const keywordMessage = await this.prisma.message.findFirst({
+      orderBy: { id: 'desc' },
+      where: { channel_id: channelId, content: { contains: keyword } },
+      select: { id: true },
+    });
+
+    const messageId = keywordMessage.id;
+
+    // 키워드 메세지 이전 15개
+    const previous = await this.prisma.message.findMany({
+      orderBy: { id: 'desc' },
+      where: { channel_id: channelId, id: { lt: messageId } },
+      select: { id: true },
+      take: 15,
+    });
+    const prevIds = previous.reverse().map(pre => pre.id);
+
+    // 키워드 메세지 이후 15개
+    const sub = await this.prisma.message.findMany({
+      orderBy: { id: 'asc' },
+      where: { channel_id: channelId, id: { gt: messageId } },
+      select: { id: true },
+      take: 15,
+    });
+    const subIds = sub.map(sub => sub.id);
+
+    return { prevIds, messageId, subIds };
+  }
 }
