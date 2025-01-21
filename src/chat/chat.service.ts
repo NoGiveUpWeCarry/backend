@@ -321,22 +321,7 @@ export class ChatService {
       });
 
       // 메세지 데이터 양식화
-      const data = result.map(msg => ({
-        messageId: msg.id,
-        type: msg.type,
-        content: msg.content,
-        channelId: msg.channel_id,
-        date: msg.created_at,
-        user: {
-          userId: msg.user.id,
-          email: msg.user.email,
-          name: msg.user.name,
-          nickname: msg.user.nickname,
-          profileUrl: msg.user.profile_url,
-          authProvider: msg.user.auth_provider,
-          roleId: msg.user.role.id,
-        },
-      }));
+      const data = await this.getMessageObj(result);
 
       const message = {
         code: 200,
@@ -404,7 +389,29 @@ export class ChatService {
       },
     });
 
-    return result;
+    const obj = await this.getMessageObj(result);
+    return obj;
+  }
+
+  // 메세지 데이터 양식화
+  async getMessageObj(messages) {
+    const data = messages.map(msg => ({
+      messageId: msg.id,
+      type: msg.type,
+      content: msg.content,
+      channelId: msg.channel_id,
+      date: msg.created_at,
+      user: {
+        userId: msg.user.id,
+        email: msg.user.email,
+        name: msg.user.name,
+        nickname: msg.user.nickname,
+        profileUrl: msg.user.profile_url,
+        authProvider: msg.user.auth_provider,
+        roleId: msg.user.role.id,
+      },
+    }));
+    return data;
   }
 }
 
