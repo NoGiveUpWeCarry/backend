@@ -337,37 +337,61 @@ export class ChatService {
 
   // 메세지 검색
   async searchMessage(channelId, keyword) {
-    // 키워드에 해당하는 메세지id 검색
-    const keywordMessage = await this.prisma.message.findFirst({
-      orderBy: { id: 'desc' },
-      where: { channel_id: channelId, content: { contains: keyword } },
-      select: { id: true },
-    });
+    try {
+      // 키워드에 해당하는 메세지id 검색
+      const keywordMessage = await this.prisma.message.findFirst({
+        orderBy: { id: 'desc' },
+        where: { channel_id: channelId, content: { contains: keyword } },
+        select: { id: true },
+      });
 
-    const messageId = keywordMessage.id;
+      if (!keywordMessage) {
+        const message = { code: 404, text: '메세지를 찾을 수 없습니다' };
+        return { message };
+      }
 
-    // 키워드 메세지 이전 15개
-    const previous = await this.prisma.message.findMany({
-      orderBy: { id: 'desc' },
-      where: { channel_id: channelId, id: { lt: messageId } },
-      select: { id: true },
-      take: 15,
-    });
-    const prevIds = previous.reverse().map(pre => pre.id);
+      // 키워드 메세지 커서 설정
+      const search = keywordMessage.id;
 
-    // 키워드 메세지 이후 15개
-    const sub = await this.prisma.message.findMany({
-      orderBy: { id: 'asc' },
-      where: { channel_id: channelId, id: { gt: messageId } },
-      select: { id: true },
-      take: 15,
-    });
-    const subIds = sub.map(sub => sub.id);
+      // 커서 기준 이전/후 메세지 15개 아이디 조회
+      const [forward, backward] = await this.prisma.$transaction([
+        this.prisma.message.findMany({
+          orderBy: { id: 'desc' },
+          where: { channel_id: channelId, id: { lt: search } },
+          select: { id: true },
+          take: 15,
+        }),
+        this.prisma.message.findMany({
+          orderBy: { id: 'asc' },
+          where: { channel_id: channelId, id: { gt: search } },
+          select: { id: true },
+          take: 15,
+        }),
+      ]);
 
-    const pm = await this.getMessageById(prevIds);
-    const m = await this.getMessageById([messageId]);
-    const sm = await this.getMessageById(subIds);
-    return { pm, m, sm };
+      const forwardIds = forward.reverse().map(pre => pre.id);
+      const backwordIds = backward.map(sub => sub.id);
+      const ids = [...forwardIds, search, ...backwordIds];
+
+      const messages = await this.getMessageById(ids);
+      // 무한 스크롤용 커서 데이터
+      const cursor = {
+        // 이후의 데이터 요청
+        prev: forwardIds[0],
+        next: backwordIds[backwordIds.length - 1],
+        search,
+      };
+
+      const message = {
+        code: 200,
+        message: '데이터 패칭 성공',
+      };
+
+      return { messages, cursor, message };
+    } catch (err) {
+      console.log(err);
+      return err;
+    }
   }
 
   // 메세지 아이디로 메세지 조회
@@ -414,7 +438,3 @@ export class ChatService {
     return data;
   }
 }
-
-// 키워드 검색 -> 키워드 id, 이전/후 id 15개 -> 31개
-// 31개의 id들을 양식화 해서 전달
-// 데이터 조회 및 양식화에 필요한 데이터 (채널 아이디/ 유저 아이디/ 메세지 아이디)
