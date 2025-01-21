@@ -379,6 +379,35 @@ export class ChatService {
     });
     const subIds = sub.map(sub => sub.id);
 
-    return { prevIds, messageId, subIds };
+    const pm = await this.getMessageById(prevIds);
+    const m = await this.getMessageById([messageId]);
+    const sm = await this.getMessageById(subIds);
+    return { pm, m, sm };
+  }
+
+  // 메세지 아이디로 메세지 조회
+  async getMessageById(ids) {
+    const result = await this.prisma.message.findMany({
+      where: { id: { in: ids } },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            nickname: true,
+            role: true,
+            profile_url: true,
+            auth_provider: true,
+          },
+        },
+      },
+    });
+
+    return result;
   }
 }
+
+// 키워드 검색 -> 키워드 id, 이전/후 id 15개 -> 31개
+// 31개의 id들을 양식화 해서 전달
+// 데이터 조회 및 양식화에 필요한 데이터 (채널 아이디/ 유저 아이디/ 메세지 아이디)
