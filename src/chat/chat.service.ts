@@ -275,12 +275,7 @@ export class ChatService {
   }
 
   // 채널 메세지 조회
-  async getMessages(
-    userId: number,
-    channelId: number,
-    limit: number,
-    currentPage: number
-  ) {
+  async getMessages(userId: number, channelId: number, limit: number) {
     try {
       // 유저 아이디가 채널에 속해있는지 확인
       const auth = await this.prisma.channel_users.findMany({
@@ -317,7 +312,6 @@ export class ChatService {
           id: 'desc',
         },
         take: limit,
-        skip: (currentPage - 1) * limit,
       });
 
       // 메세지 데이터 양식화
@@ -336,12 +330,23 @@ export class ChatService {
   }
 
   // 메세지 검색
-  async searchMessage(channelId, keyword) {
+  async searchMessage(
+    channelId: number,
+    keyword: string,
+    cursor: number,
+    direction: string
+  ) {
     try {
       // 키워드에 해당하는 메세지id 검색
       const keywordMessage = await this.prisma.message.findFirst({
         orderBy: { id: 'desc' },
-        where: { channel_id: channelId, content: { contains: keyword } },
+        where: {
+          channel_id: channelId,
+          // forward(스크롤 다운)일 시 cursor보다 id 높은 값(최신)
+          // backward(스크롤 업)일 시 cursor보다 id 낮은 값(오래된)
+          id: direction == 'forward' ? { gt: cursor } : { lt: cursor },
+          content: { contains: keyword },
+        },
         select: { id: true },
       });
 
@@ -375,10 +380,12 @@ export class ChatService {
 
       const messages = await this.getMessageById(ids);
       // 무한 스크롤용 커서 데이터
-      const cursor = {
-        // 이후의 데이터 요청
+      const cursors = {
+        // backward 무한스크롤 요청 커서
         prev: forwardIds[0],
+        // forward 무한스크롤 요청 커서
         next: backwordIds[backwordIds.length - 1],
+        // 검색 메세지 아이디 커서
         search,
       };
 
@@ -387,9 +394,8 @@ export class ChatService {
         message: '데이터 패칭 성공',
       };
 
-      return { messages, cursor, message };
+      return { messages, cursors, message };
     } catch (err) {
-      console.log(err);
       return err;
     }
   }
