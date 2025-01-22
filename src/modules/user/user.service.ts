@@ -916,11 +916,12 @@ export class UserService {
     // Offset 계산
     const offset = (page - 1) * limit;
 
-    // 피드 조회
+    // 특정 유저의 피드 조회
     const feeds = await this.prisma.feedPost.findMany({
+      where: { user_id: userId }, // 특정 유저의 글만 가져옴
       skip: offset,
       take: limit,
-      orderBy: { created_at: 'desc' }, // 최신 순 정렬
+      orderBy: { created_at: 'desc' },
       include: {
         user: {
           select: {
@@ -931,14 +932,16 @@ export class UserService {
         },
         Tags: {
           include: {
-            tag: true, // 태그 이름 가져오기
+            tag: true,
           },
         },
       },
     });
 
     // 총 피드 개수 (페이지네이션 용)
-    const totalCount = await this.prisma.feedPost.count();
+    const totalCount = await this.prisma.feedPost.count({
+      where: { user_id: userId }, // 특정 유저의 글만 카운트
+    });
 
     // 반환 데이터 구성
     return {
@@ -960,7 +963,7 @@ export class UserService {
           nickname: feed.user.nickname,
           profileUrl: feed.user.profile_url,
         },
-        tags: feed.Tags.map(tag => tag.tag.name), // 태그 리스트
+        tags: feed.Tags.map(tag => tag.tag.name),
       })),
       totalCount,
       currentPage: page,
