@@ -275,7 +275,14 @@ export class ChatService {
   }
 
   // 채널 메세지 조회
-  async getMessages(userId: number, channelId: number, limit: number) {
+  async getMessages(
+    userId: number,
+    channelId: number,
+    limit: number,
+    cursor: number,
+    keyword: string,
+    direction: string
+  ) {
     try {
       // 유저 아이디가 채널에 속해있는지 확인
       const auth = await this.prisma.channel_users.findMany({
@@ -290,10 +297,17 @@ export class ChatService {
         throw new Error('권한 X');
       }
 
+      if (keyword) {
+        return this.searchMessage(channelId, limit, cursor, keyword, direction);
+      }
       // 메세지 데이터 조회
       const result = await this.prisma.message.findMany({
+        orderBy: {
+          id: direction == 'forward' ? 'asc' : 'desc',
+        },
         where: {
           channel_id: channelId,
+          id: direction == 'forward' ? { gt: cursor } : { lt: cursor },
         },
         include: {
           user: {
@@ -308,12 +322,9 @@ export class ChatService {
             },
           },
         },
-        orderBy: {
-          id: 'desc',
-        },
+
         take: limit,
       });
-
       // 메세지 데이터 양식화
       const data = await this.getMessageObj(result);
 
@@ -321,9 +332,14 @@ export class ChatService {
         code: 200,
         text: '데이터 패칭 성공',
       };
+      const cursors = {
+        prev: data[data.length - 1] ? data[data.length - 1].messageId : null,
+        next: data[0] ? data[0].messageId : null,
+        search: cursor,
+      };
 
       // 응답데이터 {메세지데이터, 페이지네이션}
-      return { messages: data, message };
+      return { messages: data, cursors, message };
     } catch (err) {
       return err.message;
     }
@@ -332,8 +348,9 @@ export class ChatService {
   // 메세지 검색
   async searchMessage(
     channelId: number,
-    keyword: string,
+    limit: number,
     cursor: number,
+    keyword: string,
     direction: string
   ) {
     try {
@@ -364,13 +381,13 @@ export class ChatService {
           orderBy: { id: 'desc' },
           where: { channel_id: channelId, id: { lt: search } },
           select: { id: true },
-          take: 15,
+          take: limit,
         }),
         this.prisma.message.findMany({
           orderBy: { id: 'asc' },
           where: { channel_id: channelId, id: { gt: search } },
           select: { id: true },
-          take: 15,
+          take: limit,
         }),
       ]);
 
@@ -382,9 +399,9 @@ export class ChatService {
       // 무한 스크롤용 커서 데이터
       const cursors = {
         // backward 무한스크롤 요청 커서
-        prev: forwardIds[0],
+        prev: forwardIds.length ? forwardIds[0] : null,
         // forward 무한스크롤 요청 커서
-        next: backwordIds[backwordIds.length - 1],
+        next: backwordIds.length ? backwordIds[backwordIds.length - 1] : null,
         // 검색 메세지 아이디 커서
         search,
       };
@@ -419,8 +436,7 @@ export class ChatService {
       },
     });
 
-    const obj = await this.getMessageObj(result);
-    return obj;
+    return result;
   }
 
   // 메세지 데이터 양식화
