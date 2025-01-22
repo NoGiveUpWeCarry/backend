@@ -641,6 +641,7 @@ export class FeedService {
     });
 
     const contents = result.map(res => ({
+      postId: res.id,
       title: res.title,
       userId: res.user.id,
       userName: res.user.name,
@@ -649,6 +650,9 @@ export class FeedService {
       userRole: res.user.role.name,
     }));
 
-    return { contents };
+    return {
+      contents,
+      message: { code: 200, message: '성공적으로 조회되었습니다.' },
+    };
   }
 }
