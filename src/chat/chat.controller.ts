@@ -30,7 +30,6 @@ export class ChatController {
       channelId,
       limit,
       cursor ? cursor : 0,
-      keyword,
       direction
     );
   }
@@ -39,5 +38,26 @@ export class ChatController {
   @UseGuards(JwtAuthGuard)
   async getChannel(@Req() req: any, @Param('id') channelId: number) {
     return await this.chatService.getChannel(req.user.user_id, channelId);
+  }
+
+  // 채널 메세지 검색
+  @Get('chnnales/:id/messages/search')
+  @UseGuards(JwtAuthGuard)
+  async searchChannelMessages(
+    @Req() req: any,
+    @Param('id') channelId: number,
+    @Query('limit') limit: number,
+    @Query('cursor') cursor: number,
+    @Query('keyword') keyword: string,
+    @Query('direction') direction: string
+  ) {
+    return await this.chatService.searchMessage(
+      req.user.user_id,
+      channelId,
+      limit,
+      cursor ? cursor : 0,
+      keyword,
+      direction
+    );
   }
 }
