@@ -387,6 +387,16 @@ export class ChatService {
         throw new Error('권한 X');
       }
 
+      if (!cursor) {
+        const res = await this.prisma.message.findFirst({
+          orderBy: { id: 'desc' },
+          where: { channel_id: channelId },
+          select: { id: true },
+        });
+
+        cursor = res.id;
+      }
+
       // 키워드에 해당하는 메세지id 검색
       const keywordMessage = await this.prisma.message.findFirst({
         orderBy: { id: direction == 'forward' ? 'asc' : 'desc' },
