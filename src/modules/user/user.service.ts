@@ -66,7 +66,10 @@ export class UserService {
     // 사용자 직업군에 따라 데이터를 동적으로 추가
     if (user.role.name === 'Artist') {
       Object.assign(response, {
-        works: user.ArtistData.map(work => work.music_url), // 단순 URL 배열로 변환
+        works: user.ArtistData.map(work => ({
+          musicUrl: work.music_url,
+          musicId: work.id,
+        })), // 단순 URL 배열로 변환
       });
     } else if (
       user.role.name === 'Programmer' ||
@@ -78,6 +81,8 @@ export class UserService {
           ? user.MyPageProject.map(project => ({
               title: project.title,
               description: project.description,
+              myPageProjectId: project.id,
+              projectProfileUrl: project.projectProfileUrl,
               links: project.ProjectLinks.map(link => ({
                 type: link.type.name,
                 url: link.url,
@@ -189,7 +194,7 @@ export class UserService {
     };
   }
 
-  async addProject(userId: number, projectData: any) {
+  async addProject(userId: number, projectData: any, imageUrl: string | null) {
     const { title, description, links } = projectData;
 
     // 작업물 추가
@@ -198,6 +203,7 @@ export class UserService {
         user_id: userId,
         title,
         description,
+        projectProfileUrl: imageUrl,
         ProjectLinks: {
           create: links.map(link => ({
             url: link.url,
@@ -220,15 +226,20 @@ export class UserService {
       myPageProjectId: newProject.id,
       title: newProject.title,
       description: newProject.description,
+      projectProfileUrl: newProject.projectProfileUrl,
       links: newProject.ProjectLinks.map(link => ({
-        id: link.id,
         url: link.url,
         type: link.type.name,
       })),
     };
   }
 
-  async updateProject(userId: number, projectId: number, projectData: any) {
+  async updateProject(
+    userId: number,
+    projectId: number,
+    projectData: any,
+    imageUrl: string | null
+  ) {
     const { title, description, links } = projectData;
 
     // 기존 프로젝트 확인
@@ -249,6 +260,7 @@ export class UserService {
       data: {
         title,
         description,
+        projectProfileUrl: imageUrl,
         ProjectLinks: {
           deleteMany: {}, // 기존 링크 삭제
           create: links.map(link => ({
@@ -272,8 +284,8 @@ export class UserService {
       myPageProjectId: updatedProject.id,
       title: updatedProject.title,
       description: updatedProject.description,
+      projectProfileUrl: updatedProject.projectProfileUrl,
       links: updatedProject.ProjectLinks.map(link => ({
-        id: link.id,
         url: link.url,
         type: link.type.name,
       })),
@@ -343,7 +355,7 @@ export class UserService {
       introduce: user.introduce,
       status: user.status?.name,
       links: user.UserLinks.map(link => ({
-        id: link.id,
+        linkId: link.id,
         url: link.link, // 링크 정보만 반환
       })),
       skills: user.UserSkills.map(skill => skill.skill.name), // 기술 스택
@@ -710,6 +722,7 @@ export class UserService {
         title: true,
         portfolio_url: true,
         detail: true,
+        id: true,
         user: {
           select: {
             id: true,
@@ -740,6 +753,7 @@ export class UserService {
         text: '사용자 이력서 조회에 성공했습니다.',
       },
       userId: resume.user.id,
+      resumeId: resume.id,
       title: resume.title,
       jobDetail: resume.user.job_detail, // 직무 상세
       skills: resume.user.UserSkills.map(userSkill => userSkill.skill.name), // 기술 스택 이름 리스트
@@ -754,12 +768,23 @@ export class UserService {
     userId: number,
     data: { title: string; portfolioUrl?: string; detail: string }
   ) {
+    // 유저가 이미 이력서를 가지고 있는지 확인
+    const existingResume = await this.prisma.resume.findFirst({
+      where: { user_id: userId },
+    });
+
+    if (existingResume) {
+      // 이미 이력서가 있는 경우 예외를 던짐
+      throw new Error('해당 유저는 이미 이력서를 가지고 있습니다.');
+    }
+
+    // 이력서 생성
     const newResume = await this.prisma.resume.create({
       data: {
         user_id: userId,
         title: data.title,
         portfolio_url: data.portfolioUrl,
-        detail: data.detail, // detail 정보를 introduce 필드에 저장
+        detail: data.detail,
       },
     });
 
@@ -847,6 +872,7 @@ export class UserService {
         code: 200,
         text: '사용자 이력서 삭제에 성공했습니다.',
       },
+      resumeId,
     };
   }
 
@@ -1075,6 +1101,7 @@ export class UserService {
         code: 200,
         text: '아티스트 작업물 삭제에 성공했습니다.',
       },
+      musicId: workId,
     };
   }
 
