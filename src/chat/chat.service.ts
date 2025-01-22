@@ -337,8 +337,8 @@ export class ChatService {
 
       // 커서
       const cursors = {
-        prev: data[data.length - 1] ? data[data.length - 1].messageId : null,
-        next: data[0] ? data[0].messageId : null,
+        prev: data[0] ? data[0].messageId : null,
+        next: data[data.length - 1] ? data[data.length - 1].messageId : null,
       };
 
       // 응답 메세지
