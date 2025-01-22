@@ -75,4 +75,53 @@ export class ProjectService {
       limit,
     };
   }
+
+  async getWeeklyTopProjects() {
+    // 이번 주 시작과 끝 날짜 계산
+    const now = new Date();
+    const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay())); // 주의 첫 번째 날(일요일)
+    const endOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + 6)); // 주의 마지막 날(토요일)
+
+    // 상위 5개 프로젝트 조회
+    const topProjects = await this.prisma.projectPost.findMany({
+      where: {
+        Applications: {
+          some: {
+            created_at: {
+              gte: startOfWeek,
+              lte: endOfWeek,
+            },
+          },
+        },
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            nickname: true,
+            profile_url: true,
+          },
+        },
+        Applications: true,
+      },
+      orderBy: {
+        Applications: {
+          _count: 'desc',
+        },
+      },
+      take: 5, // 상위 5개만 가져오기
+    });
+
+    // 데이터 가공
+    return topProjects.map(project => ({
+      id: project.id,
+      title: project.title,
+      author: {
+        userId: project.user.id,
+        nickname: project.user.nickname,
+        profileUrl: project.user.profile_url,
+      },
+      applications_count: project.Applications.length,
+    }));
+  }
 }
