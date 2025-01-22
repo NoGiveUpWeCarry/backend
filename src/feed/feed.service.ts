@@ -588,7 +588,7 @@ export class FeedService {
       8,
       file.buffer,
       fileType,
-      'pad_feed'
+      'pad_feed/images'
     );
 
     return {
