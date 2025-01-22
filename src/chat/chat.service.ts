@@ -472,7 +472,7 @@ export class ChatService {
       },
     });
 
-    return result;
+    return this.getMessageObj(result);
   }
 
   // 메세지 데이터 양식화
