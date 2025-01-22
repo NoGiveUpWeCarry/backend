@@ -41,7 +41,7 @@ export class ChatController {
   }
 
   // 채널 메세지 검색
-  @Get('chnnales/:id/messages/search')
+  @Get('channels/:id/messages/search')
   @UseGuards(JwtAuthGuard)
   async searchChannelMessages(
     @Req() req: any,
