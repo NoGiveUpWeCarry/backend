@@ -227,8 +227,8 @@ model ProjectPost {
   id              Int                 @id @default(autoincrement())
   user_id         Int
   title           String
-  content         String
-  thumbnail_url   String
+  content         String  @db.Text
+  thumbnail_url   String?
   role            Int
   unit            String
   start_date      DateTime
@@ -236,8 +236,8 @@ model ProjectPost {
   work_type_id    Int
   recruiting      Boolean
   applicant_count Int
-  view            Int
-  saved_count     Int
+  view            Int @default(0)
+  saved_count     Int @default(0)
   created_at      DateTime            @default(now())
   Details         ProjectDetailRole[]
   user            User                @relation(fields: [user_id], references: [id])
@@ -306,9 +306,11 @@ model UserApplyProject {
   id      Int         @id @default(autoincrement())
   user_id Int
   post_id Int
+  status  String       @default("Pending") // "Accepted", "Rejected", "Pending"
   post    ProjectPost @relation(fields: [post_id], references: [id])
   user    User        @relation(fields: [user_id], references: [id])
 
+  @@unique([user_id, post_id]) // 중복 지원 방지
   @@index([post_id], map: "UserApplyProject_post_id_fkey")
   @@index([user_id], map: "UserApplyProject_user_id_fkey")
 }
