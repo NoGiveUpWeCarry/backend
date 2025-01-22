@@ -599,7 +599,12 @@ export class FeedService {
   }
 
   async getTags() {
-    return await this.prisma.feedTag.findMany();
+    const tags = await this.prisma.feedTag.findMany();
+
+    return {
+      tags,
+      message: { code: 200, message: '태그가 성공적으로 조회되었습니다.' },
+    };
   }
 
   async getWeeklyBest() {
