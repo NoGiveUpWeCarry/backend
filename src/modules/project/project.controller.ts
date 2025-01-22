@@ -14,4 +14,9 @@ export class ProjectController {
   ) {
     return this.projectService.getProjects(skip, limit);
   }
+
+  @Get('rankings')
+  async getWeeklyTopProjects() {
+    return this.projectService.getWeeklyTopProjects();
+  }
 }
