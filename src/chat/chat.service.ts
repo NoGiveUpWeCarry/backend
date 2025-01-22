@@ -336,10 +336,21 @@ export class ChatService {
         !cursor || direction == 'backward' ? data.reverse() : data;
 
       // 커서
-      const cursors = {
-        prev: data[0] ? data[0].messageId : null,
-        next: data[data.length - 1] ? data[data.length - 1].messageId : null,
-      };
+
+      const prev = data[0] ? data[0].messageId : null;
+      const next = data[data.length - 1]
+        ? data[data.length - 1].messageId
+        : null;
+
+      let cursors;
+
+      if (direction == 'backward' && !next) {
+        cursors = { prev };
+      } else if (direction == 'forward' && !prev) {
+        cursors = { next };
+      } else {
+        cursors = { next, prev };
+      }
 
       // 응답 메세지
       const message = {
