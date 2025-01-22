@@ -30,6 +30,12 @@ export class FeedController {
     return this.feedService.getAllFeeds(req.user, queryDto);
   }
 
+  // 태그 데이터 조회
+  @Get('/tags')
+  async getTags() {
+    return this.feedService.getTags();
+  }
+
   // 피드 조회 (게시글)
   @Get(':id')
   @UseGuards(OptionalAuthGuard)

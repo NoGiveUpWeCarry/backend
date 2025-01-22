@@ -596,4 +596,8 @@ export class FeedService {
       message: { code: 200, message: '이미지 업로드가 완료되었습니다.' },
     };
   }
+
+  async getTags() {
+    return await this.prisma.feedTag.findMany();
+  }
 }
