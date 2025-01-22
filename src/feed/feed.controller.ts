@@ -36,6 +36,12 @@ export class FeedController {
     return this.feedService.getTags();
   }
 
+  // 위클리 베스트 컨텐츠
+  @Get('/weekly')
+  async getWeeklyBest() {
+    return this.feedService.getWeeklyBest();
+  }
+
   // 피드 조회 (게시글)
   @Get(':id')
   @UseGuards(OptionalAuthGuard)

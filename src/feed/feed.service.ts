@@ -5,6 +5,7 @@ import * as cheerio from 'cheerio';
 import { CommentDto } from './dto/comment.dto';
 import { GetFeedsQueryDto } from './dto/getFeedsQuery.dto';
 import { S3Service } from '@src/s3/s3.service';
+import * as dayjs from 'dayjs';
 
 @Injectable()
 export class FeedService {
@@ -599,5 +600,50 @@ export class FeedService {
 
   async getTags() {
     return await this.prisma.feedTag.findMany();
+  }
+
+  async getWeeklyBest() {
+    // 현재 날짜
+    const now = dayjs();
+    // 이번주 시작(일요일)
+    const start = now.startOf('week').toDate();
+    // 이번주 끝(토요일)
+    const end = now.endOf('week').toDate();
+
+    const result = await this.prisma.feedPost.findMany({
+      where: {
+        created_at: {
+          gte: start,
+          lte: end,
+        },
+      },
+      // 1순위 좋아요 수, 2순위 조회수
+      orderBy: [{ like_count: 'desc' }, { view: 'desc' }],
+      select: {
+        id: true,
+        title: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            nickname: true,
+            profile_url: true,
+            role: { select: { name: true } },
+          },
+        },
+      },
+      take: 5,
+    });
+
+    const contents = result.map(res => ({
+      title: res.title,
+      userId: res.user.id,
+      userName: res.user.name,
+      userNickname: res.user.nickname,
+      userProfileUrl: res.user.profile_url,
+      userRole: res.user.role.name,
+    }));
+
+    return { contents };
   }
 }
