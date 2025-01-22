@@ -229,7 +229,7 @@ model ProjectPost {
   title           String
   content         String  @db.Text
   thumbnail_url   String?
-  role            Int
+  role            String
   unit            String
   start_date      DateTime
   end_date        DateTime
