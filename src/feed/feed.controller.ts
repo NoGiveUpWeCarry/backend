@@ -39,8 +39,9 @@ export class FeedController {
 
   // 피드 조회 (댓글)
   @Get(':id/comments')
-  async getFeedComments(@Param('id') feedId: number) {
-    return await this.feedService.getFeedComments(feedId);
+  @UseGuards(OptionalAuthGuard)
+  async getFeedComments(@Param('id') feedId: number, @Req() req) {
+    return await this.feedService.getFeedComments(feedId, req.user);
   }
 
   // 좋아요 추가/ 제거

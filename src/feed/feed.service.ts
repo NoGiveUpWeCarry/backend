@@ -183,8 +183,10 @@ export class FeedService {
   }
 
   // 피드 개별 조회 (댓글)
-  async getFeedComments(feedId: number) {
+  async getFeedComments(feedId: number, user) {
     try {
+      const userId = user ? user.user_id : 0;
+
       const result = await this.prisma.feedComment.findMany({
         where: {
           post_id: feedId,
@@ -224,6 +226,9 @@ export class FeedService {
         comment: c.content,
         likeCount: c.FeedCommentLikes.length,
         createdAt: c.created_at,
+        isLiked: userId
+          ? !!c.FeedCommentLikes.filter(v => v.user_id == userId).length
+          : false,
       }));
 
       return {
