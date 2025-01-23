@@ -9,6 +9,6 @@ import { PrismaService } from '@prisma/prisma.service';
   imports: [AuthModule],
   controllers: [ProjectController],
   providers: [ProjectService, PrismaService],
-  exports: [UserService],
+  exports: [ProjectService],
 })
 export class ProjectModule {}
