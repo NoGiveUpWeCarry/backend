@@ -227,17 +227,17 @@ model ProjectPost {
   id              Int                 @id @default(autoincrement())
   user_id         Int
   title           String
-  content         String
-  thumbnail_url   String
-  role            Int
+  content         String              @db.Text
+  thumbnail_url   String?
+  role            String
   unit            String
   start_date      DateTime
   end_date        DateTime
   work_type_id    Int
   recruiting      Boolean
   applicant_count Int
-  view            Int
-  saved_count     Int
+  view            Int                 @default(0)
+  saved_count     Int                 @default(0)
   created_at      DateTime            @default(now())
   Details         ProjectDetailRole[]
   user            User                @relation(fields: [user_id], references: [id])
@@ -303,12 +303,15 @@ model ProjectPostTag {
 }
 
 model UserApplyProject {
-  id      Int         @id @default(autoincrement())
-  user_id Int
-  post_id Int
-  post    ProjectPost @relation(fields: [post_id], references: [id])
-  user    User        @relation(fields: [user_id], references: [id])
+  id         Int         @id @default(autoincrement())
+  user_id    Int
+  post_id    Int
+  status     String      @default("Pending")
+  created_at DateTime    @default(now())
+  post       ProjectPost @relation(fields: [post_id], references: [id])
+  user       User        @relation(fields: [user_id], references: [id])
 
+  @@unique([user_id, post_id])
   @@index([post_id], map: "UserApplyProject_post_id_fkey")
   @@index([user_id], map: "UserApplyProject_user_id_fkey")
 }
