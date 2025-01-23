@@ -234,7 +234,7 @@ model ProjectPost {
   start_date      DateTime
   duration        String
   work_type       String //[Online, Offline]
-  recruiting      Boolean
+  recruiting      Boolean             @default(true)
   applicant_count Int                 @default(0)
   view            Int                 @default(0)
   saved_count     Int                 @default(0)
@@ -252,6 +252,7 @@ model ProjectSave {
   id      Int         @id @default(autoincrement())
   user_id Int
   post_id Int
+  created_at DateTime    @default(now()) // 지원 생성 시간
   post    ProjectPost @relation(fields: [post_id], references: [id])
   user    User        @relation(fields: [user_id], references: [id])
 
