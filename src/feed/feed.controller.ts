@@ -30,6 +30,18 @@ export class FeedController {
     return this.feedService.getAllFeeds(req.user, queryDto);
   }
 
+  // 태그 데이터 조회
+  @Get('/tags')
+  async getTags() {
+    return this.feedService.getTags();
+  }
+
+  // 위클리 베스트 컨텐츠
+  @Get('/weekly')
+  async getWeeklyBest() {
+    return this.feedService.getWeeklyBest();
+  }
+
   // 피드 조회 (게시글)
   @Get(':id')
   @UseGuards(OptionalAuthGuard)
@@ -39,8 +51,9 @@ export class FeedController {
 
   // 피드 조회 (댓글)
   @Get(':id/comments')
-  async getFeedComments(@Param('id') feedId: number) {
-    return await this.feedService.getFeedComments(feedId);
+  @UseGuards(OptionalAuthGuard)
+  async getFeedComments(@Param('id') feedId: number, @Req() req) {
+    return await this.feedService.getFeedComments(feedId, req.user);
   }
 
   // 좋아요 추가/ 제거
