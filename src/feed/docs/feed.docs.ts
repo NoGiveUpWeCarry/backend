@@ -5,6 +5,7 @@ import {
   ApiBody,
   ApiConsumes,
   ApiQuery,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 
 export const getMainPageDocs = {
@@ -227,6 +228,8 @@ export const getFeedCommentDocs = {
 };
 
 export const handleFeedLikesDocs = {
+  ApiBearerAuth: ApiBearerAuth(),
+
   ApiOperation: ApiOperation({
     summary: '피드 좋아요 추가/제거',
     description: '요청 시 좋아요 여부에 따라 좋아요가 추가/제거 됩니다',
@@ -261,6 +264,7 @@ export const handleFeedLikesDocs = {
 };
 
 export const createFeedDocs = {
+  ApiBearerAuth: ApiBearerAuth(),
   ApiOperation: ApiOperation({
     summary: '피드 등록',
     description: '피드를 등록합니다',
@@ -307,6 +311,7 @@ export const createFeedDocs = {
 };
 
 export const updateFeedDocs = {
+  ApiBearerAuth: ApiBearerAuth(),
   ApiOperation: ApiOperation({
     summary: '피드 수정',
     description: '피드를 수정합니다',
@@ -350,6 +355,7 @@ export const updateFeedDocs = {
 };
 
 export const deleteFeedDocs = {
+  ApiBearerAuth: ApiBearerAuth(),
   ApiOperation: ApiOperation({
     summary: '피드 삭제',
     description: '피드를 삭제합니다',
@@ -376,6 +382,7 @@ export const deleteFeedDocs = {
 };
 
 export const createCommentDocs = {
+  ApiBearerAuth: ApiBearerAuth(),
   ApiOperation: ApiOperation({
     summary: '댓글 등록',
     description: '피드에 댓글을 등록합니다',
@@ -415,6 +422,7 @@ export const createCommentDocs = {
 };
 
 export const updateCommentDocs = {
+  ApiBearerAuth: ApiBearerAuth(),
   ApiOperation: ApiOperation({
     summary: '댓글 수정',
     description: '기존 댓글을 수정합니다',
@@ -460,6 +468,7 @@ export const updateCommentDocs = {
 };
 
 export const deleteCommentDocs = {
+  ApiBearerAuth: ApiBearerAuth(),
   ApiOperation: ApiOperation({
     summary: '댓글 삭제',
     description: '댓글을 삭제합니다',
@@ -486,6 +495,8 @@ export const deleteCommentDocs = {
 };
 
 export const handleCommentLikesDocs = {
+  ApiBearerAuth: ApiBearerAuth(),
+
   ApiOperation: ApiOperation({
     summary: '댓글 좋아요 추가/제거',
     description: '요청 시 좋아요 여부에 따라 좋아요가 추가/제거 됩니다',
@@ -520,6 +531,7 @@ export const handleCommentLikesDocs = {
 };
 
 export const uploadImageDocs = {
+  ApiBearerAuth: ApiBearerAuth(),
   ApiOperation: ApiOperation({
     summary: '이미지 업로드',
     description: '이미지 업로드 시 이미지 링크를 반환합니다',
