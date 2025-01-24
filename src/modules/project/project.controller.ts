@@ -18,7 +18,19 @@ import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { ProjectService } from '@modules/project/project.service';
 import { CreateProjectDto } from './dto/CreateProject.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { CreateProjectDocs, DeleteProjectDocs, GetPopularProjectsThisWeekDocs, GetProjectDetailDocs, GetProjectsDocs, UpdateProjectDocs, UploadFeedImageDocs } from './docs/project.docs';
+import {
+  ApplyToProjectDocs,
+  CancelApplicationDocs,
+  CheckApplyStatusDocs,
+  CreateProjectDocs,
+  DeleteProjectDocs,
+  GetApplicantsDocs,
+  GetPopularProjectsThisWeekDocs,
+  GetProjectDetailDocs,
+  GetProjectsDocs,
+  UpdateProjectDocs,
+  UploadFeedImageDocs,
+} from './docs/project.docs';
 @UseGuards(JwtAuthGuard)
 @Controller('projects')
 export class ProjectController {
@@ -108,6 +120,9 @@ export class ProjectController {
   }
 
   @Post(':projectId/apply')
+  @ApplyToProjectDocs.ApiOperation
+  @ApplyToProjectDocs.ApiParam
+  @ApplyToProjectDocs.ApiResponse
   async applyToProject(
     @Param('projectId', ParseIntPipe) projectId: number,
     @Req() req
@@ -117,11 +132,17 @@ export class ProjectController {
   }
 
   @Get(':projectId/applicants')
+  @GetApplicantsDocs.ApiOperation
+  @GetApplicantsDocs.ApiParam
+  @GetApplicantsDocs.ApiResponse
   async getApplicants(@Param('projectId', ParseIntPipe) projectId: number) {
     return this.projectService.getApplicants(projectId);
   }
 
   @Get(':projectId/apply-status')
+  @CheckApplyStatusDocs.ApiOperation
+  @CheckApplyStatusDocs.ApiParam
+  @CheckApplyStatusDocs.ApiResponse
   async checkApplyStatus(
     @Param('projectId', ParseIntPipe) projectId: number,
     @Req() req
@@ -131,6 +152,9 @@ export class ProjectController {
   }
 
   @Delete(':projectId/cancel-apply')
+  @CancelApplicationDocs.ApiOperation
+  @CancelApplicationDocs.ApiParam
+  @CancelApplicationDocs.ApiResponse
   async cancelApplication(
     @Param('projectId', ParseIntPipe) projectId: number,
     @Req() req
