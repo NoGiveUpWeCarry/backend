@@ -5,6 +5,7 @@ import * as cheerio from 'cheerio';
 import { CommentDto } from './dto/comment.dto';
 import { GetFeedsQueryDto } from './dto/getFeedsQuery.dto';
 import { S3Service } from '@src/s3/s3.service';
+import * as dayjs from 'dayjs';
 
 @Injectable()
 export class FeedService {
@@ -17,12 +18,33 @@ export class FeedService {
   async getAllFeeds(user, queryDto: GetFeedsQueryDto) {
     try {
       const userId = user ? user.user_id : 0;
-      const { latest = false, limit = 10, cursor = 0 } = queryDto;
+      const { latest = false, limit = 10, cursor = 0, tags } = queryDto;
 
+      // 정렬 기준
       const orderKey = latest ? 'created_at' : 'like_count';
 
+      // 쿼리로 전달받은 태그
+      const tagIds = tags ? tags.split(',').map(id => parseInt(id)) : [];
+
+      // 태그를 포함하고 있는 피드 아이디 조회
+      const feedTagIds = tagIds?.length
+        ? (
+            await this.prisma.feedPostTag.groupBy({
+              by: ['post_id'],
+              where: { tag_id: { in: tagIds } },
+              having: {
+                post_id: { _count: { equals: tagIds.length } }, // 태그 개수 일치하는 게시글만 조회
+              },
+            })
+          ).map(p => p.post_id)
+        : null;
+
       const result = await this.prisma.feedPost.findMany({
-        where: cursor ? { id: { gt: cursor } } : {},
+        where: {
+          ...(cursor ? { id: { gt: cursor } } : {}), // cursor 조건 추가 (옵셔널)
+          ...(feedTagIds ? { id: { in: feedTagIds } } : {}), // 태그 조건 추가 (옵셔널)
+        },
+
         include: {
           Likes: {
             where: { user_id: userId },
@@ -116,6 +138,12 @@ export class FeedService {
 
       const post = await this.getPostObj(result);
 
+      // 조회수 증가
+      await this.prisma.feedPost.update({
+        where: { id: feedId },
+        data: { view: { increment: 1 } },
+      });
+
       return {
         post,
         message: { code: 200, message: '개별 피드를 정상적으로 조회했습니다.' },
@@ -156,8 +184,10 @@ export class FeedService {
   }
 
   // 피드 개별 조회 (댓글)
-  async getFeedComments(feedId: number) {
+  async getFeedComments(feedId: number, user) {
     try {
+      const userId = user ? user.user_id : 0;
+
       const result = await this.prisma.feedComment.findMany({
         where: {
           post_id: feedId,
@@ -174,6 +204,7 @@ export class FeedService {
               profile_url: true,
             },
           },
+          FeedCommentLikes: true,
         },
       });
 
@@ -194,7 +225,11 @@ export class FeedService {
         userRole: c.user.role.name,
         userProfileUrl: c.user.profile_url,
         comment: c.content,
+        likeCount: c.FeedCommentLikes.length,
         createdAt: c.created_at,
+        isLiked: userId
+          ? !!c.FeedCommentLikes.filter(v => v.user_id == userId).length
+          : false,
       }));
 
       return {
@@ -500,6 +535,29 @@ export class FeedService {
     return { message: { code: 200, message: '댓글 수정이 완료되었습니다.' } };
   }
 
+  // 댓글 좋아요 추가/제거
+  async handleCommentLikes(userId: number, commentId: number) {
+    // 좋아요 여부 확인
+    const exist = await this.prisma.feedCommentLikes.findMany({
+      where: { user_id: userId, comment_id: commentId },
+    });
+
+    if (exist.length) {
+      // 있을 시 좋아요 제거
+      await this.prisma.feedCommentLikes.deleteMany({
+        where: { user_id: userId, comment_id: commentId },
+      });
+
+      return { message: { code: 200, message: '좋아요가 취소되었습니다.' } };
+    } else {
+      // 없을 시 좋아요 추가
+      await this.prisma.feedCommentLikes.create({
+        data: { user_id: userId, comment_id: commentId },
+      });
+      return { message: { code: 200, message: '좋아요가 추가되었습니다.' } };
+    }
+  }
+
   // 게시글 권한 확인
   async feedAuth(userId: number, feedId: number) {
     const auth = await this.prisma.feedPost.findUnique({
@@ -531,12 +589,70 @@ export class FeedService {
       8,
       file.buffer,
       fileType,
-      'pad_feed'
+      'pad_feed/images'
     );
 
     return {
       imageUrl,
       message: { code: 200, message: '이미지 업로드가 완료되었습니다.' },
+    };
+  }
+
+  async getTags() {
+    const tags = await this.prisma.feedTag.findMany();
+
+    return {
+      tags,
+      message: { code: 200, message: '태그가 성공적으로 조회되었습니다.' },
+    };
+  }
+
+  async getWeeklyBest() {
+    // 현재 날짜
+    const now = dayjs();
+    // 이번주 시작(일요일)
+    const start = now.startOf('week').toDate();
+    // 이번주 끝(토요일)
+    const end = now.endOf('week').toDate();
+
+    const result = await this.prisma.feedPost.findMany({
+      where: {
+        created_at: {
+          gte: start,
+          lte: end,
+        },
+      },
+      // 1순위 좋아요 수, 2순위 조회수
+      orderBy: [{ like_count: 'desc' }, { view: 'desc' }],
+      select: {
+        id: true,
+        title: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            nickname: true,
+            profile_url: true,
+            role: { select: { name: true } },
+          },
+        },
+      },
+      take: 5,
+    });
+
+    const contents = result.map(res => ({
+      postId: res.id,
+      title: res.title,
+      userId: res.user.id,
+      userName: res.user.name,
+      userNickname: res.user.nickname,
+      userProfileUrl: res.user.profile_url,
+      userRole: res.user.role.name,
+    }));
+
+    return {
+      contents,
+      message: { code: 200, message: '성공적으로 조회되었습니다.' },
     };
   }
 }

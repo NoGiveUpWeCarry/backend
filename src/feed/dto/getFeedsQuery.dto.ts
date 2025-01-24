@@ -19,4 +19,7 @@ export class GetFeedsQueryDto {
   @IsInt()
   @Type(() => Number)
   cursor?: number;
+
+  @IsOptional()
+  tags?: string;
 }
