@@ -518,6 +518,7 @@ export class ChatService {
     });
 
     return {
+      userId,
       type: msg.type,
       content: msg.content,
       channelId: msg.channel_id,
