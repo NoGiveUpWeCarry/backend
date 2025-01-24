@@ -35,7 +35,8 @@ import {
   UpdateProjectStatusDocs,
   UploadFeedImageDocs,
 } from './docs/project.docs';
-@UseGuards(JwtAuthGuard)
+import { ApiBearerAuth } from '@nestjs/swagger'
+
 @Controller('projects')
 export class ProjectController {
   constructor(private readonly projectService: ProjectService) {}
@@ -59,6 +60,8 @@ export class ProjectController {
   }
 
   @Post()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @CreateProjectDocs.ApiOperation
   @CreateProjectDocs.ApiBody
   @CreateProjectDocs.ApiResponseSuccess
@@ -68,6 +71,8 @@ export class ProjectController {
   }
 
   @Put(':projectId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @UpdateProjectDocs.ApiOperation
   @UpdateProjectDocs.ApiParam
   @UpdateProjectDocs.ApiBody
@@ -86,6 +91,8 @@ export class ProjectController {
   }
 
   @Delete(':projectId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @DeleteProjectDocs.ApiOperation
   @DeleteProjectDocs.ApiParam
   @DeleteProjectDocs.ApiResponse
@@ -114,6 +121,8 @@ export class ProjectController {
   }
 
   @Get(':projectId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @GetProjectDetailDocs.ApiOperation
   @GetProjectDetailDocs.ApiParam
   @GetProjectDetailDocs.ApiResponse
@@ -124,6 +133,8 @@ export class ProjectController {
   }
 
   @Post(':projectId/apply')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApplyToProjectDocs.ApiOperation
   @ApplyToProjectDocs.ApiParam
   @ApplyToProjectDocs.ApiResponse
@@ -136,6 +147,8 @@ export class ProjectController {
   }
 
   @Get(':projectId/applicants')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @GetApplicantsDocs.ApiOperation
   @GetApplicantsDocs.ApiParam
   @GetApplicantsDocs.ApiResponse
@@ -144,6 +157,8 @@ export class ProjectController {
   }
 
   @Get(':projectId/apply-status')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @CheckApplyStatusDocs.ApiOperation
   @CheckApplyStatusDocs.ApiParam
   @CheckApplyStatusDocs.ApiResponse
@@ -156,6 +171,8 @@ export class ProjectController {
   }
 
   @Delete(':projectId/cancel-apply')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @CancelApplicationDocs.ApiOperation
   @CancelApplicationDocs.ApiParam
   @CancelApplicationDocs.ApiResponse
@@ -168,6 +185,8 @@ export class ProjectController {
   }
 
   @Patch(':projectId/applications/:userId/status')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @UpdateApplicationStatusDocs.ApiOperation
   @UpdateApplicationStatusDocs.ApiParamProject
   @UpdateApplicationStatusDocs.ApiParamApplication
@@ -189,6 +208,8 @@ export class ProjectController {
   }
 
   @Patch(':projectId/status')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @UpdateProjectStatusDocs.ApiOperation
   @UpdateProjectStatusDocs.ApiParam
   @UpdateProjectStatusDocs.ApiBody
@@ -207,6 +228,8 @@ export class ProjectController {
   }
 
   @Post(':projectId/bookmark')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ToggleBookmarkDocs.ApiOperation
   @ToggleBookmarkDocs.ApiParam
   @ToggleBookmarkDocs.ApiResponse
@@ -219,6 +242,8 @@ export class ProjectController {
   }
 
   @Get(':projectId/bookmark')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @CheckBookmarkDocs.ApiOperation
   @CheckBookmarkDocs.ApiParam
   @CheckBookmarkDocs.ApiResponse
