@@ -203,4 +203,23 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     console.log(sendData);
     this.server.to(data.channelId.toString()).emit('message', sendData);
   }
+
+  @SubscribeMessage('exitChannel')
+  async handleLeaveChannel(
+    @MessageBody()
+    data: { userId: number; channelId: number },
+    @ConnectedSocket() client: Socket
+  ) {
+    const { userId, channelId } = data;
+
+    // 채널 나가기
+    client.leave(channelId.toString());
+    // 채널 나간 후 클라이언트에게 채널 아이디 전달
+    client.emit('channelExited', channelId);
+
+    // DB에서 유저 삭제 + 채널 탈퇴 메세지 DB 저장 후 반환
+    const leaveMessage = await this.chatService.deleteUser(userId, channelId);
+
+    this.server.to(channelId.toString()).emit('message', leaveMessage);
+  }
 }
