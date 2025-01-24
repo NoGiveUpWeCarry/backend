@@ -198,7 +198,7 @@ export class ProjectService {
         duration: project.duration,
         workType: project.work_type,
         status: project.recruiting ? 'OPEN' : 'CLOSE',
-        viewCount : project.view,
+        viewCount: project.view,
         skills: tags,
         detailRoles: roles,
       },
@@ -288,6 +288,16 @@ export class ProjectService {
   }
 
   async getProjectDetail(userId: number, numProjectId: number) {
+    // 조회수 증가
+    await this.prisma.projectPost.update({
+      where: { id: numProjectId },
+      data: {
+        view: {
+          increment: 1, // view 값을 1 증가
+        },
+      },
+    });
+
     // 프로젝트 상세 정보 조회
     const project = await this.prisma.projectPost.findUnique({
       where: { id: numProjectId },
@@ -321,9 +331,11 @@ export class ProjectService {
     if (!project) {
       throw new NotFoundException('프로젝트를 찾을 수 없습니다.');
     }
-    let isOwnConnectionHub = true;
-    project.user.id === userId ? true : false;
-    // 프로젝트 데이터 정리
+
+    // 사용자가 작성자인지 여부 확인
+    const isOwnConnectionHub = project.user.id === userId;
+
+    // 데이터 반환
     return {
       message: {
         code: 200,
@@ -340,6 +352,7 @@ export class ProjectService {
       status: project.recruiting ? 'OPEN' : 'CLOSE',
       skills: project.Tags.map(t => t.tag.name),
       detailRoles: project.Details.map(d => d.detail_role.name),
+      viewCount: project.view, // 이미 증가된 view 값을 사용
       manager: {
         userId: project.user.id,
         name: project.user.name,

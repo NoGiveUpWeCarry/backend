@@ -319,6 +319,7 @@ export const GetProjectDetailDocs = {
         status: 'OPEN',
         skills: ['React', 'TypeScript'],
         detailRoles: ['Frontend Developer', 'Backend Developer'],
+        viewCount: 2,
         manager: {
           userId: 101,
           name: 'Lee Chan',
@@ -351,7 +352,7 @@ export const ApplyToProjectDocs = {
           text: '프로젝트에 지원되었습니다.',
           code: 200,
         },
-        isApply: true
+        isApply: true,
       },
     },
   }),
@@ -484,7 +485,7 @@ export const UpdateProjectStatusDocs = {
     description: '프로젝트 상태 변경 요청 데이터 true: OPEN, false: CLOSE',
     schema: {
       example: {
-        recruiting: true, 
+        recruiting: true,
       },
     },
   }),
@@ -516,7 +517,8 @@ export const ToggleBookmarkDocs = {
   }),
   ApiResponse: ApiResponse({
     status: 200,
-    description: '북마크 상태 변경 성공 or 실패 bookmarked: true => 북마크 추가됨 false => 북마크 삭제됨',
+    description:
+      '북마크 상태 변경 성공 or 실패 bookmarked: true => 북마크 추가됨 false => 북마크 삭제됨',
     schema: {
       example: {
         message: {
