@@ -495,4 +495,34 @@ export class ChatService {
     }));
     return data;
   }
+
+  async deleteUser(userId: number, channelId: number) {
+    await this.prisma.channel_users.deleteMany({
+      where: {
+        channel_id: channelId,
+        user_id: userId,
+      },
+    });
+    const userData = this.getSenderProfile(userId);
+    const nickname = (await userData).nickname;
+
+    const data = {
+      type: 'exit',
+      content: `${nickname} 님이 방을 나갔습니다`,
+      channel_id: channelId,
+      user_id: userId,
+    };
+
+    const msg = await this.prisma.message.create({
+      data,
+    });
+
+    return {
+      type: msg.type,
+      content: msg.content,
+      channelId: msg.channel_id,
+      date: msg.created_at,
+      messageId: msg.id,
+    };
+  }
 }
