@@ -28,7 +28,9 @@ import {
   GetPopularProjectsThisWeekDocs,
   GetProjectDetailDocs,
   GetProjectsDocs,
+  UpdateApplicationStatusDocs,
   UpdateProjectDocs,
+  UpdateProjectStatusDocs,
   UploadFeedImageDocs,
 } from './docs/project.docs';
 @UseGuards(JwtAuthGuard)
@@ -164,6 +166,11 @@ export class ProjectController {
   }
 
   @Patch(':projectId/applications/:applicationId/status')
+  @UpdateApplicationStatusDocs.ApiOperation
+  @UpdateApplicationStatusDocs.ApiParamProject
+  @UpdateApplicationStatusDocs.ApiParamApplication
+  @UpdateApplicationStatusDocs.ApiBody
+  @UpdateApplicationStatusDocs.ApiResponse
   async updateApplicationStatus(
     @Param('projectId', ParseIntPipe) projectId: number,
     @Param('applicationId', ParseIntPipe) applicationId: number,
@@ -180,6 +187,10 @@ export class ProjectController {
   }
 
   @Patch(':projectId/status')
+  @UpdateProjectStatusDocs.ApiOperation
+  @UpdateProjectStatusDocs.ApiParam
+  @UpdateProjectStatusDocs.ApiBody
+  @UpdateProjectStatusDocs.ApiResponse
   async updateProjectStatus(
     @Param('projectId', ParseIntPipe) projectId: number,
     @Body('recruiting') recruiting: boolean,
