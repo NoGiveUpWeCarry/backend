@@ -95,9 +95,13 @@ export class UserService {
     return response;
   }
 
-  async getUserProfileHeader(loggedInUserId: number, targetUserId: number) {
+  async getUserProfileHeaderByNickname(
+    loggedInUserId: number,
+    nickname: string
+  ) {
+    // 닉네임으로 사용자 조회
     const user = await this.prisma.user.findUnique({
-      where: { id: targetUserId },
+      where: { nickname }, // 닉네임을 기준으로 조회
       include: {
         role: true, // 역할 정보
         UserLinks: true, // 연결된 링크
@@ -112,7 +116,7 @@ export class UserService {
     const isFollowing = await this.prisma.follows.findFirst({
       where: {
         following_user_id: loggedInUserId,
-        followed_user_id: targetUserId,
+        followed_user_id: user.id,
       },
     });
 
@@ -128,7 +132,7 @@ export class UserService {
       role: user.role.name,
       introduce: user.introduce,
       userLinks: user.UserLinks.map(link => link.link), // 단순 URL 배열로 변경
-      isOwnProfile: loggedInUserId === targetUserId, // 자신의 프로필인지 확인
+      isOwnProfile: loggedInUserId === user.id, // 자신의 프로필인지 확인
       isFollowing: !!isFollowing, // 팔로우 여부 확인
     };
   }

@@ -72,14 +72,16 @@ export class UserController {
     return this.userService.getUserProfile(loggedInUserId, numUserId);
   }
 
-  @Get(':userId/headers')
+  @Get(':nickname/headers')
   @GetUserProfileHeaderDocs.ApiOperation
   @GetUserProfileHeaderDocs.ApiParam
   @GetUserProfileHeaderDocs.ApiResponse
-  async getUserProfileHeader(@Param('userId') userId: string, @Req() req) {
+  async getUserProfileHeader(@Param('nickname') nickname: string, @Req() req) {
     const loggedInUserId = req.user?.user_id;
-    const numUserId = parseInt(userId); // 인증된 사용자 ID
-    return this.userService.getUserProfileHeader(loggedInUserId, numUserId);
+    return this.userService.getUserProfileHeaderByNickname(
+      loggedInUserId,
+      nickname
+    );
   }
 
   @Get(':userId/followers')
