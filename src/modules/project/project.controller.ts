@@ -18,7 +18,7 @@ import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { ProjectService } from '@modules/project/project.service';
 import { CreateProjectDto } from './dto/CreateProject.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { CreateProjectDocs, DeleteProjectDocs, GetPopularProjectsThisWeekDocs, GetProjectsDocs, UpdateProjectDocs } from './docs/project.docs';
+import { CreateProjectDocs, DeleteProjectDocs, GetPopularProjectsThisWeekDocs, GetProjectDetailDocs, GetProjectsDocs, UpdateProjectDocs, UploadFeedImageDocs } from './docs/project.docs';
 @UseGuards(JwtAuthGuard)
 @Controller('projects')
 export class ProjectController {
@@ -88,12 +88,19 @@ export class ProjectController {
 
   @Post('image')
   @UseInterceptors(FileInterceptor('file'))
+  @UploadFeedImageDocs.ApiOperation
+  @UploadFeedImageDocs.ApiConsumes
+  @UploadFeedImageDocs.ApiBody
+  @UploadFeedImageDocs.ApiResponse
   async func(@Req() req, @UploadedFile() file: Express.Multer.File) {
     const userId = req.user.user_id;
     return await this.projectService.uploadFeedImage(userId, file);
   }
 
   @Get(':projectId')
+  @GetProjectDetailDocs.ApiOperation
+  @GetProjectDetailDocs.ApiParam
+  @GetProjectDetailDocs.ApiResponse
   async getProjectDetail(@Req() req, @Param('projectId') projectId: string) {
     const userId = req.user.user_id;
     const numProjectId = parseInt(projectId, 10);
