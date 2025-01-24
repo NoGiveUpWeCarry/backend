@@ -5,6 +5,7 @@ import * as cheerio from 'cheerio';
 import { CommentDto } from './dto/comment.dto';
 import { GetFeedsQueryDto } from './dto/getFeedsQuery.dto';
 import { S3Service } from '@src/s3/s3.service';
+import * as dayjs from 'dayjs';
 
 @Injectable()
 export class FeedService {
@@ -183,8 +184,10 @@ export class FeedService {
   }
 
   // 피드 개별 조회 (댓글)
-  async getFeedComments(feedId: number) {
+  async getFeedComments(feedId: number, user) {
     try {
+      const userId = user ? user.user_id : 0;
+
       const result = await this.prisma.feedComment.findMany({
         where: {
           post_id: feedId,
@@ -224,6 +227,9 @@ export class FeedService {
         comment: c.content,
         likeCount: c.FeedCommentLikes.length,
         createdAt: c.created_at,
+        isLiked: userId
+          ? !!c.FeedCommentLikes.filter(v => v.user_id == userId).length
+          : false,
       }));
 
       return {
@@ -583,12 +589,70 @@ export class FeedService {
       8,
       file.buffer,
       fileType,
-      'pad_feed'
+      'pad_feed/images'
     );
 
     return {
       imageUrl,
       message: { code: 200, message: '이미지 업로드가 완료되었습니다.' },
+    };
+  }
+
+  async getTags() {
+    const tags = await this.prisma.feedTag.findMany();
+
+    return {
+      tags,
+      message: { code: 200, message: '태그가 성공적으로 조회되었습니다.' },
+    };
+  }
+
+  async getWeeklyBest() {
+    // 현재 날짜
+    const now = dayjs();
+    // 이번주 시작(일요일)
+    const start = now.startOf('week').toDate();
+    // 이번주 끝(토요일)
+    const end = now.endOf('week').toDate();
+
+    const result = await this.prisma.feedPost.findMany({
+      where: {
+        created_at: {
+          gte: start,
+          lte: end,
+        },
+      },
+      // 1순위 좋아요 수, 2순위 조회수
+      orderBy: [{ like_count: 'desc' }, { view: 'desc' }],
+      select: {
+        id: true,
+        title: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            nickname: true,
+            profile_url: true,
+            role: { select: { name: true } },
+          },
+        },
+      },
+      take: 5,
+    });
+
+    const contents = result.map(res => ({
+      postId: res.id,
+      title: res.title,
+      userId: res.user.id,
+      userName: res.user.name,
+      userNickname: res.user.nickname,
+      userProfileUrl: res.user.profile_url,
+      userRole: res.user.role.name,
+    }));
+
+    return {
+      contents,
+      message: { code: 200, message: '성공적으로 조회되었습니다.' },
     };
   }
 }
