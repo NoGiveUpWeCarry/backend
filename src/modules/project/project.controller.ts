@@ -18,12 +18,20 @@ import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { ProjectService } from '@modules/project/project.service';
 import { CreateProjectDto } from './dto/CreateProject.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { CreateProjectDocs, DeleteProjectDocs, GetPopularProjectsThisWeekDocs, GetProjectsDocs, UpdateProjectDocs } from './docs/project.docs';
 @UseGuards(JwtAuthGuard)
 @Controller('projects')
 export class ProjectController {
   constructor(private readonly projectService: ProjectService) {}
 
   @Get()
+  @GetProjectsDocs.ApiOperation
+  @GetProjectsDocs.ApiQuerySkip
+  @GetProjectsDocs.ApiQueryLimit
+  @GetProjectsDocs.ApiQueryRole
+  @GetProjectsDocs.ApiQueryUnit
+  @GetProjectsDocs.ApiQuerySort
+  @GetProjectsDocs.ApiResponseSuccess
   async getProjects(
     @Query('skip') skip: number = 0,
     @Query('limit') limit: number = 10,
@@ -35,12 +43,19 @@ export class ProjectController {
   }
 
   @Post()
+  @CreateProjectDocs.ApiOperation
+  @CreateProjectDocs.ApiBody
+  @CreateProjectDocs.ApiResponseSuccess
   async createProject(@Body() createProjectDto: CreateProjectDto, @Req() req) {
     const userId = req.user.user_id;
     return this.projectService.createProject(createProjectDto, userId);
   }
 
   @Put(':projectId')
+  @UpdateProjectDocs.ApiOperation
+  @UpdateProjectDocs.ApiParam
+  @UpdateProjectDocs.ApiBody
+  @UpdateProjectDocs.ApiResponse
   async updateProject(
     @Param('projectId', ParseIntPipe) projectId: number,
     @Body() updateProjectDto: CreateProjectDto,
@@ -55,6 +70,9 @@ export class ProjectController {
   }
 
   @Delete(':projectId')
+  @DeleteProjectDocs.ApiOperation
+  @DeleteProjectDocs.ApiParam
+  @DeleteProjectDocs.ApiResponse
   async deleteProject(@Req() req, @Param('projectId') projectId: string) {
     const userId = req.user.user_id;
     const numProjectId = parseInt(projectId, 10);
@@ -62,6 +80,8 @@ export class ProjectController {
   }
 
   @Get('popular-this-week')
+  @GetPopularProjectsThisWeekDocs.ApiOperation
+  @GetPopularProjectsThisWeekDocs.ApiResponse
   async getPopularProjectsThisWeek() {
     return this.projectService.getPopularProjectsThisWeek();
   }
