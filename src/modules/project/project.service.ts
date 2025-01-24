@@ -34,9 +34,9 @@ export class ProjectService {
 
     const orderBy: any[] = [];
     if (sort === 'latest') {
-      orderBy.push({ created_at: 'desc' });
+      orderBy.push({ created_at: 'desc' }); // 최신순
     } else if (sort === 'popular') {
-      orderBy.push({ view: 'desc' });
+      orderBy.push({ saved_count: 'desc' }); // 북마크 수 기준 정렬
     }
 
     const projects = await this.prisma.projectPost.findMany({
@@ -47,6 +47,7 @@ export class ProjectService {
       include: {
         Tags: { select: { tag: { select: { name: true } } } },
         Applications: { select: { id: true } },
+        Details: { select: { detail_role: { select: { name: true } } } },
         user: {
           select: {
             id: true,
@@ -72,7 +73,8 @@ export class ProjectService {
       content: project.content,
       thumbnailUrl: project.thumbnail_url,
       role: project.role,
-      tags: project.Tags.map(tag => `#${tag.tag.name}`),
+      skills: project.Tags.map(tag => `${tag.tag.name}`),
+      detailRoles: project.Details.map(d => `${d.detail_role.name}`),
       hubType: project.hub_type,
       startDate: project.start_date.toISOString().split('T')[0],
       duration: project.duration,
@@ -189,13 +191,15 @@ export class ProjectService {
         projectId: project.id,
         title: project.title,
         content: project.content,
+        thumbnailUrl: project.thumbnail_url,
         role: project.role,
         hubType: project.hub_type,
         startDate: project.start_date,
         duration: project.duration,
         workType: project.work_type,
         status: project.recruiting ? 'OPEN' : 'CLOSE',
-        tags,
+        viewCount : project.view,
+        skills: tags,
         detailRoles: roles,
       },
     };
@@ -221,6 +225,7 @@ export class ProjectService {
       include: {
         user: {
           select: {
+            id: true,
             name: true,
             nickname: true,
             profile_url: true,
@@ -234,11 +239,11 @@ export class ProjectService {
       take: 5, // 상위 5개
     });
 
-    // 반환 데이터 가공
-    return popularProjects.map(project => ({
+    const results = popularProjects.map(project => ({
       projectId: project.id,
       title: project.title,
       user: {
+        userId: project.user.id,
         name: project.user.name,
         nickname: project.user.nickname,
         profileUrl: project.user.profile_url,
@@ -246,6 +251,14 @@ export class ProjectService {
       },
       hubType: project.hub_type,
     }));
+    // 반환 데이터 가공
+    return {
+      message: {
+        code: 200,
+        text: '인기 프로젝트 조회에 성공했습니다',
+      },
+      popularProjects: results,
+    };
   }
 
   async uploadFeedImage(userId: number, file: Express.Multer.File) {
@@ -312,14 +325,18 @@ export class ProjectService {
     project.user.id === userId ? true : false;
     // 프로젝트 데이터 정리
     return {
+      message: {
+        code: 200,
+        text: '프로젝트 상세 조회에 성공했습니다',
+      },
       projectId: project.id,
       title: project.title,
       content: project.content,
       role: project.role,
-      hub_type: project.hub_type,
-      start_date: project.start_date,
+      hubType: project.hub_type,
+      startDate: project.start_date,
       duration: project.duration,
-      work_type: project.work_type,
+      workType: project.work_type,
       status: project.recruiting ? 'OPEN' : 'CLOSE',
       skills: project.Tags.map(t => t.tag.name),
       detailRoles: project.Details.map(d => d.detail_role.name),
@@ -368,6 +385,7 @@ export class ProjectService {
         text: '프로젝트에 지원되었습니다.',
         code: 200,
       },
+      isApply: true,
     };
   }
 
@@ -529,11 +547,17 @@ export class ProjectService {
     }
 
     return {
-      message: '프로젝트가 성공적으로 수정되었습니다.',
+      message: { code: 200, text: '프로젝트가 성공적으로 수정되었습니다.' },
       project: {
         projectId: updatedProject.id,
         title: updatedProject.title,
         content: updatedProject.content,
+        role: updatedProject.role,
+        hubType: updatedProject.hub_type,
+        thumbnailUrl: updatedProject.thumbnail_url,
+        startDate: updatedProject.start_date,
+        duration: updatedProject.duration,
+        workType: updatedProject.work_type,
         skills: updatedProject.Tags.map(t => t.tag.name),
         detailRoles: updatedProject.Details.map(d => d.detail_role.name),
       },
@@ -587,13 +611,18 @@ export class ProjectService {
       },
     });
 
-    return { message: '프로젝트 지원이 취소되었습니다.' };
+    return {
+      message: {
+        code: 200,
+        text: '프로젝트 지원이 취소되었습니다.',
+      },
+    };
   }
 
   async updateApplicationStatus(
     userId: number,
     projectId: number,
-    applicationId: number,
+    targetUserId: number, // 지원자의 userId를 기반으로 업데이트
     status: 'Accepted' | 'Rejected' | 'Pending'
   ) {
     // 프로젝트 작성자인지 확인
@@ -610,16 +639,29 @@ export class ProjectService {
       throw new ForbiddenException('해당 프로젝트의 작성자가 아닙니다.');
     }
 
+    // 지원 정보 가져오기
+    const application = await this.prisma.userApplyProject.findUnique({
+      where: {
+        user_id_post_id: { user_id: targetUserId, post_id: projectId },
+      },
+    });
+
+    if (!application) {
+      throw new NotFoundException(
+        '해당 사용자가 프로젝트에 지원한 기록이 없습니다.'
+      );
+    }
+
     // 지원 상태 업데이트
     const updatedApplication = await this.prisma.userApplyProject.update({
-      where: { id: applicationId },
+      where: { id: application.id },
       data: { status },
     });
 
     return {
       message: '지원 상태가 변경되었습니다.',
       application: {
-        id: updatedApplication.id,
+        applicationId: updatedApplication.id,
         status: updatedApplication.status,
       },
     };
@@ -699,7 +741,10 @@ export class ProjectService {
       });
 
       return {
-        message: '북마크가 삭제되었습니다.',
+        message: {
+          code: 200,
+          text: '북마크가 삭제되었습니다.',
+        },
         bookmarked: false,
       };
     }
@@ -713,7 +758,10 @@ export class ProjectService {
     });
 
     return {
-      message: '북마크가 추가되었습니다.',
+      message: {
+        code: 200,
+        text: '북마크가 추가되었습니다.',
+      },
       bookmarked: true,
     };
   }
@@ -725,6 +773,10 @@ export class ProjectService {
     });
 
     return {
+      message: {
+        code: 200,
+        text: '북마크 여부 확인 성공.',
+      },
       bookmarked: !!bookmark,
     };
   }
