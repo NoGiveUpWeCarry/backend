@@ -229,16 +229,16 @@ model ProjectPost {
   title           String
   content         String              @db.Text
   thumbnail_url   String?
-  role            String //[Programmer, Artist, Designer]
-  hub_type        String //[Project, 아웃소싱]
+  role            String
   start_date      DateTime
-  duration        String
-  work_type       String //[Online, Offline]
   recruiting      Boolean             @default(true)
   applicant_count Int                 @default(0)
   view            Int                 @default(0)
   saved_count     Int                 @default(0)
   created_at      DateTime            @default(now())
+  duration        String
+  hub_type        String
+  work_type       String
   Details         ProjectDetailRole[]
   user            User                @relation(fields: [user_id], references: [id])
   Tags            ProjectPostTag[]
@@ -249,12 +249,12 @@ model ProjectPost {
 }
 
 model ProjectSave {
-  id      Int         @id @default(autoincrement())
-  user_id Int
-  post_id Int
-  created_at DateTime    @default(now()) // 지원 생성 시간
-  post    ProjectPost @relation(fields: [post_id], references: [id])
-  user    User        @relation(fields: [user_id], references: [id])
+  id         Int         @id @default(autoincrement())
+  user_id    Int
+  post_id    Int
+  created_at DateTime    @default(now())
+  post       ProjectPost @relation(fields: [post_id], references: [id])
+  user       User        @relation(fields: [user_id], references: [id])
 
   @@index([post_id], map: "ProjectSave_post_id_fkey")
   @@index([user_id], map: "ProjectSave_user_id_fkey")
@@ -274,13 +274,13 @@ model ProjectDetailRole {
 model DetailRole {
   id      Int                 @id @default(autoincrement())
   role_id Int
-  name    String @unique
+  name    String              @unique
   Details ProjectDetailRole[]
 }
 
 model ProjectTag {
   id   Int              @id @default(autoincrement())
-  name String @unique
+  name String           @unique
   Tags ProjectPostTag[]
 }
 
@@ -288,9 +288,9 @@ model ProjectPostTag {
   id         Int         @id @default(autoincrement())
   post_id    Int
   tag_id     Int
+  created_at DateTime    @default(now())
   post       ProjectPost @relation(fields: [post_id], references: [id])
   tag        ProjectTag  @relation(fields: [tag_id], references: [id])
-  created_at DateTime    @default(now())
 
   @@unique([post_id, tag_id])
   @@index([tag_id], map: "ProjectPostTag_tag_id_fkey")
@@ -300,12 +300,12 @@ model UserApplyProject {
   id         Int         @id @default(autoincrement())
   user_id    Int
   post_id    Int
-  status     String      @default("Pending") // "Accepted", "Rejected", "Pending"
-  created_at DateTime    @default(now()) // 지원 생성 시간
+  status     String      @default("Pending")
+  created_at DateTime    @default(now())
   post       ProjectPost @relation(fields: [post_id], references: [id])
   user       User        @relation(fields: [user_id], references: [id])
 
-  @@unique([user_id, post_id]) // 중복 지원 방지
+  @@unique([user_id, post_id])
   @@index([post_id], map: "UserApplyProject_post_id_fkey")
   @@index([user_id], map: "UserApplyProject_user_id_fkey")
 }
