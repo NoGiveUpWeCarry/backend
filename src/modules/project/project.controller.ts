@@ -22,12 +22,14 @@ import {
   ApplyToProjectDocs,
   CancelApplicationDocs,
   CheckApplyStatusDocs,
+  CheckBookmarkDocs,
   CreateProjectDocs,
   DeleteProjectDocs,
   GetApplicantsDocs,
   GetPopularProjectsThisWeekDocs,
   GetProjectDetailDocs,
   GetProjectsDocs,
+  ToggleBookmarkDocs,
   UpdateApplicationStatusDocs,
   UpdateProjectDocs,
   UpdateProjectStatusDocs,
@@ -205,6 +207,9 @@ export class ProjectController {
   }
 
   @Post(':projectId/bookmark')
+  @ToggleBookmarkDocs.ApiOperation
+  @ToggleBookmarkDocs.ApiParam
+  @ToggleBookmarkDocs.ApiResponse
   async toggleBookmark(
     @Param('projectId', ParseIntPipe) projectId: number,
     @Req() req
@@ -214,6 +219,9 @@ export class ProjectController {
   }
 
   @Get(':projectId/bookmark')
+  @CheckBookmarkDocs.ApiOperation
+  @CheckBookmarkDocs.ApiParam
+  @CheckBookmarkDocs.ApiResponse
   async checkBookmark(
     @Param('projectId', ParseIntPipe) projectId: number,
     @Req() req
