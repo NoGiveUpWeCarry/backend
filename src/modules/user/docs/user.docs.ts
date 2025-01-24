@@ -710,7 +710,7 @@ export const AddUserLinksDocs = {
     description: '추가할 링크 목록',
     schema: {
       example: {
-        links: ['https://github.com/user', 'https://linkedin.com/in/user'],
+        url: 'https://github.com/user'
       },
     },
   }),
@@ -741,7 +741,7 @@ export const DeleteUserLinksDocs = {
     description: '삭제할 링크 ID 목록',
     schema: {
       example: {
-        linkIds: [1, 2],
+        linkId: 1,
       },
     },
   }),
@@ -758,6 +758,61 @@ export const DeleteUserLinksDocs = {
           { linkId: 3, url: 'https://twitter.com/user' },
           { linkId: 4, url: 'https://facebook.com/user' },
         ],
+      },
+    },
+  }),
+};
+
+export const UpdateUserLinksDocs = {
+  ApiOperation: ApiOperation({
+    summary: '링크 수정',
+    description: '사용자의 특정 링크를 수정합니다.',
+  }),
+  ApiBody: ApiBody({
+    description: '수정할 링크의 ID와 새로운 URL 정보',
+    schema: {
+      type: 'object',
+      properties: {
+        linkId: {
+          type: 'number',
+          description: '수정할 링크의 ID',
+          example: 1,
+        },
+        url: {
+          type: 'string',
+          description: '새로운 링크 URL',
+          example: 'https://example.com',
+        },
+      },
+      required: ['linkId', 'url'],
+    },
+  }),
+  ApiResponse: ApiResponse({
+    status: 200,
+    description: '링크가 성공적으로 수정되었습니다.',
+    schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'object',
+          properties: {
+            code: { type: 'number', example: 200 },
+            text: {
+              type: 'string',
+              example: '링크가 성공적으로 수정되었습니다.',
+            },
+          },
+        },
+        links: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              linkId: { type: 'number', example: 1 },
+              url: { type: 'string', example: 'https://example.com' },
+            },
+          },
+        },
       },
     },
   }),
