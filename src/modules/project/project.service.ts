@@ -67,20 +67,19 @@ export class ProjectService {
     const totalCount = await this.prisma.projectPost.count({ where });
 
     const formattedProjects = projects.map(project => ({
-      id: project.id,
+      projectId: project.id,
       title: project.title,
       content: project.content,
-      thumbnail_url: project.thumbnail_url,
+      thumbnailUrl: project.thumbnail_url,
       role: project.role,
       tags: project.Tags.map(tag => `#${tag.tag.name}`),
-      hub_type: project.hub_type,
-      start_date: project.start_date.toISOString().split('T')[0],
+      hubType: project.hub_type,
+      startDate: project.start_date.toISOString().split('T')[0],
       duration: project.duration,
-      work_type: project.work_type,
-      //recruiting: project.recruiting,
+      workType: project.work_type,
       applyCount: project.Applications.length,
       bookMarkCount: project.saved_count,
-      view_count: project.view,
+      viewCount: project.view + 1,
       status: project.recruiting ? 'OPEN' : 'CLOSED',
       user: {
         userId: project.user.id,
@@ -92,12 +91,13 @@ export class ProjectService {
     }));
 
     return {
-      data: formattedProjects,
-      meta: {
-        total_count: totalCount,
-        page: Math.floor(skip / limit) + 1,
-        limit,
+      message: {
+        code: 200,
+        text: '전체 커넥션허브 조회에 성공했습니다',
       },
+      projects: formattedProjects,
+      page: Math.floor(skip / limit) + 1,
+      limit,
     };
   }
 
@@ -181,19 +181,22 @@ export class ProjectService {
 
     // 결과 반환
     return {
-      message: '프로젝트 생성 완료',
+      message: {
+        code: 201,
+        text: '프로젝트 생성에 성공했습니다',
+      },
       project: {
-        id: project.id,
+        projectId: project.id,
         title: project.title,
         content: project.content,
         role: project.role,
-        hub_type: project.hub_type,
-        start_date: project.start_date,
+        hubType: project.hub_type,
+        startDate: project.start_date,
         duration: project.duration,
-        work_type: project.work_type,
+        workType: project.work_type,
         status: project.recruiting ? 'OPEN' : 'CLOSE',
         tags,
-        detail_roles: roles,
+        detailRoles: roles,
       },
     };
   }
@@ -238,11 +241,10 @@ export class ProjectService {
       user: {
         name: project.user.name,
         nickname: project.user.nickname,
-        profile_url: project.user.profile_url,
+        profileUrl: project.user.profile_url,
         role: project.user.role,
       },
-      hub_type: project.hub_type,
-      saved_count: project.saved_count,
+      hubType: project.hub_type,
     }));
   }
 
@@ -310,7 +312,7 @@ export class ProjectService {
     project.user.id === userId ? true : false;
     // 프로젝트 데이터 정리
     return {
-      id: project.id,
+      projectId: project.id,
       title: project.title,
       content: project.content,
       role: project.role,
@@ -319,14 +321,14 @@ export class ProjectService {
       duration: project.duration,
       work_type: project.work_type,
       status: project.recruiting ? 'OPEN' : 'CLOSE',
-      tags: project.Tags.map(t => t.tag.name),
-      detail_roles: project.Details.map(d => d.detail_role.name),
+      skills: project.Tags.map(t => t.tag.name),
+      detailRoles: project.Details.map(d => d.detail_role.name),
       manager: {
-        id: project.user.id,
+        userId: project.user.id,
         name: project.user.name,
         nickname: project.user.nickname,
-        profile_url: project.user.profile_url,
-        introduce: project.user.introduce,
+        profileUrl: project.user.profile_url,
+        introduce: project.user.introduce ? project.user.introduce : null,
       },
       isOwnConnectionHub,
     };
@@ -361,7 +363,12 @@ export class ProjectService {
       },
     });
 
-    return { message: '프로젝트에 지원되었습니다.' };
+    return {
+      message: {
+        text: '프로젝트에 지원되었습니다.',
+        code: 200,
+      },
+    };
   }
 
   async getApplicants(projectId: number) {
@@ -389,14 +396,19 @@ export class ProjectService {
         },
       },
     });
-
-    return applicants.map(applicant => ({
-      id: applicant.user.id,
+    const resultapplicants = applicants.map(applicant => ({
+      userId: applicant.user.id,
       name: applicant.user.name,
       nickname: applicant.user.nickname,
-      profile_url: applicant.user.profile_url,
-      introduce: applicant.user.introduce,
+      profileUrl: applicant.user.profile_url,
     }));
+    return {
+      applicants: resultapplicants,
+      message: {
+        code: 200,
+        text: '프로젝트 지원자 목록 조회에 성공했습니다',
+      },
+    };
   }
 
   async updateProject(
@@ -519,11 +531,11 @@ export class ProjectService {
     return {
       message: '프로젝트가 성공적으로 수정되었습니다.',
       project: {
-        id: updatedProject.id,
+        projectId: updatedProject.id,
         title: updatedProject.title,
         content: updatedProject.content,
-        tags: updatedProject.Tags.map(t => t.tag.name),
-        detail_roles: updatedProject.Details.map(d => d.detail_role.name),
+        skills: updatedProject.Tags.map(t => t.tag.name),
+        detailRoles: updatedProject.Details.map(d => d.detail_role.name),
       },
     };
   }
@@ -641,8 +653,9 @@ export class ProjectService {
     return {
       message: '프로젝트 상태가 변경되었습니다.',
       project: {
-        id: updatedProject.id,
+        projectId: updatedProject.id,
         recruiting: updatedProject.recruiting,
+        status: recruiting ? 'OPEN' : 'CLOSE',
       },
     };
   }
@@ -670,7 +683,7 @@ export class ProjectService {
       }),
     ]);
 
-    return { message: { code: 200, text: '피드가 삭제되었습니다.' } };
+    return { message: { code: 200, text: '프로젝트가 삭제되었습니다.' } };
   }
 
   async toggleBookmark(userId: number, projectId: number) {
