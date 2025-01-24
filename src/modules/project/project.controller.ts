@@ -167,7 +167,7 @@ export class ProjectController {
     return this.projectService.cancelApplication(userId, projectId);
   }
 
-  @Patch(':projectId/applications/:applicationId/status')
+  @Patch(':projectId/applications/:userId/status')
   @UpdateApplicationStatusDocs.ApiOperation
   @UpdateApplicationStatusDocs.ApiParamProject
   @UpdateApplicationStatusDocs.ApiParamApplication
@@ -175,7 +175,7 @@ export class ProjectController {
   @UpdateApplicationStatusDocs.ApiResponse
   async updateApplicationStatus(
     @Param('projectId', ParseIntPipe) projectId: number,
-    @Param('applicationId', ParseIntPipe) applicationId: number,
+    @Param('userId', ParseIntPipe) targetUserId: number, // 지원자의 userId를 받음
     @Body('status') status: 'Accepted' | 'Rejected' | 'Pending',
     @Req() req
   ) {
@@ -183,7 +183,7 @@ export class ProjectController {
     return this.projectService.updateApplicationStatus(
       userId,
       projectId,
-      applicationId,
+      targetUserId,
       status
     );
   }
