@@ -86,7 +86,7 @@ export class FeedService {
       return {
         posts,
         pagination: { lastCursor },
-        message: { code: 200, message: '전체 피드를 정상적으로 조회했습니다.' },
+        message: { code: 200, text: '전체 피드를 정상적으로 조회했습니다.' },
       };
     } catch (err) {
       console.log(err);
@@ -146,7 +146,7 @@ export class FeedService {
 
       return {
         post,
-        message: { code: 200, message: '개별 피드를 정상적으로 조회했습니다.' },
+        message: { code: 200, text: '개별 피드를 정상적으로 조회했습니다.' },
       };
     } catch (err) {
       console.log(err);
@@ -213,7 +213,7 @@ export class FeedService {
           comments: [],
           message: {
             code: 200,
-            message: '개별 피드(댓글)를 정상적으로 조회했습니다.',
+            text: '개별 피드(댓글)를 정상적으로 조회했습니다.',
           },
         };
       }
@@ -236,7 +236,7 @@ export class FeedService {
         comments,
         message: {
           code: 200,
-          message: '개별 피드(댓글)를 정상적으로 조회했습니다.',
+          text: '개별 피드(댓글)를 정상적으로 조회했습니다.',
         },
       };
     } catch (err) {
@@ -275,7 +275,7 @@ export class FeedService {
           data: { like_count: { decrement: 1 } },
         });
 
-        return { message: { code: 200, message: '좋아요가 취소되었습니다.' } };
+        return { message: { code: 200, text: '좋아요가 취소되었습니다.' } };
       } else {
         await this.prisma.feedLike.create({
           data: {
@@ -289,7 +289,7 @@ export class FeedService {
           data: { like_count: { increment: 1 } },
         });
 
-        return { message: { code: 200, message: '좋아요가 추가되었습니다.' } };
+        return { message: { code: 200, text: '좋아요가 추가되었습니다.' } };
       }
     } catch (err) {
       console.log(err);
@@ -335,7 +335,7 @@ export class FeedService {
       });
 
       return {
-        message: { code: 201, message: '피드 작성이 완료되었습니다.' },
+        message: { code: 201, text: '피드 작성이 완료되었습니다.' },
         post: { id: feedData.id },
       };
     } catch (err) {
@@ -382,7 +382,7 @@ export class FeedService {
         },
       });
 
-      return { message: { code: 200, message: '피드 수정이 완료되었습니다.' } };
+      return { message: { code: 200, text: '피드 수정이 완료되었습니다.' } };
     } catch (err) {
       if (err instanceof HttpException) {
         throw err;
@@ -425,7 +425,7 @@ export class FeedService {
         }),
       ]);
 
-      return { message: { code: 200, message: '피드가 삭제되었습니다.' } };
+      return { message: { code: 200, text: '피드가 삭제되었습니다.' } };
     } catch (err) {
       if (err instanceof HttpException) {
         throw err;
@@ -468,7 +468,7 @@ export class FeedService {
         data: { comment_count: { increment: 1 } },
       });
 
-      return { message: { code: 201, message: '댓글 등록이 완료되었습니다.' } };
+      return { message: { code: 201, text: '댓글 등록이 완료되었습니다.' } };
     } catch (err) {
       console.log(err);
       throw new HttpException(
@@ -499,7 +499,7 @@ export class FeedService {
           data: { comment_count: { decrement: 1 } },
         }),
       ]);
-      return { message: { code: 200, message: '댓글이 삭제되었습니다.' } };
+      return { message: { code: 200, text: '댓글이 삭제되었습니다.' } };
     } catch (err) {
       if (err instanceof HttpException) {
         throw err;
@@ -532,7 +532,7 @@ export class FeedService {
       data: { content },
     });
 
-    return { message: { code: 200, message: '댓글 수정이 완료되었습니다.' } };
+    return { message: { code: 200, text: '댓글 수정이 완료되었습니다.' } };
   }
 
   // 댓글 좋아요 추가/제거
@@ -548,13 +548,13 @@ export class FeedService {
         where: { user_id: userId, comment_id: commentId },
       });
 
-      return { message: { code: 200, message: '좋아요가 취소되었습니다.' } };
+      return { message: { code: 200, text: '좋아요가 취소되었습니다.' } };
     } else {
       // 없을 시 좋아요 추가
       await this.prisma.feedCommentLikes.create({
         data: { user_id: userId, comment_id: commentId },
       });
-      return { message: { code: 200, message: '좋아요가 추가되었습니다.' } };
+      return { message: { code: 200, text: '좋아요가 추가되었습니다.' } };
     }
   }
 
@@ -594,7 +594,7 @@ export class FeedService {
 
     return {
       imageUrl,
-      message: { code: 200, message: '이미지 업로드가 완료되었습니다.' },
+      message: { code: 200, text: '이미지 업로드가 완료되었습니다.' },
     };
   }
 
@@ -603,7 +603,7 @@ export class FeedService {
 
     return {
       tags,
-      message: { code: 200, message: '태그가 성공적으로 조회되었습니다.' },
+      message: { code: 200, text: '태그가 성공적으로 조회되었습니다.' },
     };
   }
 
@@ -652,7 +652,7 @@ export class FeedService {
 
     return {
       contents,
-      message: { code: 200, message: '성공적으로 조회되었습니다.' },
+      message: { code: 200, text: '성공적으로 조회되었습니다.' },
     };
   }
 }
