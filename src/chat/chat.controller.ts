@@ -22,7 +22,6 @@ export class ChatController {
     @Param('id') channelId: number,
     @Query('limit') limit: number,
     @Query('cursor') cursor: number,
-    @Query('keyword') keyword: string,
     @Query('direction') direction: string
   ) {
     return await this.chatService.getMessages(
