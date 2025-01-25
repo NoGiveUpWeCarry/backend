@@ -11,7 +11,7 @@ model User {
   id               Int                @id @default(autoincrement())
   email            String             @unique
   name             String
-  nickname         String
+  nickname         String             @unique
   auth_provider    String
   profile_url      String?
   role_id          Int
@@ -231,7 +231,7 @@ model ProjectPost {
   thumbnail_url   String?
   role            String
   start_date      DateTime
-  recruiting      Boolean
+  recruiting      Boolean             @default(true)
   applicant_count Int                 @default(0)
   view            Int                 @default(0)
   saved_count     Int                 @default(0)
