@@ -95,9 +95,13 @@ export class UserService {
     return response;
   }
 
-  async getUserProfileHeader(loggedInUserId: number, targetUserId: number) {
+  async getUserProfileHeaderByNickname(
+    loggedInUserId: number,
+    nickname: string
+  ) {
+    // 닉네임으로 사용자 조회
     const user = await this.prisma.user.findUnique({
-      where: { id: targetUserId },
+      where: { nickname }, // 닉네임을 기준으로 조회
       include: {
         role: true, // 역할 정보
         UserLinks: true, // 연결된 링크
@@ -112,7 +116,7 @@ export class UserService {
     const isFollowing = await this.prisma.follows.findFirst({
       where: {
         following_user_id: loggedInUserId,
-        followed_user_id: targetUserId,
+        followed_user_id: user.id,
       },
     });
 
@@ -128,7 +132,7 @@ export class UserService {
       role: user.role.name,
       introduce: user.introduce,
       userLinks: user.UserLinks.map(link => link.link), // 단순 URL 배열로 변경
-      isOwnProfile: loggedInUserId === targetUserId, // 자신의 프로필인지 확인
+      isOwnProfile: loggedInUserId === user.id, // 자신의 프로필인지 확인
       isFollowing: !!isFollowing, // 팔로우 여부 확인
     };
   }
@@ -248,32 +252,68 @@ export class UserService {
         id: projectId,
         user_id: userId,
       },
+      include: {
+        ProjectLinks: true, // 기존 링크를 가져옴
+      },
     });
 
     if (!existingProject) {
       throw new NotFoundException('작업물을 찾을 수 없습니다.');
     }
 
-    // 프로젝트 업데이트
+    // 파일이 없는 경우 기존의 projectProfileUrl 유지
+    const finalImageUrl = imageUrl || existingProject.projectProfileUrl;
+
+    // 링크 업데이트 및 추가
+    if (links) {
+      for (const link of links) {
+        const existingLink = await this.prisma.myPageProjectLink.findFirst({
+          where: {
+            project_id: projectId,
+            type_id: link.typeId,
+          },
+        });
+
+        if (existingLink) {
+          // 기존 링크가 있으면 업데이트
+          await this.prisma.myPageProjectLink.update({
+            where: { id: existingLink.id },
+            data: {
+              url: link.url,
+            },
+          });
+        } else {
+          // 기존 링크가 없으면 새로 생성
+          await this.prisma.myPageProjectLink.create({
+            data: {
+              project_id: projectId,
+              url: link.url,
+              type_id: link.typeId,
+            },
+          });
+        }
+      }
+    }
+
+    // 프로젝트 자체 업데이트
     const updatedProject = await this.prisma.myPageProject.update({
       where: { id: projectId },
       data: {
-        title,
-        description,
-        projectProfileUrl: imageUrl,
-        ProjectLinks: {
-          deleteMany: {}, // 기존 링크 삭제
-          create: links.map(link => ({
-            url: link.url,
-            type_id: link.typeId, // LinkType의 ID를 사용
-          })),
-        },
+        title: title || existingProject.title, // title이 없으면 기존 값 유지
+        description: description || existingProject.description, // description이 없으면 기존 값 유지
+        projectProfileUrl: finalImageUrl, // 이미지 URL 업데이트
       },
       include: {
         ProjectLinks: {
           include: { type: true },
         },
       },
+    });
+
+    // 최종적으로 모든 링크를 가져옴
+    const allLinks = await this.prisma.myPageProjectLink.findMany({
+      where: { project_id: projectId },
+      include: { type: true }, // type 필드 포함
     });
 
     return {
@@ -285,7 +325,7 @@ export class UserService {
       title: updatedProject.title,
       description: updatedProject.description,
       projectProfileUrl: updatedProject.projectProfileUrl,
-      links: updatedProject.ProjectLinks.map(link => ({
+      links: allLinks.map(link => ({
         url: link.url,
         type: link.type.name,
       })),
@@ -359,7 +399,7 @@ export class UserService {
         url: link.link, // 링크 정보만 반환
       })),
       skills: user.UserSkills.map(skill => skill.skill.name), // 기술 스택
-      jobDeatil: user.job_detail,
+      jobDetail: user.job_detail,
       notifications: {
         pushAlert: user.push_alert,
         followingAlert: user.following_alert,
@@ -583,27 +623,15 @@ export class UserService {
     };
   }
 
-  async addUserLinks(userId: number, links: { url: string }[]) {
-    // 넘어온 URL 목록
-    const urls = links.map(link => link.url);
-
-    // 이미 존재하는 URL 조회
-    const existingLinks = await this.prisma.myPageUserLink.findMany({
-      where: {
-        user_id: userId,
-        link: { in: urls },
-      },
-      select: { link: true },
+  async addUserLink(userId: number, url: string) {
+    // URL이 이미 존재하는지 확인
+    const existingLink = await this.prisma.myPageUserLink.findFirst({
+      where: { user_id: userId, link: url },
     });
 
-    // 이미 존재하는 URL 필터링
-    const existingUrls = existingLinks.map(link => link.link);
-    const newLinks = links.filter(link => !existingUrls.includes(link.url));
-
-    // 추가할 URL이 없으면 바로 반환
-    if (newLinks.length === 0) {
-      // 유저의 현재 링크 조회
-      const currentLinks = await this.prisma.myPageUserLink.findMany({
+    if (existingLink) {
+      // 이미 존재하는 경우 바로 반환
+      const userLinks = await this.prisma.myPageUserLink.findMany({
         where: { user_id: userId },
         select: { id: true, link: true },
       });
@@ -611,21 +639,21 @@ export class UserService {
       return {
         message: {
           code: 201,
-          text: '추가할 링크가 없습니다.',
+          text: '이미 존재하는 링크입니다.',
         },
-        links: currentLinks.map(link => ({
+        links: userLinks.map(link => ({
           linkId: link.id,
           url: link.link,
         })),
       };
     }
 
-    // 새 URL만 추가
-    await this.prisma.myPageUserLink.createMany({
-      data: newLinks.map(link => ({
+    // 새 링크 추가
+    await this.prisma.myPageUserLink.create({
+      data: {
         user_id: userId,
-        link: link.url,
-      })),
+        link: url,
+      },
     });
 
     // 유저의 모든 링크 조회
@@ -646,21 +674,61 @@ export class UserService {
     };
   }
 
-  async deleteUserLinks(userId: number, linkIds: number[]) {
-    const deletedLinks = await this.prisma.myPageUserLink.deleteMany({
+  async deleteUserLink(userId: number, id: number) {
+    const deletedLink = await this.prisma.myPageUserLink.deleteMany({
       where: {
-        id: { in: linkIds },
+        id,
         user_id: userId,
       },
     });
+
+    if (deletedLink.count === 0) {
+      throw new NotFoundException('삭제할 링크를 찾을 수 없습니다.');
+    }
+
     const updatedLinks = await this.prisma.myPageUserLink.findMany({
       where: { user_id: userId },
       select: { id: true, link: true },
     });
+
     return {
       message: {
         code: 200,
         text: '링크가 성공적으로 삭제되었습니다.',
+      },
+      links: updatedLinks.map(link => ({
+        linkId: link.id,
+        url: link.link,
+      })),
+    };
+  }
+
+  async updateUserLink(userId: number, id: number, url: string) {
+    // 수정할 링크가 존재하는지 확인
+    const existingLink = await this.prisma.myPageUserLink.findFirst({
+      where: { id, user_id: userId },
+    });
+
+    if (!existingLink) {
+      throw new NotFoundException('수정할 링크를 찾을 수 없습니다.');
+    }
+
+    // URL 업데이트
+    await this.prisma.myPageUserLink.update({
+      where: { id },
+      data: { link: url },
+    });
+
+    // 유저의 모든 링크 조회
+    const updatedLinks = await this.prisma.myPageUserLink.findMany({
+      where: { user_id: userId },
+      select: { id: true, link: true },
+    });
+
+    return {
+      message: {
+        code: 200,
+        text: '링크가 성공적으로 수정되었습니다.',
       },
       links: updatedLinks.map(link => ({
         linkId: link.id,
@@ -880,11 +948,12 @@ export class UserService {
     // Offset 계산
     const offset = (page - 1) * limit;
 
-    // 피드 조회
+    // 특정 유저의 피드 조회
     const feeds = await this.prisma.feedPost.findMany({
+      where: { user_id: userId }, // 특정 유저의 글만 가져옴
       skip: offset,
       take: limit,
-      orderBy: { created_at: 'desc' }, // 최신 순 정렬
+      orderBy: { created_at: 'desc' },
       include: {
         user: {
           select: {
@@ -895,14 +964,16 @@ export class UserService {
         },
         Tags: {
           include: {
-            tag: true, // 태그 이름 가져오기
+            tag: true,
           },
         },
       },
     });
 
     // 총 피드 개수 (페이지네이션 용)
-    const totalCount = await this.prisma.feedPost.count();
+    const totalCount = await this.prisma.feedPost.count({
+      where: { user_id: userId }, // 특정 유저의 글만 카운트
+    });
 
     // 반환 데이터 구성
     return {
@@ -924,7 +995,7 @@ export class UserService {
           nickname: feed.user.nickname,
           profileUrl: feed.user.profile_url,
         },
-        tags: feed.Tags.map(tag => tag.tag.name), // 태그 리스트
+        tags: feed.Tags.map(tag => tag.tag.name),
       })),
       totalCount,
       currentPage: page,

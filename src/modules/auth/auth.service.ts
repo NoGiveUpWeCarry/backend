@@ -24,7 +24,7 @@ export class AuthService {
           code,
           client_id: process.env.GOOGLE_CLIENT_ID,
           client_secret: process.env.GOOGLE_CLIENT_SECRET,
-          redirect_uri: process.env.GOOGLE_CALLBACK_DEVELOP_URL,
+          redirect_uri: process.env.GOOGLE_CALLBACK_DEPLOY_URL,
           grant_type: 'authorization_code',
         }
       );
@@ -80,7 +80,7 @@ export class AuthService {
           code,
           client_id: process.env.GITHUB_CLIENT_ID,
           client_secret: process.env.GITHUB_CLIENT_SECRET,
-          redirect_uri: process.env.GITHUB_CALLBACK_URL,
+          redirect_uri: process.env.GITHUB_CALLBACK_DEPLOY_URL,
         },
         {
           headers: { Accept: 'application/json' },
@@ -182,19 +182,36 @@ export class AuthService {
   // 회원가입 로직
   async signup(email: string, nickname: string, password: string) {
     // 이메일 중복 확인
-    const existingUser = await this.prisma.user.findUnique({
+    const existingUserByEmail = await this.prisma.user.findUnique({
       where: { email },
     });
-    if (existingUser) {
+    if (existingUserByEmail) {
       throw new HttpException('Email already exists', HttpStatus.BAD_REQUEST);
+    }
+
+    // 닉네임 중복 확인 및 처리
+    let uniqueNickname = nickname;
+    let isNicknameUnique = false;
+
+    while (!isNicknameUnique) {
+      const existingUserByNickname = await this.prisma.user.findUnique({
+        where: { nickname: uniqueNickname },
+      });
+
+      if (!existingUserByNickname) {
+        isNicknameUnique = true; // 중복되지 않은 닉네임
+      } else {
+        // 닉네임 뒤에 랜덤 문자열 추가
+        uniqueNickname = `${nickname}_${Math.floor(1000 + Math.random() * 9000)}`; // 랜덤 4자리 숫자 추가
+      }
     }
 
     // 새로운 사용자 생성
     const newUser = await this.prisma.user.create({
       data: {
         email,
-        name: nickname,
-        nickname,
+        name: uniqueNickname,
+        nickname: uniqueNickname,
         password,
         auth_provider: 'pad', // 소셜 로그인과 구분
         role: { connect: { id: 1 } },
