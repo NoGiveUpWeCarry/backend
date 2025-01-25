@@ -1,5 +1,6 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '@src/prisma/prisma.service';
+import { GetMessageDto } from './dto/getMessage.dto';
 
 @Injectable()
 export class ChatService {
@@ -268,11 +269,10 @@ export class ChatService {
   async getMessages(
     userId: number,
     channelId: number,
-    limit: number,
-    cursor: number,
-    direction: string
+    getMessageDto: GetMessageDto
   ) {
     try {
+      const { cursor, limit, direction } = getMessageDto;
       // 권한 확인
       await this.confirmAuth(userId, channelId);
 
