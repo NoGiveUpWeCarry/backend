@@ -31,4 +31,21 @@ export class SearchService {
 
     return result;
   }
+
+  // 모달 피드 검색결과 데이터
+  async feedResultModal(result) {
+    const feeds = result.map(res => ({
+      userId: res.user.id,
+      userName: res.user.name,
+      userNickname: res.user.nickname,
+      userProfileUrl: res.user.profile_url,
+      userRole: res.user.role.name,
+      feedId: res.id,
+      title: res.title,
+      tags: res.Tags.map(v => v.tag.name),
+      createdAt: res.created_at,
+    }));
+
+    return feeds;
+  }
 }
