@@ -8,29 +8,35 @@ export class SearchService {
   async handleModalSearch(keyword: string, category: string) {
     let result;
     const limit = 4;
+
+    // category 값에 따라 응답데이터 변경
     switch (category) {
       case 'all':
         result = {
-          feed: this.feedResultModal(this.searchFeed(keyword, limit)),
+          feed: await this.feedResultModal(
+            await this.searchFeed(keyword, limit)
+          ),
 
-          projects: this.connectionhubResultModal(
-            this.searchConnectionhub(keyword, limit)
+          projects: await this.connectionhubResultModal(
+            await this.searchConnectionhub(keyword, limit)
           ),
         };
         break;
       case 'feed':
         result = {
-          feeds: this.feedResultModal(this.searchFeed(keyword, limit)),
+          feeds: await this.feedResultModal(
+            await this.searchFeed(keyword, limit)
+          ),
         };
         break;
       case 'connectionhub':
         result = {
-          projects: this.connectionhubResultModal(
-            this.searchConnectionhub(keyword, limit)
+          projects: await this.connectionhubResultModal(
+            await this.searchConnectionhub(keyword, limit)
           ),
         };
     }
-
+    result.messgae = { code: 200, text: '검색 결과 조회에 성공했습니다.' };
     return result;
   }
 
@@ -57,12 +63,12 @@ export class SearchService {
       },
       take: limit,
     });
-
     return result;
   }
 
   // 모달 피드 검색결과 데이터
   async feedResultModal(result) {
+    if (!result.length) return '검색 결과가 없습니다.';
     const feeds = result.map(res => ({
       userId: res.user.id,
       userName: res.user.name,
@@ -124,6 +130,7 @@ export class SearchService {
 
   // 모달 커넥션허브 검색결과 데이터
   async connectionhubResultModal(result) {
+    if (!result.length) return '검색 결과가 없습니다.';
     const projects = result.map(res => ({
       userId: res.user.id,
       userName: res.user.name,
