@@ -1,6 +1,7 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '@src/prisma/prisma.service';
 import { GetMessageDto } from './dto/getMessage.dto';
+import { SearchMessageDto } from './dto/serchMessage.dto';
 
 @Injectable()
 export class ChatService {
@@ -342,12 +343,12 @@ export class ChatService {
   async searchMessage(
     userId: number,
     channelId: number,
-    limit: number,
-    cursor: number,
-    keyword: string,
-    direction: string
+    searchMessageDto: SearchMessageDto
   ) {
     try {
+      const { limit, keyword } = searchMessageDto;
+      let { cursor, direction } = searchMessageDto;
+
       // 권한 확인
       await this.confirmAuth(userId, channelId);
 
@@ -357,7 +358,7 @@ export class ChatService {
           where: { channel_id: channelId },
           select: { id: true },
         });
-
+        direction = 'backward';
         cursor = res.id;
       }
 
