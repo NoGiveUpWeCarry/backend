@@ -48,4 +48,48 @@ export class SearchService {
 
     return feeds;
   }
+
+  // 커넥션허브 검색결과 조회
+  async searchConnectionhub(keyword: string, limit: number) {
+    const result = await this.prisma.projectPost.findMany({
+      where: {
+        OR: [
+          { title: { contains: keyword } },
+          { content: { contains: keyword } },
+          {
+            Tags: {
+              some: {
+                tag: { name: { contains: keyword } },
+              },
+            },
+          },
+          {
+            Details: {
+              some: {
+                detail_role: {
+                  name: { contains: keyword },
+                },
+              },
+            },
+          },
+        ],
+      },
+      include: {
+        Tags: { select: { tag: { select: { name: true } } } },
+        Details: { select: { detail_role: { select: { name: true } } } },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            nickname: true,
+            profile_url: true,
+            role: { select: { name: true } },
+          },
+        },
+      },
+      take: limit,
+    });
+
+    return result;
+  }
 }
