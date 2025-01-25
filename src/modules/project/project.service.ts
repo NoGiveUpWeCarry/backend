@@ -20,18 +20,20 @@ export class ProjectService {
   ) {}
 
   async getProjects(params: {
-    skip: number;
+    cursor?: number; // 커서 추가
     limit: number;
     role?: string;
     unit?: string;
     sort: string;
   }) {
-    const { skip, limit, role, unit, sort } = params;
+    const { cursor, limit, role, unit, sort } = params;
 
+    // Where 조건 생성
     const where: any = {};
     if (role) where.role = role;
     if (unit) where.Tags = { some: { tag: { name: unit } } };
 
+    // OrderBy 조건 생성
     const orderBy: any[] = [];
     if (sort === 'latest') {
       orderBy.push({ created_at: 'desc' }); // 최신순
@@ -39,8 +41,13 @@ export class ProjectService {
       orderBy.push({ saved_count: 'desc' }); // 북마크 수 기준 정렬
     }
 
+    // 커서 조건 추가
+    if (cursor) {
+      where.id = { gt: cursor }; // 커서 이후의 데이터 가져오기
+    }
+
+    // 프로젝트 조회
     const projects = await this.prisma.projectPost.findMany({
-      skip,
       take: limit,
       where,
       orderBy,
@@ -65,8 +72,7 @@ export class ProjectService {
       },
     });
 
-    const totalCount = await this.prisma.projectPost.count({ where });
-
+    // 포맷팅된 프로젝트 데이터
     const formattedProjects = projects.map(project => ({
       projectId: project.id,
       title: project.title,
@@ -83,6 +89,7 @@ export class ProjectService {
       bookMarkCount: project.saved_count,
       viewCount: project.view + 1,
       status: project.recruiting ? 'OPEN' : 'CLOSED',
+      createdAt: project.created_at,
       user: {
         userId: project.user.id,
         nickname: project.user.nickname,
@@ -92,14 +99,18 @@ export class ProjectService {
       },
     }));
 
+    // 마지막 커서 계산
+    const lastCursor = projects[projects.length - 1]?.id || null;
+
     return {
       message: {
         code: 200,
         text: '전체 커넥션허브 조회에 성공했습니다',
       },
       projects: formattedProjects,
-      page: Math.floor(skip / limit) + 1,
-      limit,
+      pagination: {
+        lastCursor,
+      },
     };
   }
 
@@ -199,6 +210,9 @@ export class ProjectService {
         workType: project.work_type,
         status: project.recruiting ? 'OPEN' : 'CLOSE',
         viewCount: project.view,
+        applyCount: 0,
+        bookmarkCount: 0,
+        createdAt: project.created_at,
         skills: tags,
         detailRoles: roles,
       },
@@ -353,6 +367,7 @@ export class ProjectService {
       skills: project.Tags.map(t => t.tag.name),
       detailRoles: project.Details.map(d => d.detail_role.name),
       viewCount: project.view, // 이미 증가된 view 값을 사용
+      createdAt: project.created_at,
       manager: {
         userId: project.user.id,
         name: project.user.name,
