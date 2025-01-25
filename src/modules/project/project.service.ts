@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   HttpException,
@@ -32,15 +33,24 @@ export class ProjectService {
     if (role) where.role = role;
     if (unit) where.Tags = { some: { tag: { name: unit } } };
 
+    // 커서 조건 추가
+    if (cursor) {
+      const validCursor = await this.prisma.projectPost.findUnique({
+        where: { id: cursor },
+      });
+
+      if (!validCursor) {
+        throw new BadRequestException('유효하지 않은 커서 값입니다.');
+      }
+
+      where.id = { gt: cursor }; // 유효한 커서 이후의 데이터 가져오기
+    }
+
     const orderBy: any[] = [];
     orderBy.push(sort ? { created_at: 'desc' } : { saved_count: 'desc' });
 
-    if (cursor) {
-      where.id = { gt: cursor };
-    }
-
     const projects = await this.prisma.projectPost.findMany({
-      take: limit, // limit 값은 컨트롤러에서 설정
+      take: limit,
       where,
       orderBy,
       include: {
@@ -54,9 +64,7 @@ export class ProjectService {
             nickname: true,
             profile_url: true,
             introduce: true,
-            role: {
-              select: { name: true },
-            },
+            role: { select: { name: true } },
           },
         },
       },
@@ -93,7 +101,10 @@ export class ProjectService {
     return {
       message: {
         code: 200,
-        text: '전체 커넥션허브 조회에 성공했습니다',
+        text:
+          projects.length > 0
+            ? '프로젝트 조회에 성공했습니다.'
+            : '더 이상 프로젝트가 없습니다.',
       },
       projects: formattedProjects,
       pagination: {
@@ -249,7 +260,7 @@ export class ProjectService {
         name: project.user.name,
         nickname: project.user.nickname,
         profileUrl: project.user.profile_url,
-        role: project.user.role,
+        role: project.user.role.name,
       },
       hubType: project.hub_type,
     }));
@@ -369,8 +380,8 @@ export class ProjectService {
           profileUrl: project.user.profile_url,
           introduce: project.user.introduce ? project.user.introduce : null,
         },
-        isOwnConnectionHub,
       },
+      isOwnConnectionHub,
     };
   }
 
