@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '@src/prisma/prisma.service';
 
 @Injectable()
@@ -181,18 +181,8 @@ export class ChatService {
   // 채널 개별 조회
   async getChannel(userId: number, channelId: number) {
     try {
-      // 유저 아이디가 채널에 속해있는지 확인
-      const auth = await this.prisma.channel_users.findMany({
-        where: {
-          user_id: userId,
-          channel_id: channelId,
-        },
-      });
-
-      // 아닐 시 예외처리
-      if (!auth.length) {
-        throw new Error('권한 X');
-      }
+      // 권한 확인
+      await this.confirmAuth(userId, channelId);
 
       const channel = await this.getChannleObj(channelId);
 
@@ -283,18 +273,8 @@ export class ChatService {
     direction: string
   ) {
     try {
-      // 유저 아이디가 채널에 속해있는지 확인
-      const auth = await this.prisma.channel_users.findMany({
-        where: {
-          user_id: userId,
-          channel_id: channelId,
-        },
-      });
-
-      // 아닐 시 예외처리
-      if (!auth.length) {
-        throw new Error('권한 X');
-      }
+      // 권한 확인
+      await this.confirmAuth(userId, channelId);
 
       // 메세지 데이터 조회
       const result = await this.prisma.message.findMany({
@@ -368,17 +348,8 @@ export class ChatService {
     direction: string
   ) {
     try {
-      const auth = await this.prisma.channel_users.findMany({
-        where: {
-          user_id: userId,
-          channel_id: channelId,
-        },
-      });
-
-      // 아닐 시 예외처리
-      if (!auth.length) {
-        throw new Error('권한 X');
-      }
+      // 권한 확인
+      await this.confirmAuth(userId, channelId);
 
       if (!cursor) {
         const res = await this.prisma.message.findFirst({
@@ -525,5 +496,19 @@ export class ChatService {
       date: msg.created_at,
       messageId: msg.id,
     };
+  }
+
+  // 요청 채널에 대한 유저 권한 확인
+  async confirmAuth(userId: number, channelId: number) {
+    const auth = await this.prisma.channel_users.findMany({
+      where: {
+        user_id: userId,
+        channel_id: channelId,
+      },
+    });
+
+    if (!auth.length) {
+      throw new HttpException('권한이 없습니다.', HttpStatus.UNAUTHORIZED);
+    }
   }
 }
