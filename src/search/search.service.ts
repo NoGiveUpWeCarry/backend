@@ -4,6 +4,35 @@ import { PrismaService } from '@src/prisma/prisma.service';
 @Injectable()
 export class SearchService {
   constructor(private readonly prisma: PrismaService) {}
+  // 모달 검색 핸들러
+  async handleModalSearch(keyword: string, category: string) {
+    let result;
+    const limit = 4;
+    switch (category) {
+      case 'all':
+        result = {
+          feed: this.feedResultModal(this.searchFeed(keyword, limit)),
+
+          projects: this.connectionhubResultModal(
+            this.searchConnectionhub(keyword, limit)
+          ),
+        };
+        break;
+      case 'feed':
+        result = {
+          feeds: this.feedResultModal(this.searchFeed(keyword, limit)),
+        };
+        break;
+      case 'connectionhub':
+        result = {
+          projects: this.connectionhubResultModal(
+            this.searchConnectionhub(keyword, limit)
+          ),
+        };
+    }
+
+    return result;
+  }
 
   // 피드 검색결과 조회
   async searchFeed(keyword: string, limit: number) {
