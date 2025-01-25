@@ -15,8 +15,16 @@ export class SearchService {
         ],
       },
       include: {
-        user: true,
-        Tags: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            nickname: true,
+            profile_url: true,
+            role: { select: { name: true } },
+          },
+        },
+        Tags: { select: { tag: { select: { name: true } } } },
       },
       take: limit,
     });
