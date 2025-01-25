@@ -35,7 +35,7 @@ import {
   UpdateProjectStatusDocs,
   UploadFeedImageDocs,
 } from './docs/project.docs';
-import { ApiBearerAuth } from '@nestjs/swagger'
+import { ApiBearerAuth } from '@nestjs/swagger';
 
 @Controller('projects')
 export class ProjectController {
@@ -43,20 +43,20 @@ export class ProjectController {
 
   @Get()
   @GetProjectsDocs.ApiOperation
-  @GetProjectsDocs.ApiQuerySkip
+  @GetProjectsDocs.ApiQueryCursor
   @GetProjectsDocs.ApiQueryLimit
   @GetProjectsDocs.ApiQueryRole
   @GetProjectsDocs.ApiQueryUnit
   @GetProjectsDocs.ApiQuerySort
   @GetProjectsDocs.ApiResponseSuccess
   async getProjects(
-    @Query('skip') skip: number = 0,
-    @Query('limit') limit: number = 10,
+    @Query('cursor') cursor?: number, // 커서 추가
+    @Query('limit') limit: number = 5,
     @Query('role') role?: string,
     @Query('unit') unit?: string,
     @Query('sort') sort: string = 'latest'
   ) {
-    return this.projectService.getProjects({ skip, limit, role, unit, sort });
+    return this.projectService.getProjects({ cursor, limit, role, unit, sort });
   }
 
   @Post()
