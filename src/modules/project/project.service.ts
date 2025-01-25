@@ -20,35 +20,27 @@ export class ProjectService {
   ) {}
 
   async getProjects(params: {
-    cursor?: number; // 커서 추가
+    cursor?: number;
     limit: number;
     role?: string;
     unit?: string;
-    sort: string;
+    sort: boolean;
   }) {
     const { cursor, limit, role, unit, sort } = params;
 
-    // Where 조건 생성
     const where: any = {};
     if (role) where.role = role;
     if (unit) where.Tags = { some: { tag: { name: unit } } };
 
-    // OrderBy 조건 생성
     const orderBy: any[] = [];
-    if (sort === 'latest') {
-      orderBy.push({ created_at: 'desc' }); // 최신순
-    } else if (sort === 'popular') {
-      orderBy.push({ saved_count: 'desc' }); // 북마크 수 기준 정렬
-    }
+    orderBy.push(sort ? { created_at: 'desc' } : { saved_count: 'desc' });
 
-    // 커서 조건 추가
     if (cursor) {
-      where.id = { gt: cursor }; // 커서 이후의 데이터 가져오기
+      where.id = { gt: cursor };
     }
 
-    // 프로젝트 조회
     const projects = await this.prisma.projectPost.findMany({
-      take: limit,
+      take: limit, // limit 값은 컨트롤러에서 설정
       where,
       orderBy,
       include: {
@@ -63,16 +55,13 @@ export class ProjectService {
             profile_url: true,
             introduce: true,
             role: {
-              select: {
-                name: true,
-              },
+              select: { name: true },
             },
           },
         },
       },
     });
 
-    // 포맷팅된 프로젝트 데이터
     const formattedProjects = projects.map(project => ({
       projectId: project.id,
       title: project.title,
@@ -99,7 +88,6 @@ export class ProjectService {
       },
     }));
 
-    // 마지막 커서 계산
     const lastCursor = projects[projects.length - 1]?.id || null;
 
     return {
@@ -339,6 +327,9 @@ export class ProjectService {
             introduce: true,
           },
         },
+        Applications: {
+          select: { id: true }, // 지원 데이터를 가져옴
+        },
       },
     });
 
@@ -355,27 +346,31 @@ export class ProjectService {
         code: 200,
         text: '프로젝트 상세 조회에 성공했습니다',
       },
-      projectId: project.id,
-      title: project.title,
-      content: project.content,
-      role: project.role,
-      hubType: project.hub_type,
-      startDate: project.start_date,
-      duration: project.duration,
-      workType: project.work_type,
-      status: project.recruiting ? 'OPEN' : 'CLOSE',
-      skills: project.Tags.map(t => t.tag.name),
-      detailRoles: project.Details.map(d => d.detail_role.name),
-      viewCount: project.view, // 이미 증가된 view 값을 사용
-      createdAt: project.created_at,
-      manager: {
-        userId: project.user.id,
-        name: project.user.name,
-        nickname: project.user.nickname,
-        profileUrl: project.user.profile_url,
-        introduce: project.user.introduce ? project.user.introduce : null,
+      project: {
+        projectId: project.id,
+        title: project.title,
+        content: project.content,
+        role: project.role,
+        hubType: project.hub_type,
+        startDate: project.start_date,
+        duration: project.duration,
+        workType: project.work_type,
+        status: project.recruiting ? 'OPEN' : 'CLOSE',
+        skills: project.Tags.map(t => t.tag.name),
+        detailRoles: project.Details.map(d => d.detail_role.name),
+        viewCount: project.view, // 이미 증가된 view 값을 사용
+        bookmarkCount: project.saved_count,
+        applyCount: project.Applications.length,
+        createdAt: project.created_at,
+        manager: {
+          userId: project.user.id,
+          name: project.user.name,
+          nickname: project.user.nickname,
+          profileUrl: project.user.profile_url,
+          introduce: project.user.introduce ? project.user.introduce : null,
+        },
+        isOwnConnectionHub,
       },
-      isOwnConnectionHub,
     };
   }
 
