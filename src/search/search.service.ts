@@ -92,4 +92,26 @@ export class SearchService {
 
     return result;
   }
+
+  // 모달 커넥션허브 검색결과 데이터
+  async connectionhubResultModal(result) {
+    const projects = result.map(res => ({
+      userId: res.user.id,
+      userName: res.user.name,
+      userNickname: res.user.nickname,
+      userProfileUrl: res.user.profile_url,
+      userRole: res.user.role.name,
+      projectId: res.id,
+      title: res.title,
+      role: res.role,
+      detailRoles: res.Details.map(v => v.detail_role.name),
+      tags: res.Tags.map(v => v.tag.name),
+      startDate: res.start_date,
+      duration: res.duration,
+      hubType: res.hub_type,
+      workType: res.work_type,
+    }));
+
+    return projects;
+  }
 }
