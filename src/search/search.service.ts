@@ -147,7 +147,7 @@ export class SearchService {
       title: res.title,
       role: res.role,
       detailRoles: res.Details.map(v => v.detail_role.name),
-      tags: res.Tags.map(v => v.tag.name),
+      skills: res.Tags.map(v => v.tag.name),
       startDate: res.start_date,
       duration: res.duration,
       hubType: res.hub_type,
