@@ -327,6 +327,7 @@ export const GetProjectDetailDocs = {
             userId: 101,
             name: 'Lee Chan',
             nickname: 'leechan_dev',
+            role: 'Programmer',
             profileUrl: 'https://example.com/profile.png',
             introduce: '프론트엔드 개발자입니다.',
           },
