@@ -27,10 +27,12 @@ export class SearchService {
           feedResult: await this.feedResultModal(
             await this.searchFeed(keyword, limit)
           ),
+          projectResult: { projects: [], hasMore: false },
         };
         break;
       case 'connectionhub':
         result = {
+          feedResult: { feeds: [], hasMore: false },
           projectResult: await this.connectionhubResultModal(
             await this.searchConnectionhub(keyword, limit)
           ),
