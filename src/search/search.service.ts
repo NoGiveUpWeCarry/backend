@@ -90,6 +90,29 @@ export class SearchService {
     return { feeds, hasMore };
   }
 
+  // 페이지 피드 검색결과 데이터
+  async feedResultPage(result) {
+    const feeds = result.map(result => ({
+      userId: result.user.id,
+      userName: result.user.name,
+      userNickname: result.user.nickname,
+      userRole: result.user.role.name,
+      userProfileUrl: result.user.profile_url,
+      title: result.title,
+      postId: result.id,
+      thumnailUrl: result.thumbnail_url,
+      content: result.content,
+      tags: result.Tags.map(v => v.tag.name),
+      commentCount: result.comment_count,
+      likeCount: result.like_count,
+      viewCount: result.view,
+      createdAt: result.created_at,
+      isLiked: !!result.Likes.length,
+    }));
+
+    return feeds;
+  }
+
   // 커넥션허브 검색결과 조회
   async searchConnectionhub(keyword: string, limit: number) {
     const result = await this.prisma.projectPost.findMany({
