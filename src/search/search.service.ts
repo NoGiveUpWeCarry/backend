@@ -49,6 +49,8 @@ export class SearchService {
           { content: { contains: keyword } },
         ],
       },
+      orderBy: { id: 'desc' },
+      take: limit + 1,
       include: {
         user: {
           select: {
@@ -61,7 +63,6 @@ export class SearchService {
         },
         Tags: { select: { tag: { select: { name: true } } } },
       },
-      take: limit + 1,
     });
     return result;
   }
@@ -111,6 +112,8 @@ export class SearchService {
           },
         ],
       },
+      orderBy: { id: 'desc' },
+      take: limit + 1,
       include: {
         Tags: { select: { tag: { select: { name: true } } } },
         Details: { select: { detail_role: { select: { name: true } } } },
@@ -124,7 +127,6 @@ export class SearchService {
           },
         },
       },
-      take: limit + 1,
     });
 
     return result;
