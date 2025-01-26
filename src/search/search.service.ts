@@ -5,7 +5,9 @@ import { PrismaService } from '@src/prisma/prisma.service';
 export class SearchService {
   constructor(private readonly prisma: PrismaService) {}
   // 모달 검색 핸들러
-  async handleModalSearch(keyword: string, category: string) {
+  async handleModalSearch(user, keyword: string, category: string) {
+    const userId = user ? user.user_id : 0;
+
     let result;
     const limit = 4;
 
@@ -14,18 +16,18 @@ export class SearchService {
       case 'all':
         result = {
           feedResult: await this.feedResultModal(
-            await this.searchFeed(keyword, limit)
+            await this.searchFeed(userId, keyword, limit)
           ),
 
           projectResult: await this.connectionhubResultModal(
-            await this.searchConnectionhub(keyword, limit)
+            await this.searchConnectionhub(userId, keyword, limit)
           ),
         };
         break;
       case 'feed':
         result = {
           feedResult: await this.feedResultModal(
-            await this.searchFeed(keyword, limit)
+            await this.searchFeed(userId, keyword, limit)
           ),
           projectResult: { projects: [], hasMore: false },
         };
@@ -34,7 +36,7 @@ export class SearchService {
         result = {
           feedResult: { feeds: [], hasMore: false },
           projectResult: await this.connectionhubResultModal(
-            await this.searchConnectionhub(keyword, limit)
+            await this.searchConnectionhub(userId, keyword, limit)
           ),
         };
     }
@@ -43,7 +45,7 @@ export class SearchService {
   }
 
   // 피드 검색결과 조회
-  async searchFeed(keyword: string, limit: number) {
+  async searchFeed(userId: number, keyword: string, limit: number) {
     const result = await this.prisma.feedPost.findMany({
       where: {
         OR: [
@@ -64,7 +66,7 @@ export class SearchService {
           },
         },
         Tags: { select: { tag: { select: { name: true } } } },
-        Likes: { select: { user_id: true } },
+        Likes: { where: { user_id: userId } },
       },
     });
     return result;
@@ -114,7 +116,7 @@ export class SearchService {
   }
 
   // 커넥션허브 검색결과 조회
-  async searchConnectionhub(keyword: string, limit: number) {
+  async searchConnectionhub(userId: number, keyword: string, limit: number) {
     const result = await this.prisma.projectPost.findMany({
       where: {
         OR: [
@@ -152,7 +154,7 @@ export class SearchService {
             role: { select: { name: true } },
           },
         },
-        Saves: { select: { user_id: true } },
+        Saves: { where: { user_id: userId } },
       },
     });
 
