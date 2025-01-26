@@ -13,25 +13,25 @@ export class SearchService {
     switch (category) {
       case 'all':
         result = {
-          feed: await this.feedResultModal(
+          feedResult: await this.feedResultModal(
             await this.searchFeed(keyword, limit)
           ),
 
-          projects: await this.connectionhubResultModal(
+          projectResult: await this.connectionhubResultModal(
             await this.searchConnectionhub(keyword, limit)
           ),
         };
         break;
       case 'feed':
         result = {
-          feeds: await this.feedResultModal(
+          feedResult: await this.feedResultModal(
             await this.searchFeed(keyword, limit)
           ),
         };
         break;
       case 'connectionhub':
         result = {
-          projects: await this.connectionhubResultModal(
+          projectResult: await this.connectionhubResultModal(
             await this.searchConnectionhub(keyword, limit)
           ),
         };
@@ -61,14 +61,16 @@ export class SearchService {
         },
         Tags: { select: { tag: { select: { name: true } } } },
       },
-      take: limit,
+      take: limit + 1,
     });
     return result;
   }
 
   // 모달 피드 검색결과 데이터
   async feedResultModal(result) {
-    if (!result.length) return '검색 결과가 없습니다.';
+    const hasMore = result.length == 5;
+    if (hasMore) result = result.slice(0, 4);
+    if (!result.length) return { feeds: [], hasMore };
     const feeds = result.map(res => ({
       userId: res.user.id,
       userName: res.user.name,
@@ -81,7 +83,7 @@ export class SearchService {
       createdAt: res.created_at,
     }));
 
-    return feeds;
+    return { feeds, hasMore };
   }
 
   // 커넥션허브 검색결과 조회
@@ -122,7 +124,7 @@ export class SearchService {
           },
         },
       },
-      take: limit,
+      take: limit + 1,
     });
 
     return result;
@@ -130,7 +132,9 @@ export class SearchService {
 
   // 모달 커넥션허브 검색결과 데이터
   async connectionhubResultModal(result) {
-    if (!result.length) return '검색 결과가 없습니다.';
+    const hasMore = result.length == 5;
+    if (hasMore) result = result.slice(0, 4);
+    if (!result.length) return { projects: [], hasMore };
     const projects = result.map(res => ({
       userId: res.user.id,
       userName: res.user.name,
@@ -148,6 +152,6 @@ export class SearchService {
       workType: res.work_type,
     }));
 
-    return projects;
+    return { projects, hasMore };
   }
 }
