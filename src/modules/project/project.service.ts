@@ -336,6 +336,7 @@ export class ProjectService {
             nickname: true,
             profile_url: true,
             introduce: true,
+            role: true,
           },
         },
         Applications: {
@@ -377,6 +378,7 @@ export class ProjectService {
           userId: project.user.id,
           name: project.user.name,
           nickname: project.user.nickname,
+          role: project.user.role.name,
           profileUrl: project.user.profile_url,
           introduce: project.user.introduce ? project.user.introduce : null,
         },
