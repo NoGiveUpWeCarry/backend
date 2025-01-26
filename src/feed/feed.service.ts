@@ -40,10 +40,13 @@ export class FeedService {
         : null;
 
       const result = await this.prisma.feedPost.findMany({
+        orderBy: { [orderKey]: 'desc' },
         where: {
-          ...(cursor ? { id: { gt: cursor } } : {}), // cursor 조건 추가 (옵셔널)
+          ...(cursor ? { id: { lt: cursor } } : {}), // cursor 조건 추가 (옵셔널)
           ...(feedTagIds ? { id: { in: feedTagIds } } : {}), // 태그 조건 추가 (옵셔널)
         },
+
+        take: limit,
 
         include: {
           Likes: {
@@ -69,9 +72,6 @@ export class FeedService {
             },
           },
         },
-        take: limit,
-        // 인기순 정렬 : 좋아요 순
-        orderBy: { [orderKey]: 'desc' },
       });
 
       const posts = [];
