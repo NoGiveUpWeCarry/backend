@@ -183,4 +183,32 @@ export class SearchService {
 
     return { projects, hasMore };
   }
+
+  // 페이지 커넥션허브 검색결과 데이터
+  async connectionhubResultPage(result) {
+    const projects = result.map(res => ({
+      userId: res.user.id,
+      userName: res.user.name,
+      userNickname: res.user.nickname,
+      userProfileUrl: res.user.profile_url,
+      userRole: res.user.role.name,
+      projectId: res.id,
+      title: res.title,
+      content: res.content,
+      thumbnailUrl: res.thumbnail_url,
+      role: res.role,
+      skills: res.Tags.map(tag => `${tag.tag.name}`),
+      detailRoles: res.Details.map(d => `${d.detail_role.name}`),
+      hubType: res.hub_type,
+      startDate: res.start_date.toISOString().split('T')[0],
+      duration: res.duration,
+      workType: res.work_type,
+      applyCount: res.applicant_count,
+      bookMarkCount: res.saved_count,
+      viewCount: res.view + 1,
+      status: res.recruiting ? 'OPEN' : 'CLOSED',
+      isMarked: res.Saves.length,
+    }));
+    return { projects };
+  }
 }
