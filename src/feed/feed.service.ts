@@ -20,9 +20,6 @@ export class FeedService {
       const userId = user ? user.user_id : 0;
       const { latest = false, limit = 10, cursor = 0, tags } = queryDto;
 
-      // 정렬 기준
-      const orderKey = latest ? 'created_at' : 'like_count';
-
       // 쿼리로 전달받은 태그
       const tagIds = tags ? tags.split(',').map(id => parseInt(id)) : [];
 
@@ -39,8 +36,13 @@ export class FeedService {
           ).map(p => p.post_id)
         : null;
 
+      // 쿼리값이 인기순이면 따로 처리
+      if (!latest) {
+        return this.getPopularFeed(userId, limit, cursor, feedTagIds);
+      }
+
       const result = await this.prisma.feedPost.findMany({
-        orderBy: { [orderKey]: 'desc' },
+        orderBy: { id: 'desc' },
         where: {
           ...(cursor ? { id: { lt: cursor } } : {}), // cursor 조건 추가 (옵셔널)
           ...(feedTagIds ? { id: { in: feedTagIds } } : {}), // 태그 조건 추가 (옵셔널)
@@ -82,6 +84,74 @@ export class FeedService {
 
       // 라스트 커서
       const lastCursor = posts[posts.length - 1]?.postId || null;
+
+      return {
+        posts,
+        pagination: { lastCursor },
+        message: { code: 200, text: '전체 피드를 정상적으로 조회했습니다.' },
+      };
+    } catch (err) {
+      console.log(err);
+      throw new HttpException(
+        '서버에서 오류가 발생했습니다.',
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  // 인기 피드 조회 (좋아요 순)
+  async getPopularFeed(
+    userId: number,
+    limit: number,
+    cursor: number,
+    feedTagIds
+  ) {
+    try {
+      const result = await this.prisma.feedPost.findMany({
+        orderBy: [{ like_count: 'desc' }, { view: 'desc' }],
+        where: {
+          ...(feedTagIds ? { id: { in: feedTagIds } } : {}), // 태그 조건 추가 (옵셔널)
+        },
+        skip: cursor * limit,
+        take: limit,
+        include: {
+          Likes: {
+            where: { user_id: userId },
+          },
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              nickname: true,
+              role: {
+                select: { name: true },
+              },
+              profile_url: true,
+            },
+          },
+          Tags: {
+            select: {
+              tag: {
+                select: { name: true },
+              },
+            },
+          },
+        },
+      });
+
+      const posts = [];
+      for (const res of result) {
+        const post = await this.getPostObj(res);
+        posts.push(post);
+      }
+
+      let lastCursor;
+      if (result.length) {
+        lastCursor = cursor + 1;
+      } else {
+        lastCursor = null;
+      }
 
       return {
         posts,
