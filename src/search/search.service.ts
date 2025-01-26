@@ -44,6 +44,17 @@ export class SearchService {
     return result;
   }
 
+  // 피드 페이지 검색 핸들러
+  async handleFeedPageSearch(user, keyword: string, cursor: number) {
+    const userId = user ? user.user_id : 0;
+    const limit = 10;
+    const posts = await this.feedResultPage(
+      await this.searchFeed(userId, keyword, limit)
+    );
+
+    return { posts };
+  }
+
   // 피드 검색결과 조회
   async searchFeed(userId: number, keyword: string, limit: number) {
     const result = await this.prisma.feedPost.findMany({
