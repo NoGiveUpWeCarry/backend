@@ -62,6 +62,7 @@ export class SearchService {
           },
         },
         Tags: { select: { tag: { select: { name: true } } } },
+        Likes: { select: { user_id: true } },
       },
     });
     return result;
@@ -126,6 +127,7 @@ export class SearchService {
             role: { select: { name: true } },
           },
         },
+        Saves: { select: { user_id: true } },
       },
     });
 
