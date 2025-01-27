@@ -35,4 +35,19 @@ export class SearchController {
       cursor
     );
   }
+
+  // 커넥션허브 페이지에서 검색
+  @Get('connectionhub')
+  @UseGuards(OptionalAuthGuard)
+  async handleConnectionhubSearch(
+    @Req() req,
+    @Query('keyword') keyword: string,
+    @Query('cursor') cursor: number
+  ) {
+    return await this.searchService.handleConnectionhubSearch(
+      req.user,
+      keyword,
+      cursor
+    );
+  }
 }

@@ -55,7 +55,24 @@ export class SearchService {
     return {
       posts,
       pagination: { lastCursor },
-      message: { code: 200, text: '전체 피드를 정상적으로 조회했습니다.' },
+      message: { code: 200, text: '피드 검색 결과 조회에 성공했습니다.' },
+    };
+  }
+
+  // 커넥션허브 페이지 검색 핸들러
+  async handleConnectionhubSearch(user, keyword: string, cursor: number) {
+    const userId = user ? user.user_id : 0;
+    const limit = 10;
+
+    const projects = await this.connectionhubResultPage(
+      await this.searchConnectionhub(userId, keyword, limit, cursor)
+    );
+
+    const lastCursor = projects[projects.length - 1]?.projectId || null;
+    return {
+      projects,
+      pagination: { lastCursor },
+      message: { code: 200, text: '커넥션허브 검색 결과 조회에 성공했습니다.' },
     };
   }
 
@@ -238,6 +255,6 @@ export class SearchService {
       status: res.recruiting ? 'OPEN' : 'CLOSED',
       isMarked: res.Saves.length,
     }));
-    return { projects };
+    return projects;
   }
 }
