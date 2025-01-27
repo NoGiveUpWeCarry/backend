@@ -7,6 +7,35 @@ import { SearchMessageDto } from './dto/serchMessage.dto';
 export class ChatService {
   constructor(private readonly prisma: PrismaService) {}
 
+  // 온라인 유저 DB에 저장
+  async addUserOnline(userId: number, clientId: string) {
+    await this.prisma.online_users.create({
+      data: {
+        user_id: userId,
+        client_id: clientId,
+      },
+    });
+  }
+
+  // 오프라인 유저 DB에서 삭제
+  async deleteUserOnline(userId: number) {
+    await this.prisma.online_users.deleteMany({
+      where: {
+        user_id: userId,
+      },
+    });
+  }
+
+  // 유저 아이디를 통해 유저의 소켓 아이디 가져오기
+  async getSocketIds(Ids: number[]) {
+    const socketIds = await this.prisma.online_users.findMany({
+      where: { user_id: { in: Ids } },
+      select: { client_id: true },
+    });
+
+    return socketIds.map(id => id.client_id);
+  }
+
   // 기존 채널 조회 or 새 채널 생성
   // 채널id 리턴 (개인 채팅방)
   async getChannelId(userId1: number, userId2: number) {
@@ -133,35 +162,6 @@ export class ChatService {
     };
 
     return data;
-  }
-
-  // 온라인 유저 DB에 저장
-  async addUserOnline(userId: number, clientId: string) {
-    await this.prisma.online_users.create({
-      data: {
-        user_id: userId,
-        client_id: clientId,
-      },
-    });
-  }
-
-  // 오프라인 유저 DB에서 삭제
-  async deleteUserOnline(userId: number) {
-    await this.prisma.online_users.deleteMany({
-      where: {
-        user_id: userId,
-      },
-    });
-  }
-
-  // 유저 아이디를 통해 유저의 소켓 아이디 가져오기
-  async getSocketIds(Ids: number[]) {
-    const socketIds = await this.prisma.online_users.findMany({
-      where: { user_id: { in: Ids } },
-      select: { client_id: true },
-    });
-
-    return socketIds.map(id => id.client_id);
   }
 
   // 유저가 참여한 채널 전체 조회
@@ -468,6 +468,7 @@ export class ChatService {
     return data;
   }
 
+  // 유저 채널에서 삭제
   async deleteUser(userId: number, channelId: number) {
     await this.prisma.channel_users.deleteMany({
       where: {
