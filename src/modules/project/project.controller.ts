@@ -241,8 +241,6 @@ export class ProjectController {
   }
 
   @Get(':projectId/bookmark')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
   @CheckBookmarkDocs.ApiOperation
   @CheckBookmarkDocs.ApiParam
   @CheckBookmarkDocs.ApiResponse
