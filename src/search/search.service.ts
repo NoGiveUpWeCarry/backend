@@ -16,18 +16,18 @@ export class SearchService {
       case 'all':
         result = {
           feedResult: await this.feedResultModal(
-            await this.searchFeed(userId, keyword, limit)
+            await this.searchFeed(userId, keyword, limit, 0)
           ),
 
           projectResult: await this.connectionhubResultModal(
-            await this.searchConnectionhub(userId, keyword, limit)
+            await this.searchConnectionhub(userId, keyword, limit, 0)
           ),
         };
         break;
       case 'feed':
         result = {
           feedResult: await this.feedResultModal(
-            await this.searchFeed(userId, keyword, limit)
+            await this.searchFeed(userId, keyword, limit, 0)
           ),
           projectResult: { projects: [], hasMore: false },
         };
@@ -36,7 +36,7 @@ export class SearchService {
         result = {
           feedResult: { feeds: [], hasMore: false },
           projectResult: await this.connectionhubResultModal(
-            await this.searchConnectionhub(userId, keyword, limit)
+            await this.searchConnectionhub(userId, keyword, limit, 0)
           ),
         };
     }
@@ -49,16 +49,22 @@ export class SearchService {
     const userId = user ? user.user_id : 0;
     const limit = 10;
     const posts = await this.feedResultPage(
-      await this.searchFeed(userId, keyword, limit)
+      await this.searchFeed(userId, keyword, limit, 0)
     );
 
     return { posts };
   }
 
   // 피드 검색결과 조회
-  async searchFeed(userId: number, keyword: string, limit: number) {
+  async searchFeed(
+    userId: number,
+    keyword: string,
+    limit: number,
+    cursor: number
+  ) {
     const result = await this.prisma.feedPost.findMany({
       where: {
+        ...(cursor ? { id: { lt: cursor } } : {}),
         OR: [
           { title: { contains: keyword } },
           { content: { contains: keyword } },
@@ -127,9 +133,15 @@ export class SearchService {
   }
 
   // 커넥션허브 검색결과 조회
-  async searchConnectionhub(userId: number, keyword: string, limit: number) {
+  async searchConnectionhub(
+    userId: number,
+    keyword: string,
+    limit: number,
+    cursor: number
+  ) {
     const result = await this.prisma.projectPost.findMany({
       where: {
+        ...(cursor ? { id: { lt: cursor } } : {}),
         OR: [
           { title: { contains: keyword } },
           { content: { contains: keyword } },
