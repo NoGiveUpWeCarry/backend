@@ -49,10 +49,14 @@ export class SearchService {
     const userId = user ? user.user_id : 0;
     const limit = 10;
     const posts = await this.feedResultPage(
-      await this.searchFeed(userId, keyword, limit, 0)
+      await this.searchFeed(userId, keyword, limit, cursor)
     );
-
-    return { posts };
+    const lastCursor = posts[posts.length - 1]?.postId || null;
+    return {
+      posts,
+      pagination: { lastCursor },
+      message: { code: 200, text: '전체 피드를 정상적으로 조회했습니다.' },
+    };
   }
 
   // 피드 검색결과 조회

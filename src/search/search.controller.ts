@@ -20,4 +20,19 @@ export class SearchController {
       category
     );
   }
+
+  // 피드 페이지에서 검색
+  @Get('feed')
+  @UseGuards(OptionalAuthGuard)
+  async handleFeedSearch(
+    @Req() req,
+    @Query('keyword') keyword: string,
+    @Query('cursor') cursor: number
+  ) {
+    return await this.searchService.handleFeedPageSearch(
+      req.user,
+      keyword,
+      cursor
+    );
+  }
 }
