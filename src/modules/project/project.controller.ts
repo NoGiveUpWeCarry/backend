@@ -35,7 +35,7 @@ import {
   UpdateProjectStatusDocs,
   UploadFeedImageDocs,
 } from './docs/project.docs';
-import { ApiBearerAuth } from '@nestjs/swagger'
+import { ApiBearerAuth } from '@nestjs/swagger';
 
 @Controller('projects')
 export class ProjectController {
@@ -43,20 +43,19 @@ export class ProjectController {
 
   @Get()
   @GetProjectsDocs.ApiOperation
-  @GetProjectsDocs.ApiQuerySkip
-  @GetProjectsDocs.ApiQueryLimit
+  @GetProjectsDocs.ApiQueryCursor
   @GetProjectsDocs.ApiQueryRole
   @GetProjectsDocs.ApiQueryUnit
   @GetProjectsDocs.ApiQuerySort
   @GetProjectsDocs.ApiResponseSuccess
   async getProjects(
-    @Query('skip') skip: number = 0,
-    @Query('limit') limit: number = 10,
+    @Query('cursor') cursor?: number,
     @Query('role') role?: string,
     @Query('unit') unit?: string,
-    @Query('sort') sort: string = 'latest'
+    @Query('sort') sort: boolean = true
   ) {
-    return this.projectService.getProjects({ skip, limit, role, unit, sort });
+    const limit = 10;
+    return this.projectService.getProjects({ cursor, limit, role, unit, sort });
   }
 
   @Post()
@@ -142,7 +141,7 @@ export class ProjectController {
     @Param('projectId', ParseIntPipe) projectId: number,
     @Req() req
   ) {
-    const userId = req.user.id; // 인증된 사용자 ID
+    const userId = req.user.user_id;; // 인증된 사용자 ID
     return this.projectService.applyToProject(userId, projectId);
   }
 
@@ -166,7 +165,7 @@ export class ProjectController {
     @Param('projectId', ParseIntPipe) projectId: number,
     @Req() req
   ) {
-    const userId = req.user.id; // 인증된 사용자 ID
+    const userId = req.user.user_id;; // 인증된 사용자 ID
     return this.projectService.checkApplyStatus(userId, projectId);
   }
 
@@ -180,7 +179,7 @@ export class ProjectController {
     @Param('projectId', ParseIntPipe) projectId: number,
     @Req() req
   ) {
-    const userId = req.user.id; // 인증된 사용자 ID
+    const userId = req.user.user_id;; // 인증된 사용자 ID
     return this.projectService.cancelApplication(userId, projectId);
   }
 
@@ -198,7 +197,7 @@ export class ProjectController {
     @Body('status') status: 'Accepted' | 'Rejected' | 'Pending',
     @Req() req
   ) {
-    const userId = req.user.id; // 인증된 사용자 ID
+    const userId = req.user.user_id;; // 인증된 사용자 ID
     return this.projectService.updateApplicationStatus(
       userId,
       projectId,
@@ -219,7 +218,7 @@ export class ProjectController {
     @Body('recruiting') recruiting: boolean,
     @Req() req
   ) {
-    const userId = req.user.id; // 인증된 사용자 ID
+    const userId = req.user.user_id;; // 인증된 사용자 ID
     return this.projectService.updateProjectStatus(
       userId,
       projectId,
@@ -237,7 +236,7 @@ export class ProjectController {
     @Param('projectId', ParseIntPipe) projectId: number,
     @Req() req
   ) {
-    const userId = req.user.id; // 인증된 사용자 ID
+    const userId = req.user.user_id; // 인증된 사용자 ID
     return this.projectService.toggleBookmark(userId, projectId);
   }
 
@@ -251,7 +250,7 @@ export class ProjectController {
     @Param('projectId', ParseIntPipe) projectId: number,
     @Req() req
   ) {
-    const userId = req.user.id; // 인증된 사용자 ID
+    const userId = req.user.user_id; // 인증된 사용자 ID
     return this.projectService.checkBookmark(userId, projectId);
   }
 }

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   HttpException,
@@ -20,27 +21,35 @@ export class ProjectService {
   ) {}
 
   async getProjects(params: {
-    skip: number;
+    cursor?: number;
     limit: number;
     role?: string;
     unit?: string;
-    sort: string;
+    sort: boolean;
   }) {
-    const { skip, limit, role, unit, sort } = params;
+    const { cursor, limit, role, unit, sort } = params;
 
     const where: any = {};
     if (role) where.role = role;
     if (unit) where.Tags = { some: { tag: { name: unit } } };
 
-    const orderBy: any[] = [];
-    if (sort === 'latest') {
-      orderBy.push({ created_at: 'desc' }); // 최신순
-    } else if (sort === 'popular') {
-      orderBy.push({ saved_count: 'desc' }); // 북마크 수 기준 정렬
+    // 커서 조건 추가
+    if (cursor) {
+      const validCursor = await this.prisma.projectPost.findUnique({
+        where: { id: cursor },
+      });
+
+      if (!validCursor) {
+        throw new BadRequestException('유효하지 않은 커서 값입니다.');
+      }
+
+      where.id = { gt: cursor }; // 유효한 커서 이후의 데이터 가져오기
     }
 
+    const orderBy: any[] = [];
+    orderBy.push(sort ? { created_at: 'desc' } : { saved_count: 'desc' });
+
     const projects = await this.prisma.projectPost.findMany({
-      skip,
       take: limit,
       where,
       orderBy,
@@ -55,17 +64,11 @@ export class ProjectService {
             nickname: true,
             profile_url: true,
             introduce: true,
-            role: {
-              select: {
-                name: true,
-              },
-            },
+            role: { select: { name: true } },
           },
         },
       },
     });
-
-    const totalCount = await this.prisma.projectPost.count({ where });
 
     const formattedProjects = projects.map(project => ({
       projectId: project.id,
@@ -83,6 +86,7 @@ export class ProjectService {
       bookMarkCount: project.saved_count,
       viewCount: project.view + 1,
       status: project.recruiting ? 'OPEN' : 'CLOSED',
+      createdAt: project.created_at,
       user: {
         userId: project.user.id,
         nickname: project.user.nickname,
@@ -92,14 +96,20 @@ export class ProjectService {
       },
     }));
 
+    const lastCursor = projects[projects.length - 1]?.id || null;
+
     return {
       message: {
         code: 200,
-        text: '전체 커넥션허브 조회에 성공했습니다',
+        text:
+          projects.length > 0
+            ? '프로젝트 조회에 성공했습니다.'
+            : '더 이상 프로젝트가 없습니다.',
       },
       projects: formattedProjects,
-      page: Math.floor(skip / limit) + 1,
-      limit,
+      pagination: {
+        lastCursor,
+      },
     };
   }
 
@@ -199,6 +209,9 @@ export class ProjectService {
         workType: project.work_type,
         status: project.recruiting ? 'OPEN' : 'CLOSE',
         viewCount: project.view,
+        applyCount: 0,
+        bookmarkCount: 0,
+        createdAt: project.created_at,
         skills: tags,
         detailRoles: roles,
       },
@@ -247,7 +260,7 @@ export class ProjectService {
         name: project.user.name,
         nickname: project.user.nickname,
         profileUrl: project.user.profile_url,
-        role: project.user.role,
+        role: project.user.role.name,
       },
       hubType: project.hub_type,
     }));
@@ -323,7 +336,11 @@ export class ProjectService {
             nickname: true,
             profile_url: true,
             introduce: true,
+            role: true,
           },
+        },
+        Applications: {
+          select: { id: true }, // 지원 데이터를 가져옴
         },
       },
     });
@@ -341,24 +358,30 @@ export class ProjectService {
         code: 200,
         text: '프로젝트 상세 조회에 성공했습니다',
       },
-      projectId: project.id,
-      title: project.title,
-      content: project.content,
-      role: project.role,
-      hubType: project.hub_type,
-      startDate: project.start_date,
-      duration: project.duration,
-      workType: project.work_type,
-      status: project.recruiting ? 'OPEN' : 'CLOSE',
-      skills: project.Tags.map(t => t.tag.name),
-      detailRoles: project.Details.map(d => d.detail_role.name),
-      viewCount: project.view, // 이미 증가된 view 값을 사용
-      manager: {
-        userId: project.user.id,
-        name: project.user.name,
-        nickname: project.user.nickname,
-        profileUrl: project.user.profile_url,
-        introduce: project.user.introduce ? project.user.introduce : null,
+      project: {
+        projectId: project.id,
+        title: project.title,
+        content: project.content,
+        role: project.role,
+        hubType: project.hub_type,
+        startDate: project.start_date,
+        duration: project.duration,
+        workType: project.work_type,
+        status: project.recruiting ? 'OPEN' : 'CLOSE',
+        skills: project.Tags.map(t => t.tag.name),
+        detailRoles: project.Details.map(d => d.detail_role.name),
+        viewCount: project.view, // 이미 증가된 view 값을 사용
+        bookmarkCount: project.saved_count,
+        applyCount: project.Applications.length,
+        createdAt: project.created_at,
+        manager: {
+          userId: project.user.id,
+          name: project.user.name,
+          nickname: project.user.nickname,
+          role: project.user.role.name,
+          profileUrl: project.user.profile_url,
+          introduce: project.user.introduce ? project.user.introduce : null,
+        },
       },
       isOwnConnectionHub,
     };
@@ -742,42 +765,63 @@ export class ProjectService {
   }
 
   async toggleBookmark(userId: number, projectId: number) {
-    // 북마크 존재 여부 확인
-    const existingBookmark = await this.prisma.projectSave.findFirst({
-      where: { user_id: userId, post_id: projectId },
+  // 북마크 존재 여부 확인
+  const existingBookmark = await this.prisma.projectSave.findFirst({
+    where: { user_id: userId, post_id: projectId },
+  });
+
+  if (existingBookmark) {
+    // 북마크 삭제
+    await this.prisma.projectSave.delete({
+      where: { id: existingBookmark.id },
     });
 
-    if (existingBookmark) {
-      // 북마크 삭제
-      await this.prisma.projectSave.delete({
-        where: { id: existingBookmark.id },
-      });
-
-      return {
-        message: {
-          code: 200,
-          text: '북마크가 삭제되었습니다.',
-        },
-        bookmarked: false,
-      };
-    }
-
-    // 북마크 추가
-    await this.prisma.projectSave.create({
+    // saved_count 감소
+    await this.prisma.projectPost.update({
+      where: { id: projectId },
       data: {
-        user_id: userId,
-        post_id: projectId,
+        saved_count: {
+          decrement: 1, // saved_count 감소
+        },
       },
     });
 
     return {
       message: {
         code: 200,
-        text: '북마크가 추가되었습니다.',
+        text: '북마크가 삭제되었습니다.',
       },
+      bookmarked: false,
+    };
+  }
+
+  // 북마크 추가
+  await this.prisma.projectSave.create({
+    data: {
+      user_id: userId,
+      post_id: projectId,
+    },
+  });
+
+  // saved_count 증가
+  await this.prisma.projectPost.update({
+    where: { id: projectId },
+    data: {
+      saved_count: {
+        increment: 1, // saved_count 증가
+      },
+    },
+  });
+
+  return {
+    message: {
+      code: 200,
+      text: '북마크가 추가되었습니다.',
       bookmarked: true,
     };
   }
+}
+
 
   async checkBookmark(userId: number, projectId: number) {
     // 북마크 여부 확인
