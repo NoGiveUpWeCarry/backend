@@ -765,23 +765,50 @@ export class ProjectService {
   }
 
   async toggleBookmark(userId: number, projectId: number) {
-  // 북마크 존재 여부 확인
-  const existingBookmark = await this.prisma.projectSave.findFirst({
-    where: { user_id: userId, post_id: projectId },
-  });
-
-  if (existingBookmark) {
-    // 북마크 삭제
-    await this.prisma.projectSave.delete({
-      where: { id: existingBookmark.id },
+    // 북마크 존재 여부 확인
+    const existingBookmark = await this.prisma.projectSave.findFirst({
+      where: { user_id: userId, post_id: projectId },
     });
 
-    // saved_count 감소
+    if (existingBookmark) {
+      // 북마크 삭제
+      await this.prisma.projectSave.delete({
+        where: { id: existingBookmark.id },
+      });
+
+      // saved_count 감소
+      await this.prisma.projectPost.update({
+        where: { id: projectId },
+        data: {
+          saved_count: {
+            decrement: 1, // saved_count 감소
+          },
+        },
+      });
+
+      return {
+        message: {
+          code: 200,
+          text: '북마크가 삭제되었습니다.',
+        },
+        bookmarked: false,
+      };
+    }
+
+    // 북마크 추가
+    await this.prisma.projectSave.create({
+      data: {
+        user_id: userId,
+        post_id: projectId,
+      },
+    });
+
+    // saved_count 증가
     await this.prisma.projectPost.update({
       where: { id: projectId },
       data: {
         saved_count: {
-          decrement: 1, // saved_count 감소
+          increment: 1, // saved_count 증가
         },
       },
     });
@@ -789,39 +816,11 @@ export class ProjectService {
     return {
       message: {
         code: 200,
-        text: '북마크가 삭제되었습니다.',
+        text: '북마크가 추가되었습니다.',
       },
-      bookmarked: false,
-    };
-  }
-
-  // 북마크 추가
-  await this.prisma.projectSave.create({
-    data: {
-      user_id: userId,
-      post_id: projectId,
-    },
-  });
-
-  // saved_count 증가
-  await this.prisma.projectPost.update({
-    where: { id: projectId },
-    data: {
-      saved_count: {
-        increment: 1, // saved_count 증가
-      },
-    },
-  });
-
-  return {
-    message: {
-      code: 200,
-      text: '북마크가 추가되었습니다.',
       bookmarked: true,
     };
   }
-}
-
 
   async checkBookmark(userId: number, projectId: number) {
     // 북마크 여부 확인
