@@ -109,6 +109,8 @@ export class ProjectController {
   }
 
   @Post('image')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @UseInterceptors(FileInterceptor('file'))
   @UploadFeedImageDocs.ApiOperation
   @UploadFeedImageDocs.ApiConsumes
@@ -116,6 +118,7 @@ export class ProjectController {
   @UploadFeedImageDocs.ApiResponse
   async func(@Req() req, @UploadedFile() file: Express.Multer.File) {
     const userId = req.user.user_id;
+    console.log(userId);
     return await this.projectService.uploadFeedImage(userId, file);
   }
 
