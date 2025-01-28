@@ -81,7 +81,7 @@ export class ProjectController {
     @Body() updateProjectDto: CreateProjectDto,
     @Req() req
   ) {
-    const userId = req.user.id; // 인증된 사용자 ID
+    const userId = req.user.user_id; // 인증된 사용자 ID
     return this.projectService.updateProject(
       userId,
       projectId,

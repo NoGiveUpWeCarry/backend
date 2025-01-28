@@ -601,12 +601,11 @@ export class ProjectService {
   }
 
   // 게시글 권한 확인
-  async feedAuth(userId: number, projectId: number) {
+  async feedAuth(userId: number, projectId: number): Promise<boolean> {
     const auth = await this.prisma.projectPost.findUnique({
       where: { id: projectId },
       select: { user_id: true },
     });
-
     return auth.user_id === userId;
   }
 
