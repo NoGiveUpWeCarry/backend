@@ -5,8 +5,9 @@ import { UserModule } from '@modules/user/user.module';
 import { ChatGateway } from './chat/chat.gateway';
 import { ChatModule } from './chat/chat.module';
 import { FeedModule } from './feed/feed.module';
-import { ProjectModule } from './modules/project/project.module';
+import { ProjectModule } from '@modules/project/project.module';
 import { SearchModule } from './search/search.module';
+import { FollowModule } from '@modules/follow/follow.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -17,7 +18,8 @@ import { SearchModule } from './search/search.module';
     ChatModule,
     FeedModule,
     ProjectModule,
-    SearchModule
+    SearchModule,
+    FollowModule,
   ],
   providers: [ChatGateway],
 })
