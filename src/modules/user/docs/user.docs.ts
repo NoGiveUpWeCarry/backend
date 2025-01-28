@@ -706,7 +706,7 @@ export const AddUserLinksDocs = {
     description: '추가할 링크 목록',
     schema: {
       example: {
-        url: 'https://github.com/user'
+        url: 'https://github.com/user',
       },
     },
   }),
