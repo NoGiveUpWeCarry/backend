@@ -212,7 +212,7 @@ export class ProjectService {
         startDate: project.start_date,
         duration: project.duration,
         workType: project.work_type,
-        status: project.recruiting ? 'OPEN' : 'CLOSE',
+        status: project.recruiting ? 'OPEN' : 'CLOSED',
         viewCount: project.view,
         applyCount: 0,
         bookmarkCount: 0,
@@ -372,7 +372,7 @@ export class ProjectService {
         startDate: project.start_date,
         duration: project.duration,
         workType: project.work_type,
-        status: project.recruiting ? 'OPEN' : 'CLOSE',
+        status: project.recruiting ? 'OPEN' : 'CLOSED',
         skills: project.Tags.map(t => t.tag.name),
         detailRoles: project.Details.map(d => d.detail_role.name),
         viewCount: project.view, // 이미 증가된 view 값을 사용
@@ -737,7 +737,7 @@ export class ProjectService {
       project: {
         projectId: updatedProject.id,
         recruiting: updatedProject.recruiting,
-        status: recruiting ? 'OPEN' : 'CLOSE',
+        status: recruiting ? 'OPEN' : 'CLOSED',
       },
     };
   }
