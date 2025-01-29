@@ -43,7 +43,12 @@ export class ProjectService {
         throw new BadRequestException('유효하지 않은 커서 값입니다.');
       }
 
-      where.id = { gt: cursor }; // 유효한 커서 이후의 데이터 가져오기
+      // 정렬 조건에 따라 커서 조건 추가
+      if (sort) {
+        where.created_at = { lt: validCursor.created_at }; // created_at 기준
+      } else {
+        where.saved_count = { lt: validCursor.saved_count }; // saved_count 기준
+      }
     }
 
     const orderBy: any[] = [];
