@@ -1102,6 +1102,7 @@ export class UserService {
         bookMarkCount: projectData.saved_count,
         viewCount: projectData.view,
         status: projectData.recruiting ? 'OPEN' : 'CLOSED',
+        createdAt: projectData.created_at,
       };
     });
 
