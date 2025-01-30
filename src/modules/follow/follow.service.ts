@@ -1,9 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@prisma/prisma.service';
+//import { NotificationsService } from '@modules/notification/notification.service';
 
 @Injectable()
 export class FollowService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+   //private readonly notificationsService: NotificationsService
+  ) {}
 
   async toggleFollow(userId: number, targetUserId: number) {
     // 현재 팔로우 상태 확인
@@ -33,10 +37,19 @@ export class FollowService {
         },
       });
 
-      return {
-        message: { code: 200, text: '팔로우 성공' },
-        isFollowing: true,
-      };
+      // 알림 생성 및 SSE 전송
+      //     const message = `사용자 ${userId}님이 당신을 팔로우하기 시작했습니다.`;
+      //     await this.notificationsService.sendRealTimeNotification(
+      //       targetUserId,
+      //       { type: 'follow', message },
+      //       this.notificationsService.notifications$ // SSE 스트림
+      //     );
+      //     return {
+      //       message: { code: 200, text: '팔로우 성공' },
+      //       isFollowing: true,
+      //     };
+      //   }
+      // }
     }
   }
 }

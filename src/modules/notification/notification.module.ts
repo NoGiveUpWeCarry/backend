@@ -2,8 +2,9 @@
 // import { NotificationsController } from './notification.controller';
 // import { NotificationsService } from '@modules/notification/notification.service';
 // import { AuthModule } from '@modules/auth/auth.module';
+// import { PrismaModule } from '@src/prisma/prisma.module';
 // @Module({
-//   imports: [AuthModule],
+//   imports: [AuthModule, PrismaModule],
 //   controllers: [NotificationsController],
 //   providers: [NotificationsService],
 // })
