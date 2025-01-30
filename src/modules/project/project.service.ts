@@ -89,7 +89,7 @@ export class ProjectService {
       workType: project.work_type,
       applyCount: project.Applications.length,
       bookMarkCount: project.saved_count,
-      viewCount: project.view + 1,
+      viewCount: project.view,
       status: project.recruiting ? 'OPEN' : 'CLOSED',
       createdAt: project.created_at,
       user: {
