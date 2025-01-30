@@ -453,6 +453,7 @@ export class ProjectService {
             introduce: true,
           },
         },
+        status: true,
       },
     });
     const resultapplicants = applicants.map(applicant => ({
@@ -460,6 +461,7 @@ export class ProjectService {
       name: applicant.user.name,
       nickname: applicant.user.nickname,
       profileUrl: applicant.user.profile_url,
+      status: applicant.status,
     }));
     return {
       applicants: resultapplicants,
