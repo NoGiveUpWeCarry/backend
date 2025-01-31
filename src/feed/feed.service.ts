@@ -561,7 +561,6 @@ export class FeedService {
   // 댓글 등록
   async createComment(userId: number, feedId: number, commentDto: CommentDto) {
     try {
-      // 댓글 데이터 저장
       const content = commentDto.content;
       await this.prisma.feedComment.create({
         data: {
@@ -571,16 +570,14 @@ export class FeedService {
         },
       });
 
-      // 피드 댓글 카운트 증가
       await this.prisma.feedPost.update({
         where: { id: feedId },
         data: { comment_count: { increment: 1 } },
       });
 
-      // 피드 작성자 정보 가져오기
       const feed = await this.prisma.feedPost.findUnique({
         where: { id: feedId },
-        include: { user: true }, // 작성자 정보 포함
+        include: { user: true },
       });
 
       if (!feed) {
@@ -590,12 +587,18 @@ export class FeedService {
         );
       }
 
-      // 알림 전송
       if (feed.user_id !== userId) {
         const sender = await this.prisma.user.findUnique({
           where: { id: userId },
           select: { nickname: true, profile_url: true },
         });
+
+        if (!sender) {
+          throw new HttpException(
+            '보낸 사람 정보를 찾을 수 없습니다.',
+            HttpStatus.NOT_FOUND
+          );
+        }
 
         const message = `${sender.nickname}님이 회원님의 피드에 댓글을 남겼습니다.`;
         await this.notificationsService.createNotification(
@@ -615,7 +618,7 @@ export class FeedService {
 
       return { message: { code: 201, text: '댓글 등록이 완료되었습니다.' } };
     } catch (err) {
-      console.log(err);
+      console.error('댓글 등록 중 오류:', err.message);
       throw new HttpException(
         '서버에서 오류가 발생했습니다.',
         HttpStatus.INTERNAL_SERVER_ERROR
