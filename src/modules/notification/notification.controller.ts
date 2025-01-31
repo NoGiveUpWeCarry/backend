@@ -18,11 +18,9 @@ export class NotificationsController {
   @Sse('stream')
   @UseGuards(JwtAuthGuard)
   streamNotifications(@Req() req): Observable<any> {
-    const userId = req.user?.user_id; // 인증된 사용자 ID 가져오기
+    const userId = req.user?.user_id;
 
-    // 인증된 사용자 확인
     if (!userId) {
-      // 에러를 발생시키되 기본 Observable을 반환
       console.error('사용자 인증 정보가 필요합니다.');
       return of({
         type: 'error',
@@ -31,7 +29,11 @@ export class NotificationsController {
       });
     }
 
-    // 사용자별 필터링된 알림 스트림 반환
+    req.on('close', () => {
+      console.log(`사용자 ${userId}와의 SSE 연결이 종료되었습니다.`);
+      // 필요시 리소스 정리 로직 추가
+    });
+
     return this.notificationsService.notifications$.asObservable().pipe(
       filter(notification => notification.userId === userId),
       map(notification => ({
