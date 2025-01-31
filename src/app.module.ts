@@ -8,6 +8,7 @@ import { FeedModule } from './feed/feed.module';
 import { ProjectModule } from '@modules/project/project.module';
 import { SearchModule } from './search/search.module';
 import { FollowModule } from '@modules/follow/follow.module';
+import { NotificationModule } from '@modules/notification/notification.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -20,6 +21,7 @@ import { FollowModule } from '@modules/follow/follow.module';
     ProjectModule,
     SearchModule,
     FollowModule,
+    NotificationModule,
   ],
   providers: [ChatGateway],
 })
