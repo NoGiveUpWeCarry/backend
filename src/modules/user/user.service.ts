@@ -49,6 +49,15 @@ export class UserService {
       where: { following_user_id: targetUserId },
     });
 
+    // 유저가 작성한 피드 개수
+    const feedCount = await this.prisma.feedPost.count({
+      where: { user_id: targetUserId },
+    });
+
+    // 유저가 지원한 프로젝트의 개수
+    const applyCount = await this.prisma.userApplyProject.count({
+      where: { user_id: targetUserId },
+    });
     // 반환 데이터 구성
     const response = {
       message: {
@@ -56,10 +65,10 @@ export class UserService {
         text: '유저 프로필 조회에 성공했습니다',
       },
       status: user.status.name,
-      applyCount: user.apply_count,
-      postCount: user.post_count,
       followerCount, // 팔로워 수
       followingCount, // 팔로잉 수
+      feedCount, // 유저가 작성한 피드 개수
+      applyCount, // 유저가 지원한 프로젝트 개수
       isOwnProfile: loggedInUserId === targetUserId, // 자신의 프로필인지 확인
     };
 
