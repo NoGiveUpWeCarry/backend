@@ -1,48 +1,44 @@
-// import { Injectable } from '@nestjs/common';
-// import { PrismaService } from '@src/prisma/prisma.service';
-// import { Subject } from 'rxjs';
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '@src/prisma/prisma.service';
+import { Subject } from 'rxjs';
 
-// @Injectable()
-// export class NotificationsService {
-//   constructor(private readonly prisma: PrismaService) {}
+@Injectable()
+export class NotificationsService {
+  public readonly notifications$ = new Subject<any>();
 
-//   // 특정 사용자 알림 조회
-//   async getNotificationsForUser(userId: number, isRead?: boolean) {
-//     return this.prisma.notification.findMany({
-//       where: {
-//         userId,
-//         ...(isRead !== undefined && { isRead }),
-//       },
-//       orderBy: { createdAt: 'desc' },
-//     });
-//   }
+  constructor(private readonly prisma: PrismaService) {}
 
-//   // 알림 생성
-//   async createNotification(userId: number, type: string, message: string) {
-//     return this.prisma.notification.create({
-//       data: { userId, type, message },
-//     });
-//   }
+  // 알림 생성
+  async createNotification(
+    userId: number,
+    senderId: number,
+    type: string,
+    message: string
+  ) {
+    try {
+      return await this.prisma.notification.create({
+        data: {
+          userId,
+          senderId,
+          type,
+          message,
+        },
+      });
+    } catch (error) {
+      console.error('알림 생성 중 오류:', error.message);
+      throw new Error('알림 생성에 실패했습니다.');
+    }
+  }
 
-//   // 알림 읽음 처리
-//   async markAsRead(notificationId: number) {
-//     return this.prisma.notification.update({
-//       where: { id: notificationId },
-//       data: { isRead: true },
-//     });
-//   }
-
-//   // SSE 알림 전송
-//   async sendRealTimeNotification(
-//     userId: number,
-//     data: any,
-//     notifications$: Subject<any>
-//   ) {
-//     const notification = await this.createNotification(
-//       userId,
-//       data.type,
-//       data.message
-//     );
-//     notifications$.next({ data: notification, type: 'notification' });
-//   }
-// }
+  // 실시간 알림 전송
+  sendRealTimeNotification(userId: number, data: any) {
+    this.notifications$.next({
+      userId,
+      type: data.type || 'notification', // 이벤트 유형
+      message: data.message, // 알림 메시지
+      senderNickname: data.senderNickname, // 보낸 사람 닉네임
+      senderProfileUrl: data.senderProfileUrl, // 보낸 사람 프로필 URL
+      timestamp: new Date().toISOString(), // 알림 전송 시간
+    });
+  }
+}
