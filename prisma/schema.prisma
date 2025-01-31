@@ -38,6 +38,8 @@ model User {
   Message_status   Message_status[]
   MyPageProject    MyPageProject[]
   UserLinks        MyPageUserLink[]
+  notifications    Notification[]   @relation("UserNotifications") // 받는 알림
+  sentNotifications Notification[]  @relation("SenderNotifications") // 보낸 알림
   ProgrammerData   ProgrammerData?
   ProjectPost      ProjectPost[]
   ProjectSaves     ProjectSave[]
@@ -375,4 +377,18 @@ model online_users {
   id        Int    @id @default(autoincrement())
   client_id String
   user_id   Int
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  senderId    Int      // 알림을 보낸 사용자 ID
+  type      String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user        User     @relation("UserNotifications", fields: [userId], references: [id])
+  sender      User     @relation("SenderNotifications", fields: [senderId], references: [id])
+
+  @@index([userId], map: "Notification_userId_fkey")
 }
