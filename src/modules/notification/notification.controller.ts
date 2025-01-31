@@ -9,10 +9,10 @@ import { Observable, of } from 'rxjs';
 import { filter, map } from 'rxjs/operators';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { NotificationsService } from './notification.service';
-import { SseInterceptor } from './Interceptors/notification.interceptor'; // ✅ 추가
+import { SseInterceptor } from './Interceptors/notification.interceptor';
 
 @Controller('notifications')
-@UseInterceptors(SseInterceptor) // ✅ Interceptor 사용
+@UseInterceptors(SseInterceptor)
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
@@ -24,9 +24,12 @@ export class NotificationsController {
     if (!userId) {
       console.error('🚨 사용자 인증 정보가 필요합니다.');
       return of({
-        type: 'error',
-        message: '사용자 인증 정보가 필요합니다.',
-        timestamp: new Date().toISOString(),
+        event: 'error', // ✅ 이벤트 이름 추가
+        data: {
+          type: 'error',
+          message: '사용자 인증 정보가 필요합니다.',
+          timestamp: new Date().toISOString(),
+        },
       });
     }
 
@@ -38,16 +41,16 @@ export class NotificationsController {
 
     return this.notificationsService.notifications$.asObservable().pipe(
       filter(notification => notification.userId === userId),
-      map(notification => {
-        console.log('📡 SSE 이벤트 전송:', notification);
-        return {
+      map(notification => ({
+        event: 'message', // ✅ 'message' 이벤트 이름 추가
+        data: {
           type: notification.type,
           message: notification.message,
           senderNickname: notification.senderNickname,
           senderProfileUrl: notification.senderProfileUrl,
           timestamp: new Date().toISOString(),
-        };
-      })
+        },
+      }))
     );
   }
 }
