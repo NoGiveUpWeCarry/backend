@@ -12,12 +12,14 @@ import { CreateProjectDto } from './dto/CreateProject.dto';
 import { startOfWeek, endOfWeek } from 'date-fns';
 import { S3Service } from '@src/s3/s3.service';
 import * as cheerio from 'cheerio';
+import { NotificationsService } from '../notification/notification.service';
 
 @Injectable()
 export class ProjectService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly s3: S3Service
+    private readonly s3: S3Service,
+    private readonly notificationsService: NotificationsService
   ) {}
 
   async getProjects(params: {
@@ -396,6 +398,7 @@ export class ProjectService {
     // 프로젝트 존재 여부 확인
     const project = await this.prisma.projectPost.findUnique({
       where: { id: projectId },
+      select: { user_id: true }, // 프로젝트 작성자 ID 가져오기
     });
 
     if (!project) {
@@ -419,6 +422,27 @@ export class ProjectService {
         user_id: userId,
         post_id: projectId,
       },
+    });
+
+    // 지원 알림 전송
+    const sender = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { nickname: true, profile_url: true },
+    });
+
+    const message = `${sender.nickname}님이 회원님의 프로젝트에 지원했습니다.`;
+    await this.notificationsService.createNotification(
+      project.user_id, // 프로젝트 작성자 ID
+      userId, // 지원자 ID
+      'application',
+      message
+    );
+
+    this.notificationsService.sendRealTimeNotification(project.user_id, {
+      type: 'application',
+      message,
+      senderNickname: sender.nickname,
+      senderProfileUrl: sender.profile_url,
     });
 
     return {
@@ -664,7 +688,7 @@ export class ProjectService {
   async updateApplicationStatus(
     userId: number,
     projectId: number,
-    targetUserId: number, // 지원자의 userId를 기반으로 업데이트
+    targetUserId: number, // 지원자의 userId
     status: 'Accepted' | 'Rejected' | 'Pending'
   ) {
     // 프로젝트 작성자인지 확인
@@ -698,6 +722,27 @@ export class ProjectService {
     const updatedApplication = await this.prisma.userApplyProject.update({
       where: { id: application.id },
       data: { status },
+    });
+
+    // 지원 상태 변경 알림 전송
+    const sender = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { nickname: true, profile_url: true },
+    });
+
+    const message = `${sender.nickname}님이 회원님의 프로젝트 지원 상태를 '${status}'로 변경했습니다.`;
+    await this.notificationsService.createNotification(
+      targetUserId, // 지원자 ID
+      userId, // 프로젝트 작성자 ID
+      'applicationStatus',
+      message
+    );
+
+    this.notificationsService.sendRealTimeNotification(targetUserId, {
+      type: 'applicationStatus',
+      message,
+      senderNickname: sender.nickname,
+      senderProfileUrl: sender.profile_url,
     });
 
     return {
