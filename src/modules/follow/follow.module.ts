@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 import { FollowController } from './follow.controller';
-import { PrismaModule } from '@prisma/prisma.module';
 import { FollowService } from '@modules/follow/follow.service';
-//import { NotificationModule } from '../notification/notification.module';
+import { NotificationModule } from '../notification/notification.module';
+import { PrismaService } from '@src/prisma/prisma.service';
 @Module({
-  imports: [PrismaModule],
+  imports: [NotificationModule],
   controllers: [FollowController],
-  providers: [FollowService],
+  providers: [FollowService, PrismaService],
 })
 export class FollowModule {}

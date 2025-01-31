@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@prisma/prisma.service';
-//import { NotificationsService } from '@modules/notification/notification.service';
+import { NotificationsService } from '@modules/notification/notification.service';
 
 @Injectable()
 export class FollowService {
   constructor(
     private readonly prisma: PrismaService,
-   //private readonly notificationsService: NotificationsService
+    private readonly notificationsService: NotificationsService
   ) {}
 
   async toggleFollow(userId: number, targetUserId: number) {
@@ -37,19 +37,45 @@ export class FollowService {
         },
       });
 
-      // 알림 생성 및 SSE 전송
-      //     const message = `사용자 ${userId}님이 당신을 팔로우하기 시작했습니다.`;
-      //     await this.notificationsService.sendRealTimeNotification(
-      //       targetUserId,
-      //       { type: 'follow', message },
-      //       this.notificationsService.notifications$ // SSE 스트림
-      //     );
-      //     return {
-      //       message: { code: 200, text: '팔로우 성공' },
-      //       isFollowing: true,
-      //     };
-      //   }
-      // }
+      // 상대방 정보 가져오기
+      const sender = await this.prisma.user.findUnique({
+        where: { id: userId },
+      });
+      const targetUser = await this.prisma.user.findUnique({
+        where: { id: targetUserId },
+      });
+
+      if (!sender || !targetUser) {
+        throw new Error('사용자 정보를 찾을 수 없습니다.');
+      }
+
+      // 알림 메시지 생성 및 전송
+      const message = `${sender.nickname}님이 회원님을 팔로우하기 시작했습니다.`;
+      const notificationData = {
+        message,
+        senderNickname: sender.nickname,
+        senderProfileUrl: sender.profile_url,
+        type: 'follow',
+      };
+
+      // 알림 생성
+      await this.notificationsService.createNotification(
+        targetUserId,
+        userId,
+        notificationData.type,
+        notificationData.message
+      );
+
+      // SSE를 통해 실시간 알림 전송
+      this.notificationsService.sendRealTimeNotification(
+        targetUserId,
+        notificationData
+      );
+
+      return {
+        message: { code: 200, text: '팔로우 성공' },
+        isFollowing: true,
+      };
     }
   }
 }
