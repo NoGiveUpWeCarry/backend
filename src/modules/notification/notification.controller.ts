@@ -2,16 +2,17 @@ import {
   Controller,
   Sse,
   Req,
-  HttpException,
-  HttpStatus,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { Observable, of } from 'rxjs';
 import { filter, map } from 'rxjs/operators';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { NotificationsService } from './notification.service';
+import { SseInterceptor } from './Interceptors/notification.interceptor'; // 🔹 추가한 Interceptor import
 
 @Controller('notifications')
+@UseInterceptors(SseInterceptor) // 🔹 Interceptor 적용
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
@@ -31,7 +32,6 @@ export class NotificationsController {
 
     req.on('close', () => {
       console.log(`사용자 ${userId}와의 SSE 연결이 종료되었습니다.`);
-      // 필요시 리소스 정리 로직 추가
     });
 
     return this.notificationsService.notifications$.asObservable().pipe(
