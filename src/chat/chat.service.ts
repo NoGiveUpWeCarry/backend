@@ -3,7 +3,7 @@ import { PrismaService } from '@src/prisma/prisma.service';
 import { GetMessageDto } from './dto/getMessage.dto';
 import { SearchMessageDto } from './dto/serchMessage.dto';
 import { S3Service } from '@src/s3/s3.service';
-import mime from 'mime';
+import * as fileType from 'file-type';
 
 @Injectable()
 export class ChatService {
@@ -521,12 +521,13 @@ export class ChatService {
 
   // 이미지 업로드
   async handleChatFiles(userId: number, file) {
-    const fileType = mime.getType(file);
+    const data = await fileType.fromBuffer(file);
+    const type = data.ext;
 
     const imageUrl = await this.s3.uploadImage(
       userId,
       file,
-      fileType || 'png',
+      type,
       'pad_chat/images'
     );
 
