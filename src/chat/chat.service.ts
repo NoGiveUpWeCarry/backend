@@ -87,13 +87,24 @@ export class ChatService {
     thumnailUrl: string
   ) {
     // 기존 채널 조회
-    const exist = await this.prisma.channel.findMany({
-      where: { title },
-      select: { id: true },
+    const result = await this.prisma.channel_users.groupBy({
+      by: ['channel_id'],
+      where: {
+        user_id: {
+          in: userIds,
+        },
+      },
+      _count: {
+        user_id: true,
+      },
     });
 
-    if (exist.length) {
-      return exist[0].id;
+    if (result.length) {
+      const exist = result.filter(
+        data => data._count.user_id == userIds.length
+      )[0];
+
+      return exist.channel_id;
     }
 
     // 새로운 채널 생성
