@@ -244,4 +244,18 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const { messageId } = data;
     await this.chatService.increaseReadCount(messageId);
   }
+
+  // 라스트 메세지 id 저장 로직
+  @SubscribeMessage('disconnectChannle')
+  async handleLastMessage(
+    @MessageBody()
+    data: {
+      userId: number;
+      channelId: number;
+      lastMessageId: number;
+    }
+  ) {
+    const { userId, channelId, lastMessageId } = data;
+    await this.chatService.setLastMessageId(userId, channelId, lastMessageId);
+  }
 }

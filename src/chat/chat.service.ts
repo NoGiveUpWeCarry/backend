@@ -554,4 +554,14 @@ export class ChatService {
       data: { read_count: { increment: 1 } },
     });
   }
+
+  async setLastMessageId(userId, channelId, lastMessageId) {
+    await this.prisma.last_message_status.create({
+      data: {
+        user_id: userId,
+        channel_id: channelId,
+        last_message_id: lastMessageId,
+      },
+    });
+  }
 }
