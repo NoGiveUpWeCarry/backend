@@ -8,44 +8,46 @@ datasource db {
 }
 
 model User {
-  id               Int                @id @default(autoincrement())
-  email            String             @unique
-  name             String
-  nickname         String             @unique
-  auth_provider    String
-  profile_url      String?
-  role_id          Int
-  introduce        String?
-  status_id        Int
-  apply_count      Int?               @default(0)
-  post_count       Int?               @default(0)
-  push_alert       Boolean            @default(false)
-  following_alert  Boolean            @default(false)
-  project_alert    Boolean            @default(false)
-  created_at       DateTime           @default(now())
-  updated_at       DateTime           @updatedAt
-  password         String?
-  job_detail       String?
-  ArtistData       ArtistData[]
-  Channel_users    Channel_users[]
-  FeedComments     FeedComment[]
-  FeedCommentLikes FeedCommentLikes[]
-  FeedLikes        FeedLike[]
-  FeedPosts        FeedPost[]
-  Followed         Follows[]          @relation("FollowedUsers")
-  Follows          Follows[]          @relation("UserFollows")
-  Message          Message[]
-  Message_status   Message_status[]
-  MyPageProject    MyPageProject[]
-  UserLinks        MyPageUserLink[]
-  ProgrammerData   ProgrammerData?
-  ProjectPost      ProjectPost[]
-  ProjectSaves     ProjectSave[]
-  Resume           Resume[]
-  role             Role               @relation(fields: [role_id], references: [id])
-  status           Status             @relation(fields: [status_id], references: [id])
-  UserApplyProject UserApplyProject[]
-  UserSkills       UserSkill[]
+  id                                       Int                @id @default(autoincrement())
+  email                                    String             @unique
+  name                                     String
+  nickname                                 String             @unique
+  auth_provider                            String
+  profile_url                              String?
+  role_id                                  Int
+  introduce                                String?
+  status_id                                Int
+  apply_count                              Int?               @default(0)
+  post_count                               Int?               @default(0)
+  push_alert                               Boolean            @default(false)
+  following_alert                          Boolean            @default(false)
+  project_alert                            Boolean            @default(false)
+  created_at                               DateTime           @default(now())
+  updated_at                               DateTime           @updatedAt
+  password                                 String?
+  job_detail                               String?
+  ArtistData                               ArtistData[]
+  Channel_users                            Channel_users[]
+  FeedComments                             FeedComment[]
+  FeedCommentLikes                         FeedCommentLikes[]
+  FeedLikes                                FeedLike[]
+  FeedPosts                                FeedPost[]
+  Followed                                 Follows[]          @relation("FollowedUsers")
+  Follows                                  Follows[]          @relation("UserFollows")
+  Message                                  Message[]
+  Message_status                           Message_status[]
+  MyPageProject                            MyPageProject[]
+  UserLinks                                MyPageUserLink[]
+  Notification_Notification_senderIdToUser Notification[]     @relation("Notification_senderIdToUser")
+  Notification_Notification_userIdToUser   Notification[]     @relation("Notification_userIdToUser")
+  ProgrammerData                           ProgrammerData?
+  ProjectPost                              ProjectPost[]
+  ProjectSaves                             ProjectSave[]
+  Resume                                   Resume[]
+  role                                     Role               @relation(fields: [role_id], references: [id])
+  status                                   Status             @relation(fields: [status_id], references: [id])
+  UserApplyProject                         UserApplyProject[]
+  UserSkills                               UserSkill[]
 
   @@index([role_id], map: "User_role_id_fkey")
   @@index([status_id], map: "User_status_id_fkey")
@@ -375,4 +377,19 @@ model online_users {
   id        Int    @id @default(autoincrement())
   client_id String
   user_id   Int
+}
+
+model Notification {
+  id                               Int      @id @default(autoincrement())
+  userId                           Int
+  type                             String
+  message                          String
+  isRead                           Boolean  @default(false)
+  createdAt                        DateTime @default(now())
+  senderId                         Int
+  User_Notification_senderIdToUser User     @relation("Notification_senderIdToUser", fields: [senderId], references: [id])
+  User_Notification_userIdToUser   User     @relation("Notification_userIdToUser", fields: [userId], references: [id])
+
+  @@index([senderId], map: "Notification_senderId_fkey")
+  @@index([userId], map: "Notification_userId_fkey")
 }
