@@ -547,4 +547,11 @@ export class ChatService {
       message: { code: 200, message: '이미지 업로드가 완료되었습니다.' },
     };
   }
+
+  async increaseReadCount(messageId) {
+    await this.prisma.message.update({
+      where: { id: messageId },
+      data: { read_count: { increment: 1 } },
+    });
+  }
 }
