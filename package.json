@@ -40,6 +40,7 @@
     "cookie-parser": "^1.4.7",
     "dayjs": "^1.11.13",
     "dotenv": "^16.4.7",
+    "file-type": "^20.0.1",
     "ioredis": "^5.4.2",
     "jsonwebtoken": "^9.0.2",
     "passport": "^0.7.0",
