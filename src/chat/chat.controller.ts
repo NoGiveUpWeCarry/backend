@@ -1,6 +1,8 @@
 import { Controller, Get, Param, Query, Req, UseGuards } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { JwtAuthGuard } from '@src/modules/auth/guards/jwt-auth.guard';
+import { GetMessageDto } from './dto/getMessage.dto';
+import { SearchMessageDto } from './dto/serchMessage.dto';
 
 @Controller('chat')
 export class ChatController {
@@ -20,17 +22,12 @@ export class ChatController {
   async getChannelsMessages(
     @Req() req: any,
     @Param('id') channelId: number,
-    @Query('limit') limit: number,
-    @Query('cursor') cursor: number,
-    @Query('keyword') keyword: string,
-    @Query('direction') direction: string
+    @Query() getMessageDto: GetMessageDto
   ) {
     return await this.chatService.getMessages(
       req.user.user_id,
       channelId,
-      limit,
-      cursor ? cursor : 0,
-      direction
+      getMessageDto
     );
   }
 
@@ -46,18 +43,12 @@ export class ChatController {
   async searchChannelMessages(
     @Req() req: any,
     @Param('id') channelId: number,
-    @Query('limit') limit: number,
-    @Query('cursor') cursor: number,
-    @Query('keyword') keyword: string,
-    @Query('direction') direction: string
+    @Query() searchMessageDto: SearchMessageDto
   ) {
     return await this.chatService.searchMessage(
       req.user.user_id,
       channelId,
-      limit,
-      cursor ? cursor : 0,
-      keyword,
-      direction
+      searchMessageDto
     );
   }
 }

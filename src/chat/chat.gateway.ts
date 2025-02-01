@@ -175,14 +175,29 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   ) {
     const { userId } = data;
+    let messageData;
 
-    // 메세지 데이터 저장
-    const messageData = await this.chatService.createMessage(
-      data.type,
-      data.channelId,
-      userId,
-      data.content
-    );
+    // 전달 타입에 따라 메세지 데이터 저장
+    if (data.type == 'image') {
+      const result = await this.chatService.handleChatFiles(
+        userId,
+        data.content
+      );
+
+      messageData = await this.chatService.createMessage(
+        data.type,
+        data.channelId,
+        userId,
+        result.imageUrl
+      );
+    } else {
+      messageData = await this.chatService.createMessage(
+        data.type,
+        data.channelId,
+        userId,
+        data.content
+      );
+    }
 
     const messageId = messageData.id;
 
@@ -194,7 +209,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // 전달 데이터 양식
     const sendData = {
       type: data.type,
-      content: data.content,
+      content: messageData.content,
       channelId: data.channelId,
       messageId,
       user,
