@@ -3,7 +3,7 @@ import { PrismaService } from '@src/prisma/prisma.service';
 import { GetMessageDto } from './dto/getMessage.dto';
 import { SearchMessageDto } from './dto/serchMessage.dto';
 import { S3Service } from '@src/s3/s3.service';
-import mime from 'mime';
+import * as fileType from 'file-type';
 
 @Injectable()
 export class ChatService {
@@ -87,13 +87,24 @@ export class ChatService {
     thumnailUrl: string
   ) {
     // 기존 채널 조회
-    const exist = await this.prisma.channel.findMany({
-      where: { title },
-      select: { id: true },
+    const result = await this.prisma.channel_users.groupBy({
+      by: ['channel_id'],
+      where: {
+        user_id: {
+          in: userIds,
+        },
+      },
+      _count: {
+        user_id: true,
+      },
     });
 
-    if (exist.length) {
-      return exist[0].id;
+    if (result.length) {
+      const exist = result.filter(
+        data => data._count.user_id == userIds.length
+      )[0];
+
+      return exist.channel_id;
     }
 
     // 새로운 채널 생성
@@ -521,12 +532,13 @@ export class ChatService {
 
   // 이미지 업로드
   async handleChatFiles(userId: number, file) {
-    const fileType = mime.getType(file);
+    const data = await fileType.fromBuffer(file);
+    const type = data.ext;
 
     const imageUrl = await this.s3.uploadImage(
       userId,
       file,
-      fileType,
+      type,
       'pad_chat/images'
     );
 
