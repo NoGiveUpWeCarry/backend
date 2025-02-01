@@ -526,7 +526,7 @@ export class ChatService {
     const imageUrl = await this.s3.uploadImage(
       userId,
       file,
-      fileType,
+      fileType || 'png',
       'pad_chat/images'
     );
 
