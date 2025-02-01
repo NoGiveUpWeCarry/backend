@@ -2,10 +2,15 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '@src/prisma/prisma.service';
 import { GetMessageDto } from './dto/getMessage.dto';
 import { SearchMessageDto } from './dto/serchMessage.dto';
+import { S3Service } from '@src/s3/s3.service';
+import { fileTypeFromBuffer } from 'file-type';
 
 @Injectable()
 export class ChatService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly s3: S3Service
+  ) {}
 
   // 온라인 유저 DB에 저장
   async addUserOnline(userId: number, clientId: string) {
@@ -512,5 +517,22 @@ export class ChatService {
     if (!auth.length) {
       throw new HttpException('권한이 없습니다.', HttpStatus.UNAUTHORIZED);
     }
+  }
+
+  // 이미지 업로드
+  async handleChatFiles(userId: number, file) {
+    const data = await fileTypeFromBuffer(file);
+    const fileType = data.ext;
+    const imageUrl = await this.s3.uploadImage(
+      userId,
+      file,
+      fileType,
+      'pad_chat/images'
+    );
+
+    return {
+      imageUrl,
+      message: { code: 200, message: '이미지 업로드가 완료되었습니다.' },
+    };
   }
 }
