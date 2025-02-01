@@ -577,4 +577,17 @@ export class ChatService {
 
     return lastMessageId;
   }
+
+  // 리드 카운트 증가
+  async updateReadCount(lastMessageId: number, channelId) {
+    await this.prisma.message.updateMany({
+      where: {
+        channel_id: channelId,
+        id: { gt: lastMessageId },
+      },
+      data: {
+        read_count: { increment: 1 },
+      },
+    });
+  }
 }
