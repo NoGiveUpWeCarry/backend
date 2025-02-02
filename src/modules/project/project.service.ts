@@ -440,14 +440,18 @@ export class ProjectService {
     });
 
     const message = `${sender.nickname}님이 회원님의 프로젝트에 지원했습니다.`;
-    await this.notificationsService.createNotification(
-      project.user_id, // 프로젝트 작성자 ID
-      userId, // 지원자 ID
-      'application',
-      message
-    );
+    // 알림 생성 및 `notificationId` 반환
+    const createdNotification =
+      await this.notificationsService.createNotification(
+        project.user_id, // 프로젝트 작성자 ID
+        userId, // 지원자 ID
+        'application',
+        message
+      );
 
+    // 실시간 알림 전송 (notificationId 포함)
     this.notificationsService.sendRealTimeNotification(project.user_id, {
+      notificationId: createdNotification.notificationId, // 알림 ID 추가
       type: 'application',
       message,
       senderNickname: sender.nickname,
@@ -740,14 +744,19 @@ export class ProjectService {
     });
 
     const message = `${sender.nickname}님이 회원님의 프로젝트 지원 상태를 '${status}'로 변경했습니다.`;
-    await this.notificationsService.createNotification(
-      targetUserId, // 지원자 ID
-      userId, // 프로젝트 작성자 ID
-      'applicationStatus',
-      message
-    );
 
+    // 알림 생성 및 notificationId 받기
+    const createdNotification =
+      await this.notificationsService.createNotification(
+        targetUserId, // 지원자 ID
+        userId, // 프로젝트 작성자 ID
+        'applicationStatus',
+        message
+      );
+
+    // 실시간 알림 전송 (notificationId 포함)
     this.notificationsService.sendRealTimeNotification(targetUserId, {
+      notificationId: createdNotification.notificationId, // 알림 ID 추가
       type: 'applicationStatus',
       message,
       senderNickname: sender.nickname,
