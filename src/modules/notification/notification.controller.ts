@@ -7,6 +7,7 @@ import {
   Get,
   Patch,
   Param,
+  BadRequestException,
 } from '@nestjs/common';
 import { Observable, of } from 'rxjs';
 import { filter, map } from 'rxjs/operators';
@@ -95,7 +96,13 @@ export class NotificationsController {
     @Param('notificationId') notificationId: string
   ) {
     const userId = req.user?.user_id;
+
+    // notificationId 유효성 검사
     const numNotificationId = parseInt(notificationId, 10);
+    if (isNaN(numNotificationId)) {
+      throw new BadRequestException('유효하지 않은 알림 ID입니다.');
+    }
+
     return this.notificationsService.markNotificationAsRead(
       userId,
       numNotificationId

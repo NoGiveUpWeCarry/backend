@@ -98,6 +98,13 @@ export class NotificationsService {
   }
 
   async markNotificationAsRead(userId: number, notificationId: number) {
+    console.log(
+      `🔍 [markNotificationAsRead] notificationId: ${notificationId}`
+    );
+    if (!notificationId || isNaN(notificationId)) {
+      throw new Error('Invalid notificationId provided');
+    }
+
     const notification = await this.prisma.notification.findUnique({
       where: { id: notificationId },
     });
@@ -120,6 +127,7 @@ export class NotificationsService {
       isRead: updatedNotification.isRead,
     };
   }
+
   sendRealTimeNotification(userId: number, data: any) {
     this.notifications$.next({
       userId,
