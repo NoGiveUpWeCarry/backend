@@ -473,6 +473,7 @@ export class ChatService {
       content: msg.content,
       channelId: msg.channel_id,
       date: msg.created_at,
+      readCount: msg.read_count,
       user: {
         userId: msg.user.id,
         email: msg.user.email,
