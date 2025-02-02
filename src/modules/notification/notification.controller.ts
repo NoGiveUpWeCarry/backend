@@ -95,14 +95,14 @@ export class NotificationsController {
     @Req() req,
     @Param('notificationId') notificationId: string
   ) {
-    const userId = req.user?.user_id;
+    const userId = Number(req.user?.user_id);
 
     const numNotificationId = parseInt(notificationId, 10);
     if (isNaN(numNotificationId)) {
       throw new BadRequestException('유효하지 않은 알림 ID입니다.');
     }
 
-    return this.notificationsService.markNotificationAsReadAndDelete(
+    return this.notificationsService.markNotificationAsRead(
       userId,
       numNotificationId
     );
