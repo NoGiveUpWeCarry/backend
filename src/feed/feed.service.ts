@@ -376,21 +376,34 @@ export class FeedService {
           );
         }
 
+        // 본인이 작성한 피드가 아닌 경우 알림 생성
         if (feed.user_id !== userId) {
           const sender = await this.prisma.user.findUnique({
             where: { id: userId },
             select: { nickname: true, profile_url: true },
           });
 
-          const message = `${sender.nickname}님이 회원님의 피드를 좋아합니다.`;
-          await this.notificationsService.createNotification(
-            feed.user_id,
-            userId,
-            'like',
-            message
-          );
+          if (!sender) {
+            throw new HttpException(
+              '보낸 사람 정보를 찾을 수 없습니다.',
+              HttpStatus.NOT_FOUND
+            );
+          }
 
+          const message = `${sender.nickname}님이 회원님의 피드를 좋아합니다.`;
+
+          // 알림 생성 및 notificationId 받기
+          const createdNotification =
+            await this.notificationsService.createNotification(
+              feed.user_id, // 피드 작성자 ID
+              userId, // 좋아요 누른 사용자 ID
+              'like',
+              message
+            );
+
+          // 생성된 알림의 notificationId를 포함하여 실시간 알림 전송
           this.notificationsService.sendRealTimeNotification(feed.user_id, {
+            notificationId: createdNotification.notificationId, // 알림 ID 추가
             type: 'like',
             message,
             senderNickname: sender.nickname,
@@ -562,6 +575,8 @@ export class FeedService {
   async createComment(userId: number, feedId: number, commentDto: CommentDto) {
     try {
       const content = commentDto.content;
+
+      // 댓글 생성
       await this.prisma.feedComment.create({
         data: {
           user_id: userId,
@@ -570,14 +585,16 @@ export class FeedService {
         },
       });
 
+      // 피드 댓글 카운트 증가
       await this.prisma.feedPost.update({
         where: { id: feedId },
         data: { comment_count: { increment: 1 } },
       });
 
+      // 피드 작성자 정보 가져오기
       const feed = await this.prisma.feedPost.findUnique({
         where: { id: feedId },
-        include: { user: true },
+        include: { user: true }, // 작성자 정보 포함
       });
 
       if (!feed) {
@@ -587,6 +604,7 @@ export class FeedService {
         );
       }
 
+      // 피드 작성자가 댓글 작성자가 아닌 경우 알림 생성
       if (feed.user_id !== userId) {
         const sender = await this.prisma.user.findUnique({
           where: { id: userId },
@@ -601,14 +619,19 @@ export class FeedService {
         }
 
         const message = `${sender.nickname}님이 회원님의 피드에 댓글을 남겼습니다.`;
-        await this.notificationsService.createNotification(
-          feed.user_id,
-          userId,
-          'comment',
-          message
-        );
 
+        // 알림 생성 및 notificationId 받기
+        const createdNotification =
+          await this.notificationsService.createNotification(
+            feed.user_id, // 피드 작성자 ID
+            userId, // 댓글 작성자 ID
+            'comment',
+            message
+          );
+
+        // 생성된 알림 ID를 포함하여 실시간 알림 전송
         this.notificationsService.sendRealTimeNotification(feed.user_id, {
+          notificationId: createdNotification.notificationId, // 알림 ID 추가
           type: 'comment',
           message,
           senderNickname: sender.nickname,
