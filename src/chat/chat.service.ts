@@ -1,9 +1,45 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '@src/prisma/prisma.service';
+import { GetMessageDto } from './dto/getMessage.dto';
+import { SearchMessageDto } from './dto/serchMessage.dto';
+import { S3Service } from '@src/s3/s3.service';
+import * as fileType from 'file-type';
 
 @Injectable()
 export class ChatService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly s3: S3Service
+  ) {}
+
+  // 온라인 유저 DB에 저장
+  async addUserOnline(userId: number, clientId: string) {
+    await this.prisma.online_users.create({
+      data: {
+        user_id: userId,
+        client_id: clientId,
+      },
+    });
+  }
+
+  // 오프라인 유저 DB에서 삭제
+  async deleteUserOnline(userId: number) {
+    await this.prisma.online_users.deleteMany({
+      where: {
+        user_id: userId,
+      },
+    });
+  }
+
+  // 유저 아이디를 통해 유저의 소켓 아이디 가져오기
+  async getSocketIds(Ids: number[]) {
+    const socketIds = await this.prisma.online_users.findMany({
+      where: { user_id: { in: Ids } },
+      select: { client_id: true },
+    });
+
+    return socketIds.map(id => id.client_id);
+  }
 
   // 기존 채널 조회 or 새 채널 생성
   // 채널id 리턴 (개인 채팅방)
@@ -51,13 +87,26 @@ export class ChatService {
     thumnailUrl: string
   ) {
     // 기존 채널 조회
-    const exist = await this.prisma.channel.findMany({
-      where: { title },
-      select: { id: true },
+    const result = await this.prisma.channel_users.groupBy({
+      by: ['channel_id'],
+      where: {
+        user_id: {
+          in: userIds,
+        },
+      },
+      _count: {
+        user_id: true,
+      },
     });
 
-    if (exist.length) {
-      return exist[0].id;
+    if (result.length) {
+      const exist = result.filter(
+        data => data._count.user_id == userIds.length
+      )[0];
+
+      if (exist) {
+        return exist.channel_id;
+      }
     }
 
     // 새로운 채널 생성
@@ -133,35 +182,6 @@ export class ChatService {
     return data;
   }
 
-  // 온라인 유저 DB에 저장
-  async addUserOnline(userId: number, clientId: string) {
-    await this.prisma.online_users.create({
-      data: {
-        user_id: userId,
-        client_id: clientId,
-      },
-    });
-  }
-
-  // 오프라인 유저 DB에서 삭제
-  async deleteUserOnline(userId: number) {
-    await this.prisma.online_users.deleteMany({
-      where: {
-        user_id: userId,
-      },
-    });
-  }
-
-  // 유저 아이디를 통해 유저의 소켓 아이디 가져오기
-  async getSocketIds(Ids: number[]) {
-    const socketIds = await this.prisma.online_users.findMany({
-      where: { user_id: { in: Ids } },
-      select: { client_id: true },
-    });
-
-    return socketIds.map(id => id.client_id);
-  }
-
   // 유저가 참여한 채널 전체 조회
   async getAllChannels(id: number) {
     const result = await this.prisma.channel_users.findMany({
@@ -181,18 +201,8 @@ export class ChatService {
   // 채널 개별 조회
   async getChannel(userId: number, channelId: number) {
     try {
-      // 유저 아이디가 채널에 속해있는지 확인
-      const auth = await this.prisma.channel_users.findMany({
-        where: {
-          user_id: userId,
-          channel_id: channelId,
-        },
-      });
-
-      // 아닐 시 예외처리
-      if (!auth.length) {
-        throw new Error('권한 X');
-      }
+      // 권한 확인
+      await this.confirmAuth(userId, channelId);
 
       const channel = await this.getChannleObj(channelId);
 
@@ -278,23 +288,12 @@ export class ChatService {
   async getMessages(
     userId: number,
     channelId: number,
-    limit: number,
-    cursor: number,
-    direction: string
+    getMessageDto: GetMessageDto
   ) {
     try {
-      // 유저 아이디가 채널에 속해있는지 확인
-      const auth = await this.prisma.channel_users.findMany({
-        where: {
-          user_id: userId,
-          channel_id: channelId,
-        },
-      });
-
-      // 아닐 시 예외처리
-      if (!auth.length) {
-        throw new Error('권한 X');
-      }
+      const { cursor, limit, direction } = getMessageDto;
+      // 권한 확인
+      await this.confirmAuth(userId, channelId);
 
       // 메세지 데이터 조회
       const result = await this.prisma.message.findMany({
@@ -362,23 +361,14 @@ export class ChatService {
   async searchMessage(
     userId: number,
     channelId: number,
-    limit: number,
-    cursor: number,
-    keyword: string,
-    direction: string
+    searchMessageDto: SearchMessageDto
   ) {
     try {
-      const auth = await this.prisma.channel_users.findMany({
-        where: {
-          user_id: userId,
-          channel_id: channelId,
-        },
-      });
+      const { limit, keyword } = searchMessageDto;
+      let { cursor, direction } = searchMessageDto;
 
-      // 아닐 시 예외처리
-      if (!auth.length) {
-        throw new Error('권한 X');
-      }
+      // 권한 확인
+      await this.confirmAuth(userId, channelId);
 
       if (!cursor) {
         const res = await this.prisma.message.findFirst({
@@ -386,7 +376,7 @@ export class ChatService {
           where: { channel_id: channelId },
           select: { id: true },
         });
-
+        direction = 'backward';
         cursor = res.id;
       }
 
@@ -483,6 +473,7 @@ export class ChatService {
       content: msg.content,
       channelId: msg.channel_id,
       date: msg.created_at,
+      readCount: msg.read_count,
       user: {
         userId: msg.user.id,
         email: msg.user.email,
@@ -496,6 +487,7 @@ export class ChatService {
     return data;
   }
 
+  // 유저 채널에서 삭제
   async deleteUser(userId: number, channelId: number) {
     await this.prisma.channel_users.deleteMany({
       where: {
@@ -525,5 +517,91 @@ export class ChatService {
       date: msg.created_at,
       messageId: msg.id,
     };
+  }
+
+  // 요청 채널에 대한 유저 권한 확인
+  async confirmAuth(userId: number, channelId: number) {
+    const auth = await this.prisma.channel_users.findMany({
+      where: {
+        user_id: userId,
+        channel_id: channelId,
+      },
+    });
+
+    if (!auth.length) {
+      throw new HttpException('권한이 없습니다.', HttpStatus.UNAUTHORIZED);
+    }
+  }
+
+  // 이미지 업로드
+  async handleChatFiles(userId: number, file) {
+    const data = await fileType.fromBuffer(file);
+    const type = data.ext;
+
+    const imageUrl = await this.s3.uploadImage(
+      userId,
+      file,
+      type,
+      'pad_chat/images'
+    );
+
+    return {
+      imageUrl,
+      message: { code: 200, message: '이미지 업로드가 완료되었습니다.' },
+    };
+  }
+
+  async increaseReadCount(messageId) {
+    await this.prisma.message.update({
+      where: { id: messageId },
+      data: { read_count: { increment: 1 } },
+    });
+  }
+
+  async setLastMessageId(userId, channelId, lastMessageId) {
+    const exist = await this.prisma.last_message_status.findFirst({
+      where: { user_id: userId, channel_id: channelId },
+    });
+
+    if (exist) {
+      await this.prisma.last_message_status.updateMany({
+        where: { user_id: userId, channel_id: channelId },
+        data: { last_message_id: lastMessageId },
+      });
+    } else {
+      await this.prisma.last_message_status.create({
+        data: {
+          user_id: userId,
+          channel_id: channelId,
+          last_message_id: lastMessageId,
+        },
+      });
+    }
+  }
+
+  // 라스트 메세지 id 조회
+  async getLastMessageId(userId, channelId) {
+    const lastMessageId = await this.prisma.last_message_status.findFirst({
+      where: {
+        user_id: userId,
+        channel_id: channelId,
+      },
+      select: { last_message_id: true },
+    });
+
+    return lastMessageId;
+  }
+
+  // 리드 카운트 증가
+  async updateReadCount(lastMessageId: number, channelId) {
+    await this.prisma.message.updateMany({
+      where: {
+        channel_id: channelId,
+        id: { gt: lastMessageId },
+      },
+      data: {
+        read_count: { increment: 1 },
+      },
+    });
   }
 }

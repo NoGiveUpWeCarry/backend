@@ -8,13 +8,13 @@ import {
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { ChatService } from './chat.service';
-import { Server, Socket } from 'socket.io';
+import { Namespace, Socket } from 'socket.io';
 
 @WebSocketGateway({ namespace: 'chat', cors: { origin: '*' } })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(private readonly chatService: ChatService) {}
 
-  @WebSocketServer() server: Server;
+  @WebSocketServer() server: Namespace;
 
   // 유저 소켓 접속
   async handleConnection(client: Socket) {
@@ -155,12 +155,26 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // 채널 참여
     client.join(channelId.toString());
     console.log(`유저 ${userId} 채널 ${channelId} 참여`);
+
+    // 라스트 메세지 id 확인
+    const lastMessage = await this.chatService.getLastMessageId(
+      userId,
+      channelId
+    );
+
+    // 라스트 메세지보다 id가 큰 값(최신 메세지) 리드 카운트 증가
+    const lastMessageId = lastMessage ? lastMessage.last_message_id : 0;
+    await this.chatService.updateReadCount(lastMessageId, channelId);
+
     // 채널 객체
     const channelData = await this.chatService.getChannel(userId, channelId);
     const { channel } = channelData;
 
     // 클라이언트에 채널 객체 전달
     client.emit('channelJoined', channel);
+    this.server
+      .to(channelId.toString())
+      .emit('broadcastChannelJoined', { channelId, lastMessageId });
   }
 
   // 메세지 송수신
@@ -175,14 +189,29 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   ) {
     const { userId } = data;
+    let messageData;
 
-    // 메세지 데이터 저장
-    const messageData = await this.chatService.createMessage(
-      data.type,
-      data.channelId,
-      userId,
-      data.content
-    );
+    // 전달 타입에 따라 메세지 데이터 저장
+    if (data.type == 'image') {
+      const result = await this.chatService.handleChatFiles(
+        userId,
+        data.content
+      );
+
+      messageData = await this.chatService.createMessage(
+        data.type,
+        data.channelId,
+        userId,
+        result.imageUrl
+      );
+    } else {
+      messageData = await this.chatService.createMessage(
+        data.type,
+        data.channelId,
+        userId,
+        data.content
+      );
+    }
 
     const messageId = messageData.id;
 
@@ -194,11 +223,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // 전달 데이터 양식
     const sendData = {
       type: data.type,
-      content: data.content,
+      content: messageData.content,
       channelId: data.channelId,
       messageId,
       user,
       date,
+      readCount: messageData.read_count,
     };
     console.log(sendData);
     this.server.to(data.channelId.toString()).emit('message', sendData);
@@ -221,5 +251,29 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const leaveMessage = await this.chatService.deleteUser(userId, channelId);
 
     this.server.to(channelId.toString()).emit('message', leaveMessage);
+  }
+
+  // 메세지 실시간 읽음처리
+  @SubscribeMessage('readMessage')
+  async handleReadCount(
+    @MessageBody() data: { messageId: number; channelId: number }
+  ) {
+    const { messageId } = data;
+    await this.chatService.increaseReadCount(messageId);
+    this.server.to(data.channelId.toString()).emit('readCounted', messageId);
+  }
+
+  // 라스트 메세지 id 저장 로직
+  @SubscribeMessage('disconnectChannel')
+  async handleLastMessage(
+    @MessageBody()
+    data: {
+      userId: number;
+      channelId: number;
+      lastMessageId: number;
+    }
+  ) {
+    const { userId, channelId, lastMessageId } = data;
+    await this.chatService.setLastMessageId(userId, channelId, lastMessageId);
   }
 }
