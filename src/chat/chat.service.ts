@@ -604,4 +604,15 @@ export class ChatService {
       },
     });
   }
+
+  async getChannelLastMessage(channelId: number) {
+    const data = await this.prisma.message.findFirst({
+      where: { channel_id: channelId },
+      orderBy: { id: 'desc' },
+      take: 1,
+      select: { id: true },
+    });
+
+    return data;
+  }
 }
