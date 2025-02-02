@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ApiBearerAuth } from '@nestjs/swagger';
 import { PrismaService } from '@src/prisma/prisma.service';
 import { Subject } from 'rxjs';
 
@@ -40,5 +41,66 @@ export class NotificationsService {
       senderProfileUrl: data.senderProfileUrl, // 보낸 사람 프로필 URL
       timestamp: new Date().toISOString(), // 알림 전송 시간
     });
+  }
+
+  async getUnreadNotifications(userId: number) {
+    const unreadNotifications = await this.prisma.notification.findMany({
+      where: {
+        userId: userId,
+        isRead: false,
+      },
+      include: {
+        sender: {
+          select: {
+            nickname: true,
+            profile_url: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    // 데이터를 변환하여 반환
+    return {
+      notifications: unreadNotifications.map(notification => ({
+        notificationId: notification.id, // `id`를 `notificationId`로 변경
+        userId: notification.userId,
+        senderId: notification.senderId,
+        type: notification.type,
+        message: notification.message,
+        isRead: notification.isRead,
+        createdAt: notification.createdAt,
+        sender: {
+          nickname: notification.sender.nickname,
+          profileUrl: notification.sender.profile_url, // `profile_url` -> `profileUrl`
+        },
+      })),
+    };
+  }
+
+  async markNotificationAsRead(userId: number, notificationId: number) {
+    const notification = await this.prisma.notification.findUnique({
+      where: { id: notificationId },
+    });
+
+    if (!notification) {
+      throw new Error('알림을 찾을 수 없습니다.');
+    }
+
+    if (notification.userId !== userId) {
+      throw new Error('본인의 알림만 읽음 처리할 수 있습니다.');
+    }
+
+    const updatedNotification = await this.prisma.notification.update({
+      where: { id: notificationId },
+      data: { isRead: true },
+    });
+
+    return {
+      notificationId: updatedNotification.id, // 필드 이름 변경
+      isRead: updatedNotification.isRead,
+    };
   }
 }
