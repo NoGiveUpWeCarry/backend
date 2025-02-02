@@ -8,13 +8,13 @@ import {
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { ChatService } from './chat.service';
-import { Server, Socket } from 'socket.io';
+import { Namespace, Socket } from 'socket.io';
 
 @WebSocketGateway({ namespace: 'chat', cors: { origin: '*' } })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(private readonly chatService: ChatService) {}
 
-  @WebSocketServer() server: Server;
+  @WebSocketServer() server: Namespace;
 
   // 유저 소켓 접속
   async handleConnection(client: Socket) {
