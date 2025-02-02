@@ -253,12 +253,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   // 메세지 실시간 읽음처리
   @SubscribeMessage('readMessage')
   async handleReadCount(
-    @MessageBody() data: { messageId: number },
-    @ConnectedSocket() client: Socket
+    @MessageBody() data: { messageId: number; channelId: number }
   ) {
     const { messageId } = data;
     await this.chatService.increaseReadCount(messageId);
-    client.emit('readCounted', messageId);
+    this.server.to(data.channelId.toString()).emit('readCounted', messageId);
   }
 
   // 라스트 메세지 id 저장 로직
