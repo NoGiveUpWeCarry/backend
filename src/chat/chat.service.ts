@@ -104,7 +104,9 @@ export class ChatService {
         data => data._count.user_id == userIds.length
       )[0];
 
-      return exist.channel_id;
+      if (exist) {
+        return exist.channel_id;
+      }
     }
 
     // 새로운 채널 생성
