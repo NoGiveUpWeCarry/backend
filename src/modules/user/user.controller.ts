@@ -48,6 +48,7 @@ import {
   DeleteUserResumeDocs,
   GetUserFeedPostsDocs,
   GetUserConnectionHubProjectsDocs,
+  UpdateUserLinksDocs,
 } from './docs/user.docs';
 import { ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { S3Service } from '@src/s3/s3.service';
@@ -71,14 +72,16 @@ export class UserController {
     return this.userService.getUserProfile(loggedInUserId, numUserId);
   }
 
-  @Get(':userId/headers')
+  @Get(':nickname/headers')
   @GetUserProfileHeaderDocs.ApiOperation
   @GetUserProfileHeaderDocs.ApiParam
   @GetUserProfileHeaderDocs.ApiResponse
-  async getUserProfileHeader(@Param('userId') userId: string, @Req() req) {
+  async getUserProfileHeader(@Param('nickname') nickname: string, @Req() req) {
     const loggedInUserId = req.user?.user_id;
-    const numUserId = parseInt(userId); // 인증된 사용자 ID
-    return this.userService.getUserProfileHeader(loggedInUserId, numUserId);
+    return this.userService.getUserProfileHeaderByNickname(
+      loggedInUserId,
+      nickname
+    );
   }
 
   @Get(':userId/followers')
@@ -324,19 +327,34 @@ export class UserController {
   @AddUserLinksDocs.ApiOperation
   @AddUserLinksDocs.ApiBody
   @AddUserLinksDocs.ApiResponse
-  async addUserLinks(@Req() req, @Body('links') links: string[]) {
+  async addUserLinks(@Req() req, @Body('url') url: string) {
     const userId = req.user?.user_id;
-    const formattedLinks = links.map(url => ({ url }));
-    return this.userService.addUserLinks(userId, formattedLinks);
+    return this.userService.addUserLink(userId, url);
   }
 
   @Delete('profile/links')
   @DeleteUserLinksDocs.ApiOperation
   @DeleteUserLinksDocs.ApiBody
   @DeleteUserLinksDocs.ApiResponse
-  async deleteUserLinks(@Req() req, @Body('linkIds') linkIds: number[]) {
+  async deleteUserLinks(@Req() req, @Body('linkId') linkId: number) {
     const userId = req.user?.user_id;
-    return this.userService.deleteUserLinks(userId, linkIds);
+    return this.userService.deleteUserLink(userId, linkId);
+  }
+
+  @Patch('profile/links')
+  @UpdateUserLinksDocs.ApiOperation
+  @UpdateUserLinksDocs.ApiBody
+  @UpdateUserLinksDocs.ApiResponse
+  async updateUserLink(
+    @Req() req,
+    @Body() updateData: { linkId: number; url: string }
+  ) {
+    const userId = req.user?.user_id;
+    return this.userService.updateUserLink(
+      userId,
+      updateData.linkId,
+      updateData.url
+    );
   }
 
   @Delete('account')

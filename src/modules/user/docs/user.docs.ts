@@ -119,18 +119,18 @@ export const GetUserProfileDocs = {
 
 export const GetUserProfileHeaderDocs = {
   ApiOperation: ApiOperation({
-    summary: '사용자 프로필 헤더 정보 조회',
-    description: '특정 사용자의 프로필 헤더 정보를 반환합니다. (간략한 정보)',
+    summary: '유저 프로필 헤더 조회',
+    description: '닉네임을 기반으로 특정 유저의 프로필 헤더를 조회합니다.',
   }),
   ApiParam: ApiParam({
-    name: 'userId',
+    name: 'nickname',
     required: true,
-    description: '조회할 사용자의 ID',
-    type: 'string',
+    description: '조회할 유저의 닉네임',
+    example: 'testNickname',
   }),
   ApiResponse: ApiResponse({
     status: 200,
-    description: '사용자 프로필 헤더 조회 성공',
+    description: '프로필 헤더 조회 성공',
     schema: {
       example: {
         message: {
@@ -138,17 +138,13 @@ export const GetUserProfileHeaderDocs = {
           text: '유저 프로필(헤더 부분) 조회에 성공했습니다',
         },
         userId: 1,
-        nickname: 'testForChangeNickName',
-        profileUrl:
-          '"https://user-profile-icons.s3.ap-northeast-2.amazonaws.com/pad_users/profile_7d52f324-8694-4789-a4f9-ab4dfc40e482.jpeg',
-        role: 'Programmer',
-        introduce: 'I am a software engineer.',
-        userLinks: [
-          'https://github.com/Ss0Mae',
-          'https://www.linkedin.com/in/Ss0Mae',
-        ],
-        isOwnProfile: true,
-        isFollowing: false,
+        nickname: 'testNickname',
+        profileUrl: 'https://example.com/profile.jpg',
+        role: 'Developer',
+        introduce: '안녕하세요. 저는 개발자입니다.',
+        userLinks: ['https://github.com/test', 'https://test.com'],
+        isOwnProfile: false,
+        isFollowing: true,
       },
     },
   }),
@@ -710,7 +706,7 @@ export const AddUserLinksDocs = {
     description: '추가할 링크 목록',
     schema: {
       example: {
-        links: ['https://github.com/user', 'https://linkedin.com/in/user'],
+        url: 'https://github.com/user'
       },
     },
   }),
@@ -741,7 +737,7 @@ export const DeleteUserLinksDocs = {
     description: '삭제할 링크 ID 목록',
     schema: {
       example: {
-        linkIds: [1, 2],
+        linkId: 1,
       },
     },
   }),
@@ -758,6 +754,61 @@ export const DeleteUserLinksDocs = {
           { linkId: 3, url: 'https://twitter.com/user' },
           { linkId: 4, url: 'https://facebook.com/user' },
         ],
+      },
+    },
+  }),
+};
+
+export const UpdateUserLinksDocs = {
+  ApiOperation: ApiOperation({
+    summary: '링크 수정',
+    description: '사용자의 특정 링크를 수정합니다.',
+  }),
+  ApiBody: ApiBody({
+    description: '수정할 링크의 ID와 새로운 URL 정보',
+    schema: {
+      type: 'object',
+      properties: {
+        linkId: {
+          type: 'number',
+          description: '수정할 링크의 ID',
+          example: 1,
+        },
+        url: {
+          type: 'string',
+          description: '새로운 링크 URL',
+          example: 'https://example.com',
+        },
+      },
+      required: ['linkId', 'url'],
+    },
+  }),
+  ApiResponse: ApiResponse({
+    status: 200,
+    description: '링크가 성공적으로 수정되었습니다.',
+    schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'object',
+          properties: {
+            code: { type: 'number', example: 200 },
+            text: {
+              type: 'string',
+              example: '링크가 성공적으로 수정되었습니다.',
+            },
+          },
+        },
+        links: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              linkId: { type: 'number', example: 1 },
+              url: { type: 'string', example: 'https://example.com' },
+            },
+          },
+        },
       },
     },
   }),
