@@ -5,6 +5,8 @@ import { UserModule } from '@modules/user/user.module';
 import { ChatGateway } from './chat/chat.gateway';
 import { ChatModule } from './chat/chat.module';
 import { FeedModule } from './feed/feed.module';
+import { ProjectModule } from './modules/project/project.module';
+import { SearchModule } from './search/search.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -14,6 +16,8 @@ import { FeedModule } from './feed/feed.module';
     UserModule,
     ChatModule,
     FeedModule,
+    ProjectModule,
+    SearchModule
   ],
   providers: [ChatGateway],
 })
