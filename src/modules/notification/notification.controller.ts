@@ -87,23 +87,22 @@ export class NotificationsController {
   }
 
   // 특정 알림을 읽음 상태로 변경
-  @Patch(':notificationId/read')
+  @Patch(':notificationId/delete')
   @patchNotificationReadDocs.ApiOperation
   @patchNotificationReadDocs.ApiParam
   @patchNotificationReadDocs.ApiResponse
-  async markNotificationAsRead(
+  async markNotificationAsReadAndDelete(
     @Req() req,
     @Param('notificationId') notificationId: string
   ) {
     const userId = req.user?.user_id;
 
-    // notificationId 유효성 검사
     const numNotificationId = parseInt(notificationId, 10);
     if (isNaN(numNotificationId)) {
       throw new BadRequestException('유효하지 않은 알림 ID입니다.');
     }
 
-    return this.notificationsService.markNotificationAsRead(
+    return this.notificationsService.markNotificationAsReadAndDelete(
       userId,
       numNotificationId
     );

@@ -97,10 +97,14 @@ export class NotificationsService {
     };
   }
 
-  async markNotificationAsRead(userId: number, notificationId: number) {
+  async markNotificationAsReadAndDelete(
+    userId: number,
+    notificationId: number
+  ) {
     console.log(
-      `🔍 [markNotificationAsRead] notificationId: ${notificationId}`
+      `🔍 [markNotificationAsReadAndDelete] notificationId: ${notificationId}`
     );
+
     if (!notificationId || isNaN(notificationId)) {
       throw new Error('Invalid notificationId provided');
     }
@@ -114,17 +118,17 @@ export class NotificationsService {
     }
 
     if (notification.userId !== userId) {
-      throw new Error('본인의 알림만 읽음 처리할 수 있습니다.');
+      throw new Error('본인의 알림만 처리할 수 있습니다.');
     }
 
-    const updatedNotification = await this.prisma.notification.update({
+    // 알림 삭제
+    await this.prisma.notification.delete({
       where: { id: notificationId },
-      data: { isRead: true },
     });
 
     return {
-      notificationId: updatedNotification.id, // 필드 이름 변경
-      isRead: updatedNotification.isRead,
+      message: '알림이 성공적으로 삭제되었습니다.',
+      notificationId,
     };
   }
 
