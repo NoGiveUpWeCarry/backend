@@ -170,7 +170,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const channelLastMessage =
       await this.chatService.getChannelLastMessage(channelId);
 
-    const channelLastMessageId = channelLastMessage.id;
+    const channelLastMessageId = channelLastMessage?.id || 0;
 
     // 채널 입장 시 채널의 마지막 메세지 last message로 저장
     await this.chatService.setLastMessageId(
