@@ -44,6 +44,9 @@ export class NotificationsService {
   }
 
   async getUnreadNotifications(userId: number) {
+    console.log(`🔍 [getUnreadNotifications] 시작 - userId: ${userId}`);
+
+    // 1. 읽지 않은 알림 조회
     const unreadNotifications = await this.prisma.notification.findMany({
       where: {
         userId: userId,
@@ -62,9 +65,14 @@ export class NotificationsService {
       },
     });
 
-    // 데이터를 변환하여 반환
-    return {
-      notifications: unreadNotifications.map(notification => ({
+    console.log(
+      '📥 [getUnreadNotifications] DB 조회 결과:',
+      unreadNotifications
+    );
+
+    // 2. 데이터를 변환하여 반환
+    const transformedNotifications = unreadNotifications.map(notification => {
+      const transformedNotification = {
         notificationId: notification.id, // `id`를 `notificationId`로 변경
         userId: notification.userId,
         senderId: notification.senderId,
@@ -76,7 +84,21 @@ export class NotificationsService {
           nickname: notification.sender.nickname,
           profileUrl: notification.sender.profile_url, // `profile_url` -> `profileUrl`
         },
-      })),
+      };
+
+      console.log(
+        '🔧 [getUnreadNotifications] 변환된 알림:',
+        transformedNotification
+      );
+      return transformedNotification;
+    });
+
+    console.log('📤 [getUnreadNotifications] 최종 반환 데이터:', {
+      notifications: transformedNotifications,
+    });
+
+    return {
+      notifications: transformedNotifications,
     };
   }
 
