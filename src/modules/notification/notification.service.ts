@@ -98,8 +98,6 @@ export class NotificationsService {
   }
 
   async markNotificationAsRead(userId: number, notificationId: number) {
-    console.log("============ 읽음 처리 메소드 호출 ==========");
-    console.log('============ 읽음 처리 메소드 호출 ==========');
     const notification = await this.prisma.notification.findUnique({
       where: { id: notificationId },
     });
@@ -117,8 +115,6 @@ export class NotificationsService {
       data: { isRead: true },
     });
 
-    console.log('============ 읽음 처리 메소드 호출끝 ==========');
-    console.log('============ 읽음 처리 메소드 호출끝 ==========');
     return {
       notificationId: updatedNotification.id,
       isRead: updatedNotification.isRead,
