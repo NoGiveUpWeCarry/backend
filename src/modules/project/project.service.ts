@@ -33,7 +33,16 @@ export class ProjectService {
 
     const where: any = {};
     if (role) where.role = role;
-    if (unit) where.Tags = { some: { tag: { name: unit } } };
+    // Details 테이블에서 detailJobs 조건 추가
+    if (unit) {
+      where.Details = {
+        some: {
+          detail_role: {
+            name: unit, // unit 값을 detail_role.name과 비교
+          },
+        },
+      };
+    }
 
     // 커서 조건 추가
     if (cursor) {
