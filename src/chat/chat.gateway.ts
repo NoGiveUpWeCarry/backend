@@ -229,7 +229,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       messageId,
       user,
       date,
-      readCount: messageData.readCount,
+      readCount: messageData.read_count,
     };
     console.log(sendData);
     this.server.to(data.channelId.toString()).emit('message', sendData);
