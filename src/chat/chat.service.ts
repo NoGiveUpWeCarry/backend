@@ -45,9 +45,24 @@ export class ChatService {
   // 채널id 리턴 (개인 채팅방)
   async getChannelId(userId1: number, userId2: number) {
     // 매핑 테이블에서 파라미터로 전달된 유저 아이디에 해당하는 데이터 찾기
+
+    const privateChannel = await this.prisma.channel.findMany({
+      where: { type: 'private' },
+      select: { id: true },
+    });
+
+    const privateChannelIds = [];
+
+    privateChannel.map(res => {
+      privateChannelIds.push(res.id);
+    });
+
     const result = await this.prisma.channel_users.groupBy({
       by: ['channel_id'],
       where: {
+        channel_id: {
+          in: privateChannelIds,
+        },
         user_id: {
           in: [userId1, userId2],
         },
@@ -603,5 +618,16 @@ export class ChatService {
         read_count: { increment: 1 },
       },
     });
+  }
+
+  async getChannelLastMessage(channelId: number) {
+    const data = await this.prisma.message.findFirst({
+      where: { channel_id: channelId },
+      orderBy: { id: 'desc' },
+      take: 1,
+      select: { id: true },
+    });
+
+    return data;
   }
 }

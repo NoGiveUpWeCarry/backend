@@ -166,15 +166,27 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const lastMessageId = lastMessage ? lastMessage.last_message_id : 0;
     await this.chatService.updateReadCount(lastMessageId, channelId);
 
+    // 채널 라스트 메세지 조회
+    const channelLastMessage =
+      await this.chatService.getChannelLastMessage(channelId);
+
+    const channelLastMessageId = channelLastMessage?.id;
+
+    if (channelLastMessageId) {
+      // 채널 입장 시 채널의 마지막 메세지 last message로 저장
+      await this.chatService.setLastMessageId(
+        userId,
+        channelId,
+        channelLastMessageId
+      );
+    }
     // 채널 객체
     const channelData = await this.chatService.getChannel(userId, channelId);
     const { channel } = channelData;
 
     // 클라이언트에 채널 객체 전달
     client.emit('channelJoined', channel);
-    this.server
-      .to(channelId.toString())
-      .emit('broadcastChannelJoined', { channelId, lastMessageId });
+    this.server.to(channelId.toString()).emit('broadcastChannelJoined');
   }
 
   // 메세지 송수신
@@ -256,24 +268,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   // 메세지 실시간 읽음처리
   @SubscribeMessage('readMessage')
   async handleReadCount(
-    @MessageBody() data: { messageId: number; channelId: number }
-  ) {
-    const { messageId } = data;
-    await this.chatService.increaseReadCount(messageId);
-    this.server.to(data.channelId.toString()).emit('readCounted', messageId);
-  }
-
-  // 라스트 메세지 id 저장 로직
-  @SubscribeMessage('disconnectChannel')
-  async handleLastMessage(
     @MessageBody()
     data: {
       userId: number;
+      messageId: number;
       channelId: number;
-      lastMessageId: number;
     }
   ) {
-    const { userId, channelId, lastMessageId } = data;
-    await this.chatService.setLastMessageId(userId, channelId, lastMessageId);
+    const { userId, channelId, messageId } = data;
+    await this.chatService.increaseReadCount(messageId);
+    await this.chatService.setLastMessageId(userId, channelId, messageId);
+    this.server.to(data.channelId.toString()).emit('readCounted', messageId);
   }
 }
