@@ -304,6 +304,36 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       readCount: messageData.read_count,
     };
     console.log(sendData);
+
+    // 오프라인 유저들에게 알람
+    const offlineUsers = await this.chatService.getChannelOfflineUsers(
+      data.channelId
+    );
+
+    if (offlineUsers.length) {
+      const message = '새로운 메세지가 있습니다.';
+
+      offlineUsers.forEach(async id => {
+        const createdNotification =
+          await this.notificationService.createNotification(
+            id,
+            userId,
+            'groupChat',
+            message
+          );
+
+        const notificationData = {
+          notificationId: createdNotification.notificationId, // 포함된 notificationId
+          type: 'groupChat',
+          message,
+          senderNickname: user.nickname,
+          senderProfileUrl: user.profileUrl,
+        };
+
+        this.notificationService.sendRealTimeNotification(id, notificationData);
+      });
+    }
+
     this.server.to(data.channelId.toString()).emit('message', sendData);
   }
 
