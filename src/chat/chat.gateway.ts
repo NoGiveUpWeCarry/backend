@@ -103,7 +103,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // 전송할 알림 데이터 객체
       const notificationData = {
         notificationId: createdNotification.notificationId, // 포함된 notificationId
-        type: 'follow',
+        type: 'privateChat',
         message,
         senderNickname: sender.nickname,
         senderProfileUrl: sender.profileUrl,
@@ -164,9 +164,35 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         targetSockets.includes(socket.id)
       );
 
+      const sender = await this.chatService.getSenderProfile(userId);
+      const message = `${sender.nickname}님이 단체 채팅방을 생성했습니다.`;
+
       // 각 멤버들의 채널 리스트에 해당 채널 추가
-      userSockets.forEach(socket => {
+      userSockets.forEach(async socket => {
         socket.emit('channelAdded', channel);
+
+        const createdNotification =
+          await this.notificationService.createNotification(
+            socket.data.userId,
+            userId,
+            'groupChat',
+            message
+          );
+
+        // 전송할 알림 데이터 객체
+        const notificationData = {
+          notificationId: createdNotification.notificationId, // 포함된 notificationId
+          type: 'groupChat',
+          message,
+          senderNickname: sender.nickname,
+          senderProfileUrl: sender.profileUrl,
+        };
+
+        // SSE를 통해 실시간 알림 전송
+        this.notificationService.sendRealTimeNotification(
+          socket.data.userId,
+          notificationData
+        );
       });
     } else {
       // 오프라인 일때
