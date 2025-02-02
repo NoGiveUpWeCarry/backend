@@ -10,7 +10,6 @@ export class FollowService {
   ) {}
 
   async toggleFollow(userId: number, targetUserId: number) {
-    // 현재 팔로우 상태 확인
     const existingFollow = await this.prisma.follows.findFirst({
       where: {
         following_user_id: userId,
@@ -19,7 +18,6 @@ export class FollowService {
     });
 
     if (existingFollow) {
-      // 언팔로우 처리
       await this.prisma.follows.delete({
         where: { id: existingFollow.id },
       });
@@ -29,7 +27,6 @@ export class FollowService {
         isFollowing: false,
       };
     } else {
-      // 팔로우 처리
       await this.prisma.follows.create({
         data: {
           following_user_id: userId,
@@ -37,7 +34,6 @@ export class FollowService {
         },
       });
 
-      // 상대방 정보 가져오기
       const sender = await this.prisma.user.findUnique({
         where: { id: userId },
       });
@@ -49,22 +45,24 @@ export class FollowService {
         throw new Error('사용자 정보를 찾을 수 없습니다.');
       }
 
-      // 알림 메시지 생성 및 전송
       const message = `${sender.nickname}님이 회원님을 팔로우하기 시작했습니다.`;
+
+      // 알림 생성 및 생성된 알림의 id 포함
+      const createdNotification =
+        await this.notificationsService.createNotification(
+          targetUserId,
+          userId,
+          'follow',
+          message
+        );
+
       const notificationData = {
+        notificationId: createdNotification.notificationId, // 포함된 notificationId
+        type: 'follow',
         message,
         senderNickname: sender.nickname,
         senderProfileUrl: sender.profile_url,
-        type: 'follow',
       };
-
-      // 알림 생성
-      await this.notificationsService.createNotification(
-        targetUserId,
-        userId,
-        notificationData.type,
-        notificationData.message
-      );
 
       // SSE를 통해 실시간 알림 전송
       this.notificationsService.sendRealTimeNotification(
