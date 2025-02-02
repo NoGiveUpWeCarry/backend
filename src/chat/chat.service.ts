@@ -547,4 +547,47 @@ export class ChatService {
       message: { code: 200, message: '이미지 업로드가 완료되었습니다.' },
     };
   }
+
+  async increaseReadCount(messageId) {
+    await this.prisma.message.update({
+      where: { id: messageId },
+      data: { read_count: { increment: 1 } },
+    });
+  }
+
+  async setLastMessageId(userId, channelId, lastMessageId) {
+    await this.prisma.last_message_status.create({
+      data: {
+        user_id: userId,
+        channel_id: channelId,
+        last_message_id: lastMessageId,
+      },
+    });
+  }
+
+  // 라스트 메세지 id 조회
+  async getLastMessageId(userId, channelId) {
+    const lastMessageId = await this.prisma.last_message_status.findFirst({
+      where: {
+        user_id: userId,
+        channel_id: channelId,
+      },
+      select: { last_message_id: true },
+    });
+
+    return lastMessageId;
+  }
+
+  // 리드 카운트 증가
+  async updateReadCount(lastMessageId: number, channelId) {
+    await this.prisma.message.updateMany({
+      where: {
+        channel_id: channelId,
+        id: { gt: lastMessageId },
+      },
+      data: {
+        read_count: { increment: 1 },
+      },
+    });
+  }
 }

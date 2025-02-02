@@ -155,6 +155,21 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // 채널 참여
     client.join(channelId.toString());
     console.log(`유저 ${userId} 채널 ${channelId} 참여`);
+
+    // 라스트 메세지 id 확인
+    const lastMessage = await this.chatService.getLastMessageId(
+      userId,
+      channelId
+    );
+
+    if (lastMessage) {
+      // 라스트 메세지 데이터가 있다면 id가 큰 값(최신 메세지) 리드 카운트 증가
+      await this.chatService.updateReadCount(
+        lastMessage.last_message_id,
+        channelId
+      );
+    }
+
     // 채널 객체
     const channelData = await this.chatService.getChannel(userId, channelId);
     const { channel } = channelData;
@@ -236,5 +251,26 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const leaveMessage = await this.chatService.deleteUser(userId, channelId);
 
     this.server.to(channelId.toString()).emit('message', leaveMessage);
+  }
+
+  // 메세지 실시간 읽음처리
+  @SubscribeMessage('readMessage')
+  async handleReadCount(@MessageBody() data: { messageId: number }) {
+    const { messageId } = data;
+    await this.chatService.increaseReadCount(messageId);
+  }
+
+  // 라스트 메세지 id 저장 로직
+  @SubscribeMessage('disconnectChannle')
+  async handleLastMessage(
+    @MessageBody()
+    data: {
+      userId: number;
+      channelId: number;
+      lastMessageId: number;
+    }
+  ) {
+    const { userId, channelId, lastMessageId } = data;
+    await this.chatService.setLastMessageId(userId, channelId, lastMessageId);
   }
 }
