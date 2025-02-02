@@ -559,13 +559,24 @@ export class ChatService {
   }
 
   async setLastMessageId(userId, channelId, lastMessageId) {
-    await this.prisma.last_message_status.create({
-      data: {
-        user_id: userId,
-        channel_id: channelId,
-        last_message_id: lastMessageId,
-      },
+    const exist = await this.prisma.last_message_status.findFirst({
+      where: { user_id: userId, channel_id: channelId },
     });
+
+    if (exist) {
+      await this.prisma.last_message_status.updateMany({
+        where: { user_id: userId, channel_id: channelId },
+        data: { last_message_id: lastMessageId },
+      });
+    } else {
+      await this.prisma.last_message_status.create({
+        data: {
+          user_id: userId,
+          channel_id: channelId,
+          last_message_id: lastMessageId,
+        },
+      });
+    }
   }
 
   // 라스트 메세지 id 조회

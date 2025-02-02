@@ -258,7 +258,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   // 라스트 메세지 id 저장 로직
-  @SubscribeMessage('disconnectChannle')
+  @SubscribeMessage('disconnectChannel')
   async handleLastMessage(
     @MessageBody()
     data: {
