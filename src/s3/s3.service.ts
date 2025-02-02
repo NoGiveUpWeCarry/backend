@@ -15,10 +15,12 @@ export class S3Service {
   async uploadImage(
     userId: number,
     fileBuffer: Buffer,
-    fileType: string
+    fileType: string,
+    prefix?: string
   ): Promise<string> {
     try {
-      const fileName = `mypli_users/profile_${crypto.randomUUID()}.${fileType}`;
+      const filePrefix = prefix || 'pad_users/profile';
+      const fileName = `${filePrefix}_${crypto.randomUUID()}.${fileType}`;
       const uploadResult = await this.s3
         .upload({
           Bucket: this.bucketName,
