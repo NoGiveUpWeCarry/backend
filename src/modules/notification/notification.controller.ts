@@ -22,11 +22,11 @@ import {
 @Controller('notifications')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@UseInterceptors(SseInterceptor)
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
   @Sse('stream')
+  @UseInterceptors(SseInterceptor)
   async streamNotifications(@Req() req): Promise<Observable<any>> {
     const userId = req.user?.user_id;
 
@@ -48,13 +48,12 @@ export class NotificationsController {
       console.log(`❌ 사용자 ${userId}와의 SSE 연결 종료`);
     });
 
-    // 🔹 SSE 연결 시 기존 읽지 않은 알림 전송
     const unreadNotifications =
       await this.notificationsService.getUnreadNotifications(userId);
 
-    // ✅ notifications 배열로 접근
     unreadNotifications.notifications.forEach(notification => {
       this.notificationsService.sendRealTimeNotification(userId, {
+        notificationId: notification.notificationId, // 포함된 notificationId
         type: notification.type,
         message: notification.message,
         senderNickname: notification.sender.nickname,
@@ -65,9 +64,9 @@ export class NotificationsController {
     return this.notificationsService.notifications$.asObservable().pipe(
       filter(notification => notification.userId === userId),
       map(notification => ({
-        event: 'message', // ✅ 'message' 이벤트 설정
+        event: 'message',
         data: {
-          notificationId: notification.id,
+          notificationId: notification.notificationId, // 클라이언트에 전달
           type: notification.type,
           message: notification.message,
           senderNickname: notification.senderNickname,

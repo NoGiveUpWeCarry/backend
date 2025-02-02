@@ -17,7 +17,7 @@ export class NotificationsService {
     message: string
   ) {
     try {
-      return await this.prisma.notification.create({
+      const createdNotification = await this.prisma.notification.create({
         data: {
           userId,
           senderId,
@@ -25,22 +25,17 @@ export class NotificationsService {
           message,
         },
       });
+
+      console.log('✅ 알림 생성 완료:', createdNotification);
+
+      return {
+        notificationId: createdNotification.id, // `id`를 `notificationId`로 변경
+        ...createdNotification,
+      };
     } catch (error) {
       console.error('알림 생성 중 오류:', error.message);
       throw new Error('알림 생성에 실패했습니다.');
     }
-  }
-
-  // 실시간 알림 전송
-  sendRealTimeNotification(userId: number, data: any) {
-    this.notifications$.next({
-      userId,
-      type: data.type || 'notification', // 이벤트 유형
-      message: data.message, // 알림 메시지
-      senderNickname: data.senderNickname, // 보낸 사람 닉네임
-      senderProfileUrl: data.senderProfileUrl, // 보낸 사람 프로필 URL
-      timestamp: new Date().toISOString(), // 알림 전송 시간
-    });
   }
 
   async getUnreadNotifications(userId: number) {
@@ -73,7 +68,7 @@ export class NotificationsService {
     // 2. 데이터를 변환하여 반환
     const transformedNotifications = unreadNotifications.map(notification => {
       const transformedNotification = {
-        notificationId: notification.id, // `id`를 `notificationId`로 변경
+        notificationId: notification.id, //
         userId: notification.userId,
         senderId: notification.senderId,
         type: notification.type,
@@ -124,5 +119,16 @@ export class NotificationsService {
       notificationId: updatedNotification.id, // 필드 이름 변경
       isRead: updatedNotification.isRead,
     };
+  }
+  sendRealTimeNotification(userId: number, data: any) {
+    this.notifications$.next({
+      userId,
+      notificationId: data.notificationId, // 알림 ID 포함
+      type: data.type || 'notification', // 이벤트 유형
+      message: data.message, // 알림 메시지
+      senderNickname: data.senderNickname, // 보낸 사람 닉네임
+      senderProfileUrl: data.senderProfileUrl, // 보낸 사람 프로필 URL
+      timestamp: new Date().toISOString(), // 알림 전송 시간
+    });
   }
 }
