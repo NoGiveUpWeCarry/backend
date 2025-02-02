@@ -12,12 +12,14 @@ import { CreateProjectDto } from './dto/CreateProject.dto';
 import { startOfWeek, endOfWeek } from 'date-fns';
 import { S3Service } from '@src/s3/s3.service';
 import * as cheerio from 'cheerio';
+import { NotificationsService } from '../notification/notification.service';
 
 @Injectable()
 export class ProjectService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly s3: S3Service
+    private readonly s3: S3Service,
+    private readonly notificationsService: NotificationsService
   ) {}
 
   async getProjects(params: {
@@ -31,7 +33,16 @@ export class ProjectService {
 
     const where: any = {};
     if (role) where.role = role;
-    if (unit) where.Tags = { some: { tag: { name: unit } } };
+    // Details 테이블에서 detailJobs 조건 추가
+    if (unit) {
+      where.Details = {
+        some: {
+          detail_role: {
+            name: unit, // unit 값을 detail_role.name과 비교
+          },
+        },
+      };
+    }
 
     // 커서 조건 추가
     if (cursor) {
@@ -43,7 +54,12 @@ export class ProjectService {
         throw new BadRequestException('유효하지 않은 커서 값입니다.');
       }
 
-      where.id = { gt: cursor }; // 유효한 커서 이후의 데이터 가져오기
+      // 정렬 조건에 따라 커서 조건 추가
+      if (sort) {
+        where.created_at = { lt: validCursor.created_at }; // created_at 기준
+      } else {
+        where.saved_count = { lt: validCursor.saved_count }; // saved_count 기준
+      }
     }
 
     const orderBy: any[] = [];
@@ -84,7 +100,7 @@ export class ProjectService {
       workType: project.work_type,
       applyCount: project.Applications.length,
       bookMarkCount: project.saved_count,
-      viewCount: project.view + 1,
+      viewCount: project.view,
       status: project.recruiting ? 'OPEN' : 'CLOSED',
       createdAt: project.created_at,
       user: {
@@ -207,7 +223,7 @@ export class ProjectService {
         startDate: project.start_date,
         duration: project.duration,
         workType: project.work_type,
-        status: project.recruiting ? 'OPEN' : 'CLOSE',
+        status: project.recruiting ? 'OPEN' : 'CLOSED',
         viewCount: project.view,
         applyCount: 0,
         bookmarkCount: 0,
@@ -367,7 +383,7 @@ export class ProjectService {
         startDate: project.start_date,
         duration: project.duration,
         workType: project.work_type,
-        status: project.recruiting ? 'OPEN' : 'CLOSE',
+        status: project.recruiting ? 'OPEN' : 'CLOSED',
         skills: project.Tags.map(t => t.tag.name),
         detailRoles: project.Details.map(d => d.detail_role.name),
         viewCount: project.view, // 이미 증가된 view 값을 사용
@@ -391,6 +407,7 @@ export class ProjectService {
     // 프로젝트 존재 여부 확인
     const project = await this.prisma.projectPost.findUnique({
       where: { id: projectId },
+      select: { user_id: true }, // 프로젝트 작성자 ID 가져오기
     });
 
     if (!project) {
@@ -414,6 +431,31 @@ export class ProjectService {
         user_id: userId,
         post_id: projectId,
       },
+    });
+
+    // 지원 알림 전송
+    const sender = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { nickname: true, profile_url: true },
+    });
+
+    const message = `${sender.nickname}님이 회원님의 프로젝트에 지원했습니다.`;
+    // 알림 생성 및 `notificationId` 반환
+    const createdNotification =
+      await this.notificationsService.createNotification(
+        project.user_id, // 프로젝트 작성자 ID
+        userId, // 지원자 ID
+        'application',
+        message
+      );
+
+    // 실시간 알림 전송 (notificationId 포함)
+    this.notificationsService.sendRealTimeNotification(project.user_id, {
+      notificationId: createdNotification.notificationId, // 알림 ID 추가
+      type: 'application',
+      message,
+      senderNickname: sender.nickname,
+      senderProfileUrl: sender.profile_url,
     });
 
     return {
@@ -448,6 +490,7 @@ export class ProjectService {
             introduce: true,
           },
         },
+        status: true,
       },
     });
     const resultapplicants = applicants.map(applicant => ({
@@ -455,6 +498,7 @@ export class ProjectService {
       name: applicant.user.name,
       nickname: applicant.user.nickname,
       profileUrl: applicant.user.profile_url,
+      status: applicant.status,
     }));
     return {
       applicants: resultapplicants,
@@ -601,12 +645,11 @@ export class ProjectService {
   }
 
   // 게시글 권한 확인
-  async feedAuth(userId: number, projectId: number) {
+  async feedAuth(userId: number, projectId: number): Promise<boolean> {
     const auth = await this.prisma.projectPost.findUnique({
       where: { id: projectId },
       select: { user_id: true },
     });
-
     return auth.user_id === userId;
   }
 
@@ -658,7 +701,7 @@ export class ProjectService {
   async updateApplicationStatus(
     userId: number,
     projectId: number,
-    targetUserId: number, // 지원자의 userId를 기반으로 업데이트
+    targetUserId: number, // 지원자의 userId
     status: 'Accepted' | 'Rejected' | 'Pending'
   ) {
     // 프로젝트 작성자인지 확인
@@ -692,6 +735,32 @@ export class ProjectService {
     const updatedApplication = await this.prisma.userApplyProject.update({
       where: { id: application.id },
       data: { status },
+    });
+
+    // 지원 상태 변경 알림 전송
+    const sender = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { nickname: true, profile_url: true },
+    });
+
+    const message = `${sender.nickname}님이 회원님의 프로젝트 지원 상태를 '${status}'로 변경했습니다.`;
+
+    // 알림 생성 및 notificationId 받기
+    const createdNotification =
+      await this.notificationsService.createNotification(
+        targetUserId, // 지원자 ID
+        userId, // 프로젝트 작성자 ID
+        'applicationStatus',
+        message
+      );
+
+    // 실시간 알림 전송 (notificationId 포함)
+    this.notificationsService.sendRealTimeNotification(targetUserId, {
+      notificationId: createdNotification.notificationId, // 알림 ID 추가
+      type: 'applicationStatus',
+      message,
+      senderNickname: sender.nickname,
+      senderProfileUrl: sender.profile_url,
     });
 
     return {
@@ -733,7 +802,7 @@ export class ProjectService {
       project: {
         projectId: updatedProject.id,
         recruiting: updatedProject.recruiting,
-        status: recruiting ? 'OPEN' : 'CLOSE',
+        status: recruiting ? 'OPEN' : 'CLOSED',
       },
     };
   }

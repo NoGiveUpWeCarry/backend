@@ -81,7 +81,7 @@ export class ProjectController {
     @Body() updateProjectDto: CreateProjectDto,
     @Req() req
   ) {
-    const userId = req.user.id; // 인증된 사용자 ID
+    const userId = req.user.user_id; // 인증된 사용자 ID
     return this.projectService.updateProject(
       userId,
       projectId,
@@ -109,6 +109,8 @@ export class ProjectController {
   }
 
   @Post('image')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @UseInterceptors(FileInterceptor('file'))
   @UploadFeedImageDocs.ApiOperation
   @UploadFeedImageDocs.ApiConsumes
@@ -116,6 +118,7 @@ export class ProjectController {
   @UploadFeedImageDocs.ApiResponse
   async func(@Req() req, @UploadedFile() file: Express.Multer.File) {
     const userId = req.user.user_id;
+    console.log(userId);
     return await this.projectService.uploadFeedImage(userId, file);
   }
 
@@ -141,7 +144,7 @@ export class ProjectController {
     @Param('projectId', ParseIntPipe) projectId: number,
     @Req() req
   ) {
-    const userId = req.user.user_id;; // 인증된 사용자 ID
+    const userId = req.user.user_id; // 인증된 사용자 ID
     return this.projectService.applyToProject(userId, projectId);
   }
 
@@ -165,7 +168,7 @@ export class ProjectController {
     @Param('projectId', ParseIntPipe) projectId: number,
     @Req() req
   ) {
-    const userId = req.user.user_id;; // 인증된 사용자 ID
+    const userId = req.user.user_id; // 인증된 사용자 ID
     return this.projectService.checkApplyStatus(userId, projectId);
   }
 
@@ -179,7 +182,7 @@ export class ProjectController {
     @Param('projectId', ParseIntPipe) projectId: number,
     @Req() req
   ) {
-    const userId = req.user.user_id;; // 인증된 사용자 ID
+    const userId = req.user.user_id; // 인증된 사용자 ID
     return this.projectService.cancelApplication(userId, projectId);
   }
 
@@ -197,7 +200,7 @@ export class ProjectController {
     @Body('status') status: 'Accepted' | 'Rejected' | 'Pending',
     @Req() req
   ) {
-    const userId = req.user.user_id;; // 인증된 사용자 ID
+    const userId = req.user.user_id; // 인증된 사용자 ID
     return this.projectService.updateApplicationStatus(
       userId,
       projectId,
@@ -218,7 +221,7 @@ export class ProjectController {
     @Body('recruiting') recruiting: boolean,
     @Req() req
   ) {
-    const userId = req.user.user_id;; // 인증된 사용자 ID
+    const userId = req.user.user_id; // 인증된 사용자 ID
     return this.projectService.updateProjectStatus(
       userId,
       projectId,
@@ -241,6 +244,8 @@ export class ProjectController {
   }
 
   @Get(':projectId/bookmark')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @CheckBookmarkDocs.ApiOperation
   @CheckBookmarkDocs.ApiParam
   @CheckBookmarkDocs.ApiResponse
