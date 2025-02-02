@@ -630,4 +630,21 @@ export class ChatService {
 
     return data;
   }
+
+  async getChannelOfflineUsers(channelId: number) {
+    const userData = await this.prisma.channel_users.findMany({
+      where: { channel_id: channelId },
+      select: { user_id: true },
+    });
+    const userIds = userData.map(user => user.user_id);
+
+    const onlineData = await this.prisma.online_users.findMany({
+      select: { user_id: true },
+    });
+    const onlineIds = onlineData.map(user => user.user_id);
+
+    const result = userIds.filter(id => !onlineIds.includes(id));
+
+    return result;
+  }
 }
