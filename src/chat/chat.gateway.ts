@@ -85,39 +85,39 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // 유저2의 채널 리스트에 해당 채널 추가
       userSocket.emit('channelAdded', channel);
       console.log(`channel ${channelId} added in ${userId2} channel list`);
-
-      // 알람 기능
-      const sender = await this.chatService.getSenderProfile(userId1);
-
-      const message = `${sender.nickname}님과의 개인 채팅방이 생성되었습니다.`;
-
-      // 알람 DB에 저장
-      const createdNotification =
-        await this.notificationService.createNotification(
-          userId2,
-          userId1,
-          'privateChat',
-          message
-        );
-
-      // 전송할 알림 데이터 객체
-      const notificationData = {
-        notificationId: createdNotification.notificationId, // 포함된 notificationId
-        type: 'privateChat',
-        message,
-        senderNickname: sender.nickname,
-        senderProfileUrl: sender.profileUrl,
-      };
-
-      // SSE를 통해 실시간 알림 전송
-      this.notificationService.sendRealTimeNotification(
-        userId2,
-        notificationData
-      );
     } else {
       // 오프라인 일때
       console.log(`User ${userId2} is not connected.`);
     }
+
+    // 알람 기능
+    const sender = await this.chatService.getSenderProfile(userId1);
+
+    const message = `${sender.nickname}님과의 개인 채팅방이 생성되었습니다.`;
+
+    // 알람 DB에 저장
+    const createdNotification =
+      await this.notificationService.createNotification(
+        userId2,
+        userId1,
+        'privateChat',
+        message
+      );
+
+    // 전송할 알림 데이터 객체
+    const notificationData = {
+      notificationId: createdNotification.notificationId, // 포함된 notificationId
+      type: 'privateChat',
+      message,
+      senderNickname: sender.nickname,
+      senderProfileUrl: sender.profileUrl,
+    };
+
+    // SSE를 통해 실시간 알림 전송
+    this.notificationService.sendRealTimeNotification(
+      userId2,
+      notificationData
+    );
 
     // 클라이언트에 채널id 전달
     client.emit('channelCreated', channel);
@@ -164,40 +164,42 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         targetSockets.includes(socket.id)
       );
 
-      const sender = await this.chatService.getSenderProfile(userId);
-      const message = `${sender.nickname}님이 단체 채팅방을 생성했습니다.`;
-
       // 각 멤버들의 채널 리스트에 해당 채널 추가
       userSockets.forEach(async socket => {
         socket.emit('channelAdded', channel);
-
-        const createdNotification =
-          await this.notificationService.createNotification(
-            socket.data.userId,
-            userId,
-            'groupChat',
-            message
-          );
-
-        // 전송할 알림 데이터 객체
-        const notificationData = {
-          notificationId: createdNotification.notificationId, // 포함된 notificationId
-          type: 'groupChat',
-          message,
-          senderNickname: sender.nickname,
-          senderProfileUrl: sender.profileUrl,
-        };
-
-        // SSE를 통해 실시간 알림 전송
-        this.notificationService.sendRealTimeNotification(
-          socket.data.userId,
-          notificationData
-        );
       });
     } else {
       // 오프라인 일때
       console.log('모든 유저가 오프라인 상태입니다.');
     }
+
+    const sender = await this.chatService.getSenderProfile(userId);
+    const message = `${sender.nickname}님이 단체 채팅방을 생성했습니다.`;
+
+    groupMemberIds.forEach(async memberId => {
+      const createdNotification =
+        await this.notificationService.createNotification(
+          memberId,
+          userId,
+          'groupChat',
+          message
+        );
+
+      // 전송할 알림 데이터 객체
+      const notificationData = {
+        notificationId: createdNotification.notificationId, // 포함된 notificationId
+        type: 'groupChat',
+        message,
+        senderNickname: sender.nickname,
+        senderProfileUrl: sender.profileUrl,
+      };
+
+      // SSE를 통해 실시간 알림 전송
+      this.notificationService.sendRealTimeNotification(
+        memberId,
+        notificationData
+      );
+    });
 
     // 클라이언트에 채널id 전달
     client.emit('groupCreated', channel);
