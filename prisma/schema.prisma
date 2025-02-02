@@ -346,7 +346,7 @@ model Message {
   channel    Channel  @relation(fields: [channel_id], references: [id])
   user       User     @relation(fields: [user_id], references: [id])
 
-  read_count          Int                   @default(1)
+  read_count          Int                   @default(0)
   Last_message_status Last_message_status[]
 
   @@index([channel_id], map: "Message_channel_id_fkey")
