@@ -9,10 +9,14 @@ import {
 } from '@nestjs/websockets';
 import { ChatService } from './chat.service';
 import { Namespace, Socket } from 'socket.io';
+import { NotificationsService } from '@src/modules/notification/notification.service';
 
 @WebSocketGateway({ namespace: 'chat', cors: { origin: '*' } })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
-  constructor(private readonly chatService: ChatService) {}
+  constructor(
+    private readonly chatService: ChatService,
+    private readonly notificationService: NotificationsService
+  ) {}
 
   @WebSocketServer() server: Namespace;
 
@@ -81,6 +85,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // 유저2의 채널 리스트에 해당 채널 추가
       userSocket.emit('channelAdded', channel);
       console.log(`channel ${channelId} added in ${userId2} channel list`);
+
+      const createdNotification = await this.no;
     } else {
       // 오프라인 일때
       console.log(`User ${userId2} is not connected.`);
