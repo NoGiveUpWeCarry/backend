@@ -49,6 +49,15 @@ export class UserService {
       where: { following_user_id: targetUserId },
     });
 
+    // 유저가 작성한 피드 개수
+    const feedCount = await this.prisma.feedPost.count({
+      where: { user_id: targetUserId },
+    });
+
+    // 유저가 지원한 프로젝트의 개수
+    const applyCount = await this.prisma.userApplyProject.count({
+      where: { user_id: targetUserId },
+    });
     // 반환 데이터 구성
     const response = {
       message: {
@@ -56,10 +65,10 @@ export class UserService {
         text: '유저 프로필 조회에 성공했습니다',
       },
       status: user.status.name,
-      applyCount: user.apply_count,
-      postCount: user.post_count,
       followerCount, // 팔로워 수
       followingCount, // 팔로잉 수
+      feedCount, // 유저가 작성한 피드 개수
+      applyCount, // 유저가 지원한 프로젝트 개수
       isOwnProfile: loggedInUserId === targetUserId, // 자신의 프로필인지 확인
     };
 
@@ -529,26 +538,59 @@ export class UserService {
       projectAlert?: boolean;
     }
   ) {
-    const updatedUser = await this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        push_alert: notifications.pushAlert,
-        following_alert: notifications.followingAlert,
-        project_alert: notifications.projectAlert,
-      },
-    });
+    // Validation
+    if (
+      notifications.pushAlert === undefined &&
+      notifications.followingAlert === undefined &&
+      notifications.projectAlert === undefined
+    ) {
+      return {
+        message: {
+          code: 400,
+          text: '업데이트할 알림 설정이 제공되지 않았습니다.',
+        },
+      };
+    }
 
-    return {
-      message: {
-        code: 200,
-        text: '알림 설정이 성공적으로 업데이트되었습니다.',
-      },
-      notifications: {
-        pushAlert: updatedUser.push_alert,
-        followingAlert: updatedUser.following_alert,
-        projectAlert: updatedUser.project_alert,
-      },
-    };
+    const updateData: any = {};
+
+    if (notifications.pushAlert !== undefined) {
+      updateData.push_alert = notifications.pushAlert;
+    }
+    if (notifications.followingAlert !== undefined) {
+      updateData.following_alert = notifications.followingAlert;
+    }
+    if (notifications.projectAlert !== undefined) {
+      updateData.project_alert = notifications.projectAlert;
+    }
+
+    try {
+      const updatedUser = await this.prisma.user.update({
+        where: { id: userId },
+        data: updateData,
+        select: {
+          push_alert: true,
+          following_alert: true,
+          project_alert: true,
+        },
+      });
+
+      return {
+        message: {
+          code: 200,
+          text: '알림 설정이 성공적으로 업데이트되었습니다.',
+        },
+        notifications: {
+          pushAlert: updatedUser.push_alert,
+          followingAlert: updatedUser.following_alert,
+          projectAlert: updatedUser.project_alert,
+        },
+      };
+    } catch (error) {
+      throw new Error(
+        `알림 설정 업데이트 중 오류가 발생했습니다: ${error.message}`
+      );
+    }
   }
 
   async addUserSkills(userId: number, skills: string[]) {
@@ -944,15 +986,13 @@ export class UserService {
     };
   }
 
-  async getFeeds(userId: number, page: number = 1, limit: number = 10) {
-    // Offset 계산
-    const offset = (page - 1) * limit;
-
-    // 특정 유저의 피드 조회
+  async getFeeds(userId: number, cursor?: number, limit: number = 10) {
+    // 특정 유저의 피드 조회 (cursor 기반 페이징)
     const feeds = await this.prisma.feedPost.findMany({
       where: { user_id: userId }, // 특정 유저의 글만 가져옴
-      skip: offset,
-      take: limit,
+      take: limit, // 가져올 개수
+      skip: cursor ? 1 : undefined, // 커서가 있는 경우 첫 번째 항목 제외
+      cursor: cursor ? { id: cursor } : undefined, // 커서 적용
       orderBy: { created_at: 'desc' },
       include: {
         user: {
@@ -970,16 +1010,16 @@ export class UserService {
       },
     });
 
-    // 총 피드 개수 (페이지네이션 용)
-    const totalCount = await this.prisma.feedPost.count({
-      where: { user_id: userId }, // 특정 유저의 글만 카운트
-    });
+    // 마지막 커서 설정 (다음 요청을 위해)
+    const lastCursor = feeds.length > 0 ? feeds[feeds.length - 1].id : null;
 
-    // 반환 데이터 구성
     return {
       message: {
         code: 200,
-        text: '사용자 피드 조회에 성공했습니다.',
+        text:
+          feeds.length > 0
+            ? '사용자 피드 조회에 성공했습니다.'
+            : '더 이상 데이터가 없습니다.',
       },
       feeds: feeds.map(feed => ({
         id: feed.id,
@@ -997,74 +1037,62 @@ export class UserService {
         },
         tags: feed.Tags.map(tag => tag.tag.name),
       })),
-      totalCount,
-      currentPage: page,
-      totalPages: Math.ceil(totalCount / limit),
+      pagination: {
+        lastCursor, // 다음 요청을 위한 커서 반환
+      },
     };
   }
 
   async getConnectionHubProjects(
     userId: number,
-    type: 'applied' | 'created',
-    page: number = 1,
-    limit: number = 10
+    type: 'applied' | 'created' = 'created', // 기본값 설정
+    cursor?: number, // cursor 추가
+    limit: number = 10 // limit 기본값
   ) {
-    const offset = (page - 1) * limit;
+    const safeLimit = limit || 10; // Prisma에 전달할 안전한 limit 값
+    let projectsQuery;
 
-    let projectsQuery, totalCountQuery;
-
-    // 쿼리 조건 설정
     if (type === 'applied') {
+      // 지원한 프로젝트
       projectsQuery = this.prisma.userApplyProject.findMany({
         where: { user_id: userId },
-        skip: offset,
-        take: limit,
+        take: safeLimit,
+        skip: cursor ? 1 : undefined, // 커서가 있는 경우 첫 번째 항목 제외
+        cursor: cursor ? { id: cursor } : undefined, // 커서 설정
         include: {
           post: {
             include: {
-              Tags: {
-                include: { tag: true }, // 태그 정보 포함
-              },
+              Tags: { select: { tag: { select: { name: true } } } },
+              Applications: { select: { id: true } },
+              Details: { select: { detail_role: { select: { name: true } } } },
             },
           },
         },
         orderBy: {
-          post: {
-            created_at: 'desc', // post의 created_at 기준으로 정렬
-          },
+          post: { created_at: 'desc' },
         },
-      });
-
-      totalCountQuery = this.prisma.userApplyProject.count({
-        where: { user_id: userId },
       });
     } else if (type === 'created') {
+      // 생성한 프로젝트
       projectsQuery = this.prisma.projectPost.findMany({
         where: { user_id: userId },
-        skip: offset,
-        take: limit,
+        take: safeLimit,
+        skip: cursor ? 1 : undefined, // 커서가 있는 경우 첫 번째 항목 제외
+        cursor: cursor ? { id: cursor } : undefined, // 커서 설정
         include: {
-          Tags: {
-            include: { tag: true }, // 태그 정보 포함
-          },
+          Tags: { select: { tag: { select: { name: true } } } },
+          Applications: { select: { id: true } },
+          Details: { select: { detail_role: { select: { name: true } } } },
         },
         orderBy: { created_at: 'desc' },
-      });
-
-      totalCountQuery = this.prisma.projectPost.count({
-        where: { user_id: userId },
       });
     } else {
       throw new BadRequestException('유효하지 않은 타입입니다.');
     }
 
-    // 쿼리 실행
-    const [projects, totalCount] = await Promise.all([
-      projectsQuery,
-      totalCountQuery,
-    ]);
+    const projects = await projectsQuery;
 
-    // 데이터 매핑
+    // 데이터 포맷팅
     const formattedProjects = projects.map(project => {
       const projectData = type === 'applied' ? project.post : project;
       return {
@@ -1072,23 +1100,35 @@ export class UserService {
         title: projectData.title,
         content: projectData.content,
         thumbnailUrl: projectData.thumbnail_url,
-        startDate: projectData.start_date,
-        duration: `${projectData.unit}`,
-        recruiting: projectData.recruiting,
-        view: projectData.view,
-        tags: projectData.Tags.map(tag => tag.tag.name),
+        role: projectData.role,
+        skills: projectData.Tags.map(tag => `${tag.tag.name}`),
+        detailRoles: projectData.Details.map(d => `${d.detail_role.name}`),
+        hubType: projectData.hub_type,
+        startDate: projectData.start_date.toISOString().split('T')[0],
+        duration: projectData.duration,
+        workType: projectData.work_type,
+        applyCount: projectData.Applications.length,
+        bookMarkCount: projectData.saved_count,
+        viewCount: projectData.view,
+        status: projectData.recruiting ? 'OPEN' : 'CLOSED',
+        createdAt: projectData.created_at,
       };
     });
+
+    const lastCursor = projects[projects.length - 1]?.id || null; // 마지막 커서 설정
 
     return {
       message: {
         code: 200,
-        text: '사용자 커넥션허브 조회에 성공했습니다.',
+        text:
+          formattedProjects.length > 0
+            ? '프로젝트 조회 성공'
+            : '더 이상 데이터가 없습니다.',
       },
       projects: formattedProjects,
-      totalCount,
-      currentPage: page,
-      totalPages: Math.ceil(totalCount / limit),
+      pagination: {
+        lastCursor,
+      },
     };
   }
 

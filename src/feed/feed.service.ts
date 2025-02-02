@@ -6,12 +6,14 @@ import { CommentDto } from './dto/comment.dto';
 import { GetFeedsQueryDto } from './dto/getFeedsQuery.dto';
 import { S3Service } from '@src/s3/s3.service';
 import * as dayjs from 'dayjs';
+import { NotificationsService } from '@src/modules/notification/notification.service';
 
 @Injectable()
 export class FeedService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly s3: S3Service
+    private readonly s3: S3Service,
+    private readonly notificationsService: NotificationsService
   ) {}
 
   // 피드 전체 조회
@@ -333,6 +335,7 @@ export class FeedService {
       });
 
       if (exist.length) {
+        // 좋아요 취소
         await this.prisma.feedLike.deleteMany({
           where: {
             post_id: feedId,
@@ -347,6 +350,7 @@ export class FeedService {
 
         return { message: { code: 200, text: '좋아요가 취소되었습니다.' } };
       } else {
+        // 좋아요 추가
         await this.prisma.feedLike.create({
           data: {
             post_id: feedId,
@@ -359,10 +363,58 @@ export class FeedService {
           data: { like_count: { increment: 1 } },
         });
 
+        // 피드 작성자 정보 가져오기
+        const feed = await this.prisma.feedPost.findUnique({
+          where: { id: feedId },
+          include: { user: true }, // 작성자 정보 포함
+        });
+
+        if (!feed) {
+          throw new HttpException(
+            '피드를 찾을 수 없습니다.',
+            HttpStatus.NOT_FOUND
+          );
+        }
+
+        // 본인이 작성한 피드가 아닌 경우 알림 생성
+        if (feed.user_id !== userId) {
+          const sender = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: { nickname: true, profile_url: true },
+          });
+
+          if (!sender) {
+            throw new HttpException(
+              '보낸 사람 정보를 찾을 수 없습니다.',
+              HttpStatus.NOT_FOUND
+            );
+          }
+
+          const message = `${sender.nickname}님이 회원님의 피드를 좋아합니다.`;
+
+          // 알림 생성 및 notificationId 받기
+          const createdNotification =
+            await this.notificationsService.createNotification(
+              feed.user_id, // 피드 작성자 ID
+              userId, // 좋아요 누른 사용자 ID
+              'like',
+              message
+            );
+
+          // 생성된 알림의 notificationId를 포함하여 실시간 알림 전송
+          this.notificationsService.sendRealTimeNotification(feed.user_id, {
+            notificationId: createdNotification.notificationId, // 알림 ID 추가
+            type: 'like',
+            message,
+            senderNickname: sender.nickname,
+            senderProfileUrl: sender.profile_url,
+          });
+        }
+
         return { message: { code: 200, text: '좋아요가 추가되었습니다.' } };
       }
     } catch (err) {
-      console.log(err);
+      console.error(err);
       throw new HttpException(
         '서버에서 오류가 발생했습니다.',
         HttpStatus.INTERNAL_SERVER_ERROR
@@ -522,8 +574,9 @@ export class FeedService {
   // 댓글 등록
   async createComment(userId: number, feedId: number, commentDto: CommentDto) {
     try {
-      // 댓글 데이터 저장
       const content = commentDto.content;
+
+      // 댓글 생성
       await this.prisma.feedComment.create({
         data: {
           user_id: userId,
@@ -538,9 +591,57 @@ export class FeedService {
         data: { comment_count: { increment: 1 } },
       });
 
+      // 피드 작성자 정보 가져오기
+      const feed = await this.prisma.feedPost.findUnique({
+        where: { id: feedId },
+        include: { user: true }, // 작성자 정보 포함
+      });
+
+      if (!feed) {
+        throw new HttpException(
+          '피드를 찾을 수 없습니다.',
+          HttpStatus.NOT_FOUND
+        );
+      }
+
+      // 피드 작성자가 댓글 작성자가 아닌 경우 알림 생성
+      if (feed.user_id !== userId) {
+        const sender = await this.prisma.user.findUnique({
+          where: { id: userId },
+          select: { nickname: true, profile_url: true },
+        });
+
+        if (!sender) {
+          throw new HttpException(
+            '보낸 사람 정보를 찾을 수 없습니다.',
+            HttpStatus.NOT_FOUND
+          );
+        }
+
+        const message = `${sender.nickname}님이 회원님의 피드에 댓글을 남겼습니다.`;
+
+        // 알림 생성 및 notificationId 받기
+        const createdNotification =
+          await this.notificationsService.createNotification(
+            feed.user_id, // 피드 작성자 ID
+            userId, // 댓글 작성자 ID
+            'comment',
+            message
+          );
+
+        // 생성된 알림 ID를 포함하여 실시간 알림 전송
+        this.notificationsService.sendRealTimeNotification(feed.user_id, {
+          notificationId: createdNotification.notificationId, // 알림 ID 추가
+          type: 'comment',
+          message,
+          senderNickname: sender.nickname,
+          senderProfileUrl: sender.profile_url,
+        });
+      }
+
       return { message: { code: 201, text: '댓글 등록이 완료되었습니다.' } };
     } catch (err) {
-      console.log(err);
+      console.error('댓글 등록 중 오류:', err.message);
       throw new HttpException(
         '서버에서 오류가 발생했습니다.',
         HttpStatus.INTERNAL_SERVER_ERROR

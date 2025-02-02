@@ -384,6 +384,7 @@ export const GetApplicantsDocs = {
             name: 'Lee Chan',
             nickname: 'leechan_dev',
             profileUrl: 'https://example.com/profile.png',
+            status: 'Pending',
           },
         ],
         message: {

@@ -426,60 +426,49 @@ export class UserController {
   @GetUserFeedPostsDocs.ApiOperation
   @GetUserFeedPostsDocs.ApiParam
   @ApiQuery({
-    name: 'page',
+    name: 'cursor',
     required: false,
-    description: '페이지 번호 (기본값: 1)',
-    type: 'number',
-  })
-  @ApiQuery({
-    name: 'limit',
-    required: false,
-    description: '페이지 당 항목 수 (기본값: 10)',
-    type: 'number',
+    type: Number,
+    description: '마지막으로 조회된 피드 ID (무한스크롤 구현을 위한 커서)',
   })
   @GetUserFeedPostsDocs.ApiResponse
   async getUserFeedPosts(
     @Param('userId') userId: string,
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10
+    @Query('cursor') cursor?: number
   ) {
     const numUserId = parseInt(userId, 10);
-    return this.userService.getFeeds(numUserId, page, limit);
+    const limit = 10;
+    return this.userService.getFeeds(numUserId, cursor, limit);
   }
 
   @Get(':userId/connection-hub')
   @GetUserConnectionHubProjectsDocs.ApiOperation
   @GetUserConnectionHubProjectsDocs.ApiParam
   @ApiQuery({
+    name: 'cursor',
+    required: false,
+    type: Number,
+    description: '마지막으로 조회된 프로젝트 ID (무한스크롤 구현을 위한 커서)',
+  })
+  @ApiQuery({
     name: 'type',
-    required: true,
-    description: "프로젝트 유형 ('applied' 또는 'created')",
+    required: false,
     enum: ['applied', 'created'],
-  })
-  @ApiQuery({
-    name: 'page',
-    required: false,
-    description: '페이지 번호 (기본값: 1)',
-    type: 'number',
-  })
-  @ApiQuery({
-    name: 'limit',
-    required: false,
-    description: '페이지 당 항목 수 (기본값: 10)',
-    type: 'number',
+    description:
+      '프로젝트 유형 (`created`: 생성한 프로젝트, `applied`: 지원한 프로젝트)',
   })
   @GetUserConnectionHubProjectsDocs.ApiResponse
   async getUserConnectionHubProjects(
     @Param('userId') userId: string,
-    @Query('type') type: 'applied' | 'created',
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10
+    @Query('cursor') cursor?: number,
+    @Query('type') type: 'applied' | 'created' = 'created' // type 기본값 설정
   ) {
     const numUserId = parseInt(userId, 10);
+    const limit = 10;
     return this.userService.getConnectionHubProjects(
       numUserId,
       type,
-      page,
+      cursor,
       limit
     );
   }
