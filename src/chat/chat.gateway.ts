@@ -162,13 +162,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       channelId
     );
 
-    if (lastMessage) {
-      // 라스트 메세지 데이터가 있다면 id가 큰 값(최신 메세지) 리드 카운트 증가
-      await this.chatService.updateReadCount(
-        lastMessage.last_message_id,
-        channelId
-      );
-    }
+    // 라스트 메세지보다 id가 큰 값(최신 메세지) 리드 카운트 증가
+    await this.chatService.updateReadCount(
+      lastMessage.last_message_id || 0,
+      channelId
+    );
 
     // 채널 객체
     const channelData = await this.chatService.getChannel(userId, channelId);
