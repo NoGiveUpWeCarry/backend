@@ -650,6 +650,11 @@ export class ProjectService {
       where: { id: projectId },
       select: { user_id: true },
     });
+
+    if (!auth) {
+      throw new NotFoundException('프로젝트를 찾을 수 없습니다.');
+    }
+
     return auth.user_id === userId;
   }
 
