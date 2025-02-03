@@ -254,6 +254,7 @@ export class SearchService {
       viewCount: res.view + 1,
       status: res.recruiting ? 'OPEN' : 'CLOSED',
       isMarked: res.Saves.length,
+      createdAT: res.created_at,
     }));
     return projects;
   }
