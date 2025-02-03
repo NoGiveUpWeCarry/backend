@@ -830,6 +830,10 @@ export class ProjectService {
         where: { post_id: projectId },
       }),
 
+      this.prisma.userApplyProject.deleteMany({
+        where: { post_id: projectId },
+      }),
+
       this.prisma.projectPost.delete({
         where: { id: projectId },
       }),
