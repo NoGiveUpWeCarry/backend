@@ -803,9 +803,22 @@ export class UserService {
         where: { user_id: userId },
       }),
 
+      // MyPageProject 삭제 (사용자가 작성한 프로젝트 삭제)
+      this.prisma.myPageProject.deleteMany({
+        where: { user_id: userId },
+      }),
+      // MyPageProjectLink 삭제 (프로젝트에 연결된 링크 삭제)
+      this.prisma.myPageProjectLink.deleteMany({
+        where: {
+          project: {
+            user_id: userId,
+          },
+        },
+      }),
+
       // 저장된 프로젝트(ProjectSave) 삭제
       this.prisma.projectSave.deleteMany({
-        where: { user_id: userId },
+        where: { post: { user_id: userId } },
       }),
 
       // 사용자가 작성한 프로젝트(ProjectPost)와 관련 데이터 삭제
@@ -824,9 +837,7 @@ export class UserService {
         },
       }),
       this.prisma.userApplyProject.deleteMany({
-        where: {
-          user_id: userId,
-        },
+        where: { user_id: userId },
       }),
       this.prisma.projectPost.deleteMany({
         where: { user_id: userId },
@@ -899,11 +910,17 @@ export class UserService {
         where: { user_id: userId },
       }),
 
+      // online_users 삭제 (사용자와 관련된 online_users 레코드 삭제)
+      this.prisma.online_users.deleteMany({
+        where: { user_id: userId },
+      }),
+
       // 유저 삭제
       this.prisma.user.delete({
         where: { id: userId },
       }),
     ]);
+
 
     return {
       message: {
