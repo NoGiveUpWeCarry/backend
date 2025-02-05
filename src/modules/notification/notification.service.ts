@@ -58,7 +58,7 @@ export class NotificationsService {
     // 2. 데이터를 변환하여 반환
     const transformedNotifications = unreadNotifications.map(notification => {
       const transformedNotification = {
-        notificationId: notification.id, //
+        notificationId: notification.id, 
         userId: notification.userId,
         senderId: notification.senderId,
         type: notification.type,
