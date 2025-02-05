@@ -14,7 +14,6 @@ export class CreateProjectDto {
   title: string;
 
   @IsString()
-  @Length(1, 500)
   content: string;
 
   @IsString()
