@@ -22,7 +22,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   // 유저 소켓 접속
   async handleConnection(client: Socket) {
-    const userId = +client.handshake.query.userId;
+    const userId = Number(client.handshake.query.userId);
     client.data.userId = userId; // userId 넘버로 저장
 
     // 유저 온라인 -> DB에 저장
