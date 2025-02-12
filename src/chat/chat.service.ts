@@ -4,12 +4,14 @@ import { GetMessageDto } from './dto/getMessage.dto';
 import { SearchMessageDto } from './dto/serchMessage.dto';
 import { S3Service } from '@src/s3/s3.service';
 import * as fileType from 'file-type';
+import { NotificationsService } from '@src/modules/notification/notification.service';
 
 @Injectable()
 export class ChatService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly s3: S3Service
+    private readonly s3: S3Service,
+    private readonly notificationsService: NotificationsService
   ) {}
 
   // 온라인 유저 DB에 저장
@@ -650,5 +652,37 @@ export class ChatService {
     const result = userIds.filter(id => !onlineIds.includes(id));
 
     return result;
+  }
+
+  // 알림 생성 및 전송
+  async handleChatNotices(
+    sender,
+    targetUserId: number,
+    type: string,
+    message: string
+  ) {
+    // 알림 생성 및 DB에 저장
+    const createdNotification =
+      await this.notificationsService.createNotification(
+        targetUserId,
+        sender.userId,
+        type,
+        message
+      );
+
+    // 전송할 알림 데이터 객체
+    const notificationData = {
+      notificationId: createdNotification.notificationId, // 포함된 notificationId
+      type: 'privateChat',
+      message,
+      senderNickname: sender.nickname,
+      senderProfileUrl: sender.profileUrl,
+    };
+
+    // SSE를 통해 실시간 알림 전송
+    this.notificationsService.sendRealTimeNotification(
+      targetUserId,
+      notificationData
+    );
   }
 }
