@@ -90,33 +90,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       console.log(`User ${userId2} is not connected.`);
     }
 
-    // 알람 기능
+    // 알림
     const sender = await this.chatService.getSenderProfile(userId1);
-
     const message = `${sender.nickname}님과의 개인 채팅방이 생성되었습니다.`;
 
-    // 알람 DB에 저장
-    const createdNotification =
-      await this.notificationService.createNotification(
-        userId2,
-        userId1,
-        'privateChat',
-        message
-      );
-
-    // 전송할 알림 데이터 객체
-    const notificationData = {
-      notificationId: createdNotification.notificationId, // 포함된 notificationId
-      type: 'privateChat',
-      message,
-      senderNickname: sender.nickname,
-      senderProfileUrl: sender.profileUrl,
-    };
-
-    // SSE를 통해 실시간 알림 전송
-    this.notificationService.sendRealTimeNotification(
+    await this.chatService.handleChatNotices(
+      sender,
       userId2,
-      notificationData
+      'privateChat',
+      message
     );
 
     // 클라이언트에 채널id 전달
