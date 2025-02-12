@@ -566,14 +566,18 @@ export class ChatService {
     };
   }
 
-  async increaseReadCount(messageId) {
+  async increaseReadCount(messageId: number) {
     await this.prisma.message.update({
       where: { id: messageId },
       data: { read_count: { increment: 1 } },
     });
   }
 
-  async setLastMessageId(userId, channelId, lastMessageId) {
+  async setLastMessageId(
+    userId: number,
+    channelId: number,
+    lastMessageId: number
+  ) {
     const exist = await this.prisma.last_message_status.findFirst({
       where: { user_id: userId, channel_id: channelId },
     });
@@ -595,7 +599,7 @@ export class ChatService {
   }
 
   // 라스트 메세지 id 조회
-  async getLastMessageId(userId, channelId) {
+  async getLastMessageId(userId: number, channelId: number) {
     const lastMessageId = await this.prisma.last_message_status.findFirst({
       where: {
         user_id: userId,
