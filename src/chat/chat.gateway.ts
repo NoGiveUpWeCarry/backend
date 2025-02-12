@@ -155,31 +155,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       console.log('모든 유저가 오프라인 상태입니다.');
     }
 
+    // 알림
     const sender = await this.chatService.getSenderProfile(userId);
     const message = `${sender.nickname}님이 단체 채팅방을 생성했습니다.`;
 
     groupMemberIds.forEach(async memberId => {
-      const createdNotification =
-        await this.notificationService.createNotification(
-          memberId,
-          userId,
-          'groupChat',
-          message
-        );
-
-      // 전송할 알림 데이터 객체
-      const notificationData = {
-        notificationId: createdNotification.notificationId, // 포함된 notificationId
-        type: 'groupChat',
-        message,
-        senderNickname: sender.nickname,
-        senderProfileUrl: sender.profileUrl,
-      };
-
-      // SSE를 통해 실시간 알림 전송
-      this.notificationService.sendRealTimeNotification(
+      await this.chatService.handleChatNotices(
+        sender,
         memberId,
-        notificationData
+        'groupChat',
+        message
       );
     });
 
