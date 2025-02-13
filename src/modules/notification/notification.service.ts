@@ -36,8 +36,6 @@ export class NotificationsService {
   }
 
   async getUnreadNotifications(userId: number) {
-    console.log(`🔍 [getUnreadNotifications] 시작 - userId: ${userId}`);
-
     // 1. 읽지 않은 알림 조회
     const unreadNotifications = await this.prisma.notification.findMany({
       where: {
@@ -60,7 +58,7 @@ export class NotificationsService {
     // 2. 데이터를 변환하여 반환
     const transformedNotifications = unreadNotifications.map(notification => {
       const transformedNotification = {
-        notificationId: notification.id, //
+        notificationId: notification.id, 
         userId: notification.userId,
         senderId: notification.senderId,
         type: notification.type,
