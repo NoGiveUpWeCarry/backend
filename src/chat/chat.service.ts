@@ -394,7 +394,7 @@ export class ChatService {
           select: { id: true },
         });
         direction = 'backward';
-        cursor = res.id;
+        cursor = res.id + 1;
       }
 
       // 키워드에 해당하는 메세지id 검색
