@@ -24,7 +24,7 @@ export class AuthService {
           code,
           client_id: process.env.GOOGLE_CLIENT_ID,
           client_secret: process.env.GOOGLE_CLIENT_SECRET,
-          redirect_uri: process.env.GOOGLE_CALLBACK_DEVELOP_URL,
+          redirect_uri: process.env.GOOGLE_CALLBACK_DEPLOY_URL,
           grant_type: 'authorization_code',
         }
       );
@@ -162,12 +162,30 @@ export class AuthService {
       return existingUser; // 기존 유저 반환
     }
 
-    // 새 유저 생성
+    // 기본 닉네임
+    let finalNickname = profile.nickname;
+
+    // 닉네임 중복 여부 확인
+    let isNicknameTaken = await this.prisma.user.findUnique({
+      where: { nickname: finalNickname },
+    });
+
+    // 중복이면, 랜덤 숫자를 붙여서 새로운 닉네임 생성 (충분한 횟수 반복)
+    while (isNicknameTaken) {
+      // 예를 들어, 4자리의 랜덤 숫자를 붙여줍니다.
+      const randomNumber = Math.floor(1000 + Math.random() * 9000); // 1000~9999
+      finalNickname = `${profile.nickname}${randomNumber}`;
+      isNicknameTaken = await this.prisma.user.findUnique({
+        where: { nickname: finalNickname },
+      });
+    }
+
+    // 최종적으로 유니크한 닉네임으로 새 유저 생성
     return this.prisma.user.create({
       data: {
         email: profile.email,
         name: profile.name,
-        nickname: profile.nickname,
+        nickname: finalNickname,
         profile_url: profile.profile_url,
         auth_provider: profile.auth_provider,
         push_alert: false,

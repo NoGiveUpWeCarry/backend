@@ -789,37 +789,143 @@ export class UserService {
       throw new NotFoundException('사용자를 찾을 수 없습니다.');
     }
 
-    // 관련 데이터 삭제 (예: 팔로우, 프로젝트, 댓글 등)
+    // 관련 데이터 삭제
     await this.prisma.$transaction([
+      // 팔로우 관계 삭제
       this.prisma.follows.deleteMany({
         where: {
           OR: [{ following_user_id: userId }, { followed_user_id: userId }],
         },
       }),
+
+      // MyPageUserLink 삭제
       this.prisma.myPageUserLink.deleteMany({
         where: { user_id: userId },
       }),
-      this.prisma.projectSave.deleteMany({
+
+      // MyPageProject 삭제 (사용자가 작성한 프로젝트 삭제)
+      this.prisma.myPageProject.deleteMany({
         where: { user_id: userId },
       }),
+      // MyPageProjectLink 삭제 (프로젝트에 연결된 링크 삭제)
+      this.prisma.myPageProjectLink.deleteMany({
+        where: {
+          project: {
+            user_id: userId,
+          },
+        },
+      }),
+
+      // 저장된 프로젝트(ProjectSave) 삭제
+      this.prisma.projectSave.deleteMany({
+        where: { post: { user_id: userId } },
+      }),
+
+      // 사용자가 작성한 프로젝트(ProjectPost)와 관련 데이터 삭제
+      this.prisma.projectDetailRole.deleteMany({
+        where: {
+          post: {
+            user_id: userId,
+          },
+        },
+      }),
+      this.prisma.projectPostTag.deleteMany({
+        where: {
+          post: {
+            user_id: userId,
+          },
+        },
+      }),
+      this.prisma.userApplyProject.deleteMany({
+        where: { user_id: userId },
+      }),
+      this.prisma.projectPost.deleteMany({
+        where: { user_id: userId },
+      }),
+
+      // 사용자가 좋아요한 피드 삭제
       this.prisma.feedLike.deleteMany({
         where: { user_id: userId },
+      }),
+
+      // 사용자가 작성한 댓글과 관련된 데이터 삭제
+      this.prisma.feedCommentLikes.deleteMany({
+        where: {
+          FeedComment: {
+            user_id: userId,
+          },
+        },
       }),
       this.prisma.feedComment.deleteMany({
         where: { user_id: userId },
       }),
+
+      // 사용자가 작성한 피드와 관련된 데이터 삭제
+      this.prisma.feedPostTag.deleteMany({
+        where: {
+          post: {
+            user_id: userId,
+          },
+        },
+      }),
       this.prisma.feedPost.deleteMany({
         where: { user_id: userId },
       }),
+
+      // 알림(Notification) 삭제
+      this.prisma.notification.deleteMany({
+        where: {
+          OR: [{ userId: userId }, { senderId: userId }],
+        },
+      }),
+
+      // 채널 참여 데이터 삭제
+      this.prisma.channel_users.deleteMany({
+        where: { user_id: userId },
+      }),
+
+      // 메시지 및 상태 삭제
+      this.prisma.last_message_status.deleteMany({
+        where: { user_id: userId },
+      }),
+      this.prisma.message.deleteMany({
+        where: { user_id: userId },
+      }),
+
+      // 이력서(Resume) 삭제
+      this.prisma.resume.deleteMany({
+        where: { user_id: userId },
+      }),
+
+      // 유저 스킬(UserSkill) 삭제
+      this.prisma.userSkill.deleteMany({
+        where: { user_id: userId },
+      }),
+
+      // 프로그래머/아티스트 데이터 삭제
+      this.prisma.programmerData.deleteMany({
+        where: { user_id: userId },
+      }),
+      this.prisma.artistData.deleteMany({
+        where: { user_id: userId },
+      }),
+
+      // online_users 삭제 (사용자와 관련된 online_users 레코드 삭제)
+      this.prisma.online_users.deleteMany({
+        where: { user_id: userId },
+      }),
+
+      // 유저 삭제
       this.prisma.user.delete({
         where: { id: userId },
       }),
     ]);
 
+
     return {
       message: {
         code: 200,
-        text: '사용자와 관련된 모든 데이터가 삭제되었습니다.',
+        text: '사용자와 관련된 모든 데이터가 성공적으로 삭제되었습니다.',
       },
     };
   }

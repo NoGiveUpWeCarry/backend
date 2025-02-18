@@ -130,108 +130,112 @@ export class ProjectService {
   }
 
   async createProject(createProjectDto: CreateProjectDto, userId: number) {
-    const {
-      title,
-      content,
-      role,
-      hub_type,
-      start_date,
-      duration,
-      work_type,
-      recruiting,
-      skills,
-      detail_roles,
-    } = createProjectDto;
-
-    const thumbnailUrl = await this.getThumbnailUrl(content);
-    // 프로젝트 생성
-    const project = await this.prisma.projectPost.create({
-      data: {
+    try {
+      const {
         title,
         content,
         role,
         hub_type,
-        start_date: new Date(start_date),
+        start_date,
         duration,
         work_type,
         recruiting,
-        thumbnail_url: thumbnailUrl,
-        user_id: userId, // userId를 사용하여 사용자 식별
-      },
-    });
+        skills,
+        detail_roles,
+      } = createProjectDto;
 
-    // 태그 저장 (skills)
-    const tags = [];
-    for (const skill of skills) {
-      const tag = await this.prisma.projectTag.upsert({
-        where: { name: skill },
-        create: { name: skill },
-        update: {},
-      });
-
-      await this.prisma.projectPostTag.create({
+      const thumbnailUrl = await this.getThumbnailUrl(content);
+      // 프로젝트 생성
+      const project = await this.prisma.projectPost.create({
         data: {
-          post_id: project.id,
-          tag_id: tag.id,
+          title,
+          content,
+          role,
+          hub_type,
+          start_date: new Date(start_date),
+          duration,
+          work_type,
+          recruiting,
+          thumbnail_url: thumbnailUrl,
+          user_id: userId, // userId를 사용하여 사용자 식별
         },
       });
 
-      tags.push(tag.name); // 생성된 태그 추가
-    }
+      // 태그 저장 (skills)
+      const tags = [];
+      for (const skill of skills) {
+        const tag = await this.prisma.projectTag.upsert({
+          where: { name: skill },
+          create: { name: skill },
+          update: {},
+        });
 
-    const roleMapping: Record<string, number> = {
-      Programmer: 1,
-      Artist: 2,
-      Designer: 3,
-    };
+        await this.prisma.projectPostTag.create({
+          data: {
+            post_id: project.id,
+            tag_id: tag.id,
+          },
+        });
 
-    // 매핑된 role_id 가져오기
-    const saveRoleId = roleMapping[role];
+        tags.push(tag.name); // 생성된 태그 추가
+      }
 
-    // 모집단위 저장 (detail_roles)
-    const roles = [];
-    for (const detail_role of detail_roles) {
-      const role = await this.prisma.detailRole.upsert({
-        where: { name: detail_role },
-        create: { name: detail_role, role_id: saveRoleId },
-        update: {},
-      });
+      const roleMapping: Record<string, number> = {
+        Programmer: 1,
+        Artist: 2,
+        Designer: 3,
+      };
 
-      await this.prisma.projectDetailRole.create({
-        data: {
-          post_id: project.id,
-          detail_role_id: role.id,
+      // 매핑된 role_id 가져오기
+      const saveRoleId = roleMapping[role];
+
+      // 모집단위 저장 (detail_roles)
+      const roles = [];
+      for (const detail_role of detail_roles) {
+        const role = await this.prisma.detailRole.upsert({
+          where: { name: detail_role },
+          create: { name: detail_role, role_id: saveRoleId },
+          update: {},
+        });
+
+        await this.prisma.projectDetailRole.create({
+          data: {
+            post_id: project.id,
+            detail_role_id: role.id,
+          },
+        });
+
+        roles.push(role.name); // 생성된 모집단위 추가
+      }
+
+      // 결과 반환
+      return {
+        message: {
+          code: 201,
+          text: '프로젝트 생성에 성공했습니다',
         },
-      });
-
-      roles.push(role.name); // 생성된 모집단위 추가
+        project: {
+          projectId: project.id,
+          title: project.title,
+          content: project.content,
+          thumbnailUrl: project.thumbnail_url,
+          role: project.role,
+          hubType: project.hub_type,
+          startDate: project.start_date,
+          duration: project.duration,
+          workType: project.work_type,
+          status: project.recruiting ? 'OPEN' : 'CLOSED',
+          viewCount: project.view,
+          applyCount: 0,
+          bookmarkCount: 0,
+          createdAt: project.created_at,
+          skills: tags,
+          detailRoles: roles,
+        },
+      };
+    } catch (err) {
+      console.log(err);
     }
-
-    // 결과 반환
-    return {
-      message: {
-        code: 201,
-        text: '프로젝트 생성에 성공했습니다',
-      },
-      project: {
-        projectId: project.id,
-        title: project.title,
-        content: project.content,
-        thumbnailUrl: project.thumbnail_url,
-        role: project.role,
-        hubType: project.hub_type,
-        startDate: project.start_date,
-        duration: project.duration,
-        workType: project.work_type,
-        status: project.recruiting ? 'OPEN' : 'CLOSED',
-        viewCount: project.view,
-        applyCount: 0,
-        bookmarkCount: 0,
-        createdAt: project.created_at,
-        skills: tags,
-        detailRoles: roles,
-      },
-    };
   }
 
   async getPopularProjectsThisWeek() {
@@ -317,90 +321,94 @@ export class ProjectService {
   }
 
   async getProjectDetail(userId: number, numProjectId: number) {
-    // 조회수 증가
-    await this.prisma.projectPost.update({
-      where: { id: numProjectId },
-      data: {
-        view: {
-          increment: 1, // view 값을 1 증가
+    try {
+      // 조회수 증가
+      await this.prisma.projectPost.update({
+        where: { id: numProjectId },
+        data: {
+          view: {
+            increment: 1, // view 값을 1 증가
+          },
         },
-      },
-    });
+      });
 
-    // 프로젝트 상세 정보 조회
-    const project = await this.prisma.projectPost.findUnique({
-      where: { id: numProjectId },
-      include: {
-        Tags: {
-          select: {
-            tag: {
-              select: { name: true },
+      // 프로젝트 상세 정보 조회
+      const project = await this.prisma.projectPost.findUnique({
+        where: { id: numProjectId },
+        include: {
+          Tags: {
+            select: {
+              tag: {
+                select: { name: true },
+              },
             },
           },
-        },
-        Details: {
-          select: {
-            detail_role: {
-              select: { name: true },
+          Details: {
+            select: {
+              detail_role: {
+                select: { name: true },
+              },
             },
           },
-        },
-        user: {
-          select: {
-            id: true,
-            name: true,
-            nickname: true,
-            profile_url: true,
-            introduce: true,
-            role: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+              nickname: true,
+              profile_url: true,
+              introduce: true,
+              role: true,
+            },
+          },
+          Applications: {
+            select: { id: true }, // 지원 데이터를 가져옴
           },
         },
-        Applications: {
-          select: { id: true }, // 지원 데이터를 가져옴
-        },
-      },
-    });
+      });
 
-    if (!project) {
-      throw new NotFoundException('프로젝트를 찾을 수 없습니다.');
+      if (!project) {
+        throw new NotFoundException('프로젝트를 찾을 수 없습니다.');
+      }
+
+      // 사용자가 작성자인지 여부 확인
+      const isOwnConnectionHub = project.user.id === userId;
+
+      // 데이터 반환
+      return {
+        message: {
+          code: 200,
+          text: '프로젝트 상세 조회에 성공했습니다',
+        },
+        project: {
+          projectId: project.id,
+          title: project.title,
+          content: project.content,
+          role: project.role,
+          hubType: project.hub_type,
+          startDate: project.start_date,
+          duration: project.duration,
+          workType: project.work_type,
+          status: project.recruiting ? 'OPEN' : 'CLOSED',
+          skills: project.Tags.map(t => t.tag.name),
+          detailRoles: project.Details.map(d => d.detail_role.name),
+          viewCount: project.view, // 이미 증가된 view 값을 사용
+          bookmarkCount: project.saved_count,
+          applyCount: project.Applications.length,
+          createdAt: project.created_at,
+          manager: {
+            userId: project.user.id,
+            name: project.user.name,
+            nickname: project.user.nickname,
+            role: project.user.role.name,
+            profileUrl: project.user.profile_url,
+            introduce: project.user.introduce ? project.user.introduce : null,
+          },
+        },
+        isOwnConnectionHub,
+      };
+    } catch (err) {
+      console.log(err);
     }
-
-    // 사용자가 작성자인지 여부 확인
-    const isOwnConnectionHub = project.user.id === userId;
-
-    // 데이터 반환
-    return {
-      message: {
-        code: 200,
-        text: '프로젝트 상세 조회에 성공했습니다',
-      },
-      project: {
-        projectId: project.id,
-        title: project.title,
-        content: project.content,
-        role: project.role,
-        hubType: project.hub_type,
-        startDate: project.start_date,
-        duration: project.duration,
-        workType: project.work_type,
-        status: project.recruiting ? 'OPEN' : 'CLOSED',
-        skills: project.Tags.map(t => t.tag.name),
-        detailRoles: project.Details.map(d => d.detail_role.name),
-        viewCount: project.view, // 이미 증가된 view 값을 사용
-        bookmarkCount: project.saved_count,
-        applyCount: project.Applications.length,
-        createdAt: project.created_at,
-        manager: {
-          userId: project.user.id,
-          name: project.user.name,
-          nickname: project.user.nickname,
-          role: project.user.role.name,
-          profileUrl: project.user.profile_url,
-          introduce: project.user.introduce ? project.user.introduce : null,
-        },
-      },
-      isOwnConnectionHub,
-    };
   }
 
   async applyToProject(userId: number, projectId: number) {
@@ -650,6 +658,11 @@ export class ProjectService {
       where: { id: projectId },
       select: { user_id: true },
     });
+
+    if (!auth) {
+      throw new NotFoundException('프로젝트를 찾을 수 없습니다.');
+    }
+
     return auth.user_id === userId;
   }
 
@@ -822,6 +835,10 @@ export class ProjectService {
       }),
 
       this.prisma.projectSave.deleteMany({
+        where: { post_id: projectId },
+      }),
+
+      this.prisma.userApplyProject.deleteMany({
         where: { post_id: projectId },
       }),
 

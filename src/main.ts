@@ -16,7 +16,7 @@ async function bootstrap() {
       'http://localhost:8080',
       'https://p-a-d.store',
     ],
-    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'], // 💡 GET 포함
+    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS', 'PUT'], // 💡 GET 포함
     credentials: true,
     allowedHeaders: ['Authorization', 'Content-Type'], // 💡 CORS 요청 헤더 허용
     exposedHeaders: ['Authorization'], // 💡 클라이언트에서 응답 헤더 사용 가능
