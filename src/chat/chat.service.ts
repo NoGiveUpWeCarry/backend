@@ -352,14 +352,11 @@ export class ChatService {
         !cursor || direction == 'backward' ? data.reverse() : data;
 
       // 커서
-      const cursors =
-        direction == 'backward'
-          ? { prev: data[0] ? data[0].messageId : null }
-          : {
-              next: data[data.length - 1]
-                ? data[data.length - 1].messageId
-                : null,
-            };
+      const cursors = {
+        next: data[0] ? data[0].messageId : null,
+
+        prev: data[data.length - 1] ? data[data.length - 1].messageId : null,
+      };
 
       // 응답 메세지
       const message = {
