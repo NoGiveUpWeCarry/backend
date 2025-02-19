@@ -308,10 +308,13 @@ export class ChatService {
     getMessageDto: GetMessageDto
   ) {
     try {
-      const { cursor, limit, direction } = getMessageDto;
+      const { prev, next, limit, direction } = getMessageDto;
       // 권한 확인
       await this.confirmAuth(userId, channelId);
 
+      let cursor;
+      if (direction == 'forward' && prev) cursor = prev;
+      else if (direction == 'backward' && next) cursor = next;
       // 메세지 데이터 조회
       const result = await this.prisma.message.findMany({
         orderBy: {
@@ -378,9 +381,11 @@ export class ChatService {
     searchMessageDto: SearchMessageDto
   ) {
     try {
-      const { limit, keyword } = searchMessageDto;
-      let { cursor, direction } = searchMessageDto;
-
+      const { prev, next, limit, keyword } = searchMessageDto;
+      let { direction } = searchMessageDto;
+      let cursor;
+      if (direction == 'forward' && prev) cursor = prev;
+      else if (direction == 'backward' && next) cursor = next;
       // 권한 확인
       await this.confirmAuth(userId, channelId);
 
@@ -439,9 +444,9 @@ export class ChatService {
       // 무한 스크롤용 커서 데이터
       const cursors = {
         // backward 무한스크롤 요청 커서
-        prev: forwardIds.length ? forwardIds[0] : null,
+        next: forwardIds.length ? forwardIds[0] : null,
         // forward 무한스크롤 요청 커서
-        next: backwordIds.length ? backwordIds[backwordIds.length - 1] : null,
+        prev: backwordIds.length ? backwordIds[backwordIds.length - 1] : null,
         // 검색 메세지 아이디 커서
         search,
       };
