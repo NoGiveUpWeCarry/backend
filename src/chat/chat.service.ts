@@ -381,11 +381,9 @@ export class ChatService {
     searchMessageDto: SearchMessageDto
   ) {
     try {
-      const { prev, next, limit, keyword } = searchMessageDto;
-      let { direction } = searchMessageDto;
-      let cursor;
-      if (direction == 'forward' && prev) cursor = prev;
-      else if (direction == 'backward' && next) cursor = next;
+      const { limit, keyword } = searchMessageDto;
+      let { cursor, direction } = searchMessageDto;
+
       // 권한 확인
       await this.confirmAuth(userId, channelId);
 
