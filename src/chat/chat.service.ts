@@ -411,8 +411,10 @@ export class ChatService {
       });
 
       if (!keywordMessage) {
-        const message = { code: 404, text: '메세지를 찾을 수 없습니다' };
-        return { message };
+        throw new HttpException(
+          '메세지를 찾을 수 없습니다',
+          HttpStatus.NOT_FOUND
+        );
       }
 
       // 키워드 메세지 커서 설정
@@ -456,7 +458,7 @@ export class ChatService {
 
       return { messages, cursors, message };
     } catch (err) {
-      return err;
+      throw err;
     }
   }
 
