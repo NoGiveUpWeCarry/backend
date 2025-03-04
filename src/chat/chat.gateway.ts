@@ -214,7 +214,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     // 클라이언트에 채널 객체 전달
     client.emit('channelJoined', channel);
-    this.server.to(channelId.toString()).emit('broadcastChannelJoined');
+    client.broadcast.to(channelId.toString()).emit('broadcastChannelJoined');
   }
 
   // 메세지 송수신
