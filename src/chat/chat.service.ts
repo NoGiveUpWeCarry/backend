@@ -528,6 +528,13 @@ export class ChatService {
       data,
     });
 
+    const lastMessage = await this.getLastMessageId(userId, channelId);
+
+    await this.prisma.message.updateMany({
+      where: { id: { gte: lastMessage.last_message_id } },
+      data: { read_count: { decrement: 1 } },
+    });
+
     return {
       userId,
       type: msg.type,
