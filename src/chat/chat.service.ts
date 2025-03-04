@@ -514,8 +514,8 @@ export class ChatService {
         user_id: userId,
       },
     });
-    const userData = this.getSenderProfile(userId);
-    const nickname = (await userData).nickname;
+    const userData = await this.getSenderProfile(userId);
+    const nickname = userData.nickname;
 
     const data = {
       type: 'exit',
