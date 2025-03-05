@@ -514,8 +514,8 @@ export class ChatService {
         user_id: userId,
       },
     });
-    const userData = this.getSenderProfile(userId);
-    const nickname = (await userData).nickname;
+    const userData = await this.getSenderProfile(userId);
+    const nickname = userData.nickname;
 
     const data = {
       type: 'exit',
@@ -526,6 +526,13 @@ export class ChatService {
 
     const msg = await this.prisma.message.create({
       data,
+    });
+
+    const lastMessage = await this.getLastMessageId(userId, channelId);
+
+    await this.prisma.message.updateMany({
+      where: { id: { gte: lastMessage.last_message_id } },
+      data: { read_count: { decrement: 1 } },
     });
 
     return {
