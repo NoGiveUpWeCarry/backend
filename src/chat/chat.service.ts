@@ -531,8 +531,8 @@ export class ChatService {
     const lastMessage = await this.getLastMessageId(userId, channelId);
 
     await this.prisma.message.updateMany({
-      where: { id: { gte: lastMessage.last_message_id } },
-      data: { read_count: { decrement: 1 } },
+      where: { id: { gt: lastMessage.last_message_id || 0 } },
+      data: { read_count: { increment: 1 } },
     });
 
     return {
