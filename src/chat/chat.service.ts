@@ -441,14 +441,7 @@ export class ChatService {
 
       const messages = await this.getMessageById(ids);
       // 무한 스크롤용 커서 데이터
-      const cursors = {
-        // backward 무한스크롤 요청 커서
-        next: forwardIds.length ? forwardIds[0] : null,
-        // forward 무한스크롤 요청 커서
-        prev: backwordIds.length ? backwordIds[backwordIds.length - 1] : null,
-        // 검색 메세지 아이디 커서
-        search,
-      };
+      const cursors = search;
 
       const message = {
         code: 200,
