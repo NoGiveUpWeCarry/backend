@@ -532,7 +532,7 @@ export class ChatService {
 
     await this.prisma.message.updateMany({
       where: { id: { gt: lastMessage.last_message_id || 0 } },
-      data: { read_count: { increment: 1 } },
+      data: { read_count: { decrement: 1 } },
     });
 
     return {
