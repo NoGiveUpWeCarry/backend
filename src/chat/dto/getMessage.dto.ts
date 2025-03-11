@@ -15,11 +15,7 @@ export class GetMessageDto {
 
   @IsOptional()
   @Type(() => Number)
-  prev?: number;
-
-  @IsOptional()
-  @Type(() => Number)
-  next?: number;
+  cursor?: number;
 
   @IsString({ message: 'direction은 문자타입으로 주어져야 합니다' })
   @IsNotEmpty({ message: 'direction을 입력해주세요' })
