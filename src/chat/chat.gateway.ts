@@ -214,6 +214,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     // 클라이언트에 채널 객체 전달
     client.emit('channelJoined', channel);
+    console.log(client.id);
     client.broadcast.to(channelId.toString()).emit('broadcastChannelJoined');
   }
 
@@ -317,7 +318,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   ) {
     const { userId, channelId, messageId } = data;
-    // 이미 읽은 메시지는 카운트되지 않도록 하는 로직 필요
     await this.chatService.increaseReadCount(messageId);
     await this.chatService.setLastMessageId(userId, channelId, messageId);
     this.server.to(data.channelId.toString()).emit('readCounted', messageId);
