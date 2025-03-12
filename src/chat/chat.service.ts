@@ -316,7 +316,7 @@ export class ChatService {
       const result = await this.prisma.message.findMany({
         orderBy: {
           // 커서값이 없다면(초기요청) direction 상관없이 desc 정렬
-          id: cursor ? (direction == 'forward' ? 'asc' : 'desc') : 'desc',
+          id: cursor || direction === 'backward' ? 'desc' : 'asc',
         },
         where: cursor
           ? {
@@ -345,19 +345,15 @@ export class ChatService {
       });
 
       // 메세지 데이터 양식화
-      const data = await this.getMessageObj(result);
-
-      // 메세지 데이터, 메세지 id순 오름차순 정렬
-      const messages =
-        !cursor || direction == 'backward' ? data.reverse() : data;
+      const messages = await this.getMessageObj(result);
 
       const cursors =
         direction == 'backward'
-          ? data[0]
-            ? data[0].messageId
+          ? messages[messages.length - 1]
+            ? messages[messages.length - 1].messageId
             : null
-          : data[data.length - 1]
-            ? data[data.length - 1].messageId
+          : messages[0]
+            ? messages[0].messageId
             : null;
 
       // 응답 메세지
