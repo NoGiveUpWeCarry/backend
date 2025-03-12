@@ -353,11 +353,11 @@ export class ChatService {
 
       const cursors =
         direction == 'backward'
-          ? data[data.length - 1]
-            ? data[data.length - 1].messageId
-            : null
-          : data[0]
+          ? data[0]
             ? data[0].messageId
+            : null
+          : data[data.length - 1]
+            ? data[data.length - 1].messageId
             : null;
 
       // 응답 메세지
@@ -367,7 +367,7 @@ export class ChatService {
       };
 
       // 응답데이터 {메세지데이터, 커서, 응답메세지}
-      return { messages, cursors, message };
+      return { messages, cursor: cursors, message };
     } catch (err) {
       return err.message;
     }
@@ -448,7 +448,7 @@ export class ChatService {
         message: '데이터 패칭 성공',
       };
 
-      return { messages, cursors, message };
+      return { messages, cursor: cursors, message };
     } catch (err) {
       throw err;
     }

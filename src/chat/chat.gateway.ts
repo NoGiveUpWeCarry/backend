@@ -317,6 +317,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   ) {
     const { userId, channelId, messageId } = data;
+    // 이미 읽은 메시지는 카운트되지 않도록 하는 로직 필요
     await this.chatService.increaseReadCount(messageId);
     await this.chatService.setLastMessageId(userId, channelId, messageId);
     this.server.to(data.channelId.toString()).emit('readCounted', messageId);
