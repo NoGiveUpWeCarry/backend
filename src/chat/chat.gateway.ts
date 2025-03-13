@@ -320,6 +320,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const { userId, channelId, messageId } = data;
     await this.chatService.increaseReadCount(messageId);
     await this.chatService.setLastMessageId(userId, channelId, messageId);
-    this.server.to(data.channelId.toString()).emit('readCounted', messageId);
+    this.server.to(data.channelId.toString()).emit('readCounted');
   }
 }
