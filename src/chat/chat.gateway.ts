@@ -304,7 +304,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // DB에서 유저 삭제 + 채널 탈퇴 메세지 DB 저장 후 반환
     const leaveMessage = await this.chatService.deleteUser(userId, channelId);
 
-    this.server.to(channelId.toString()).emit('message', leaveMessage);
+    client.broadcast.to(channelId.toString()).emit('message', leaveMessage);
   }
 
   // 메세지 실시간 읽음처리

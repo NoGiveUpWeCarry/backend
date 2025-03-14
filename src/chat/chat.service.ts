@@ -520,7 +520,7 @@ export class ChatService {
 
     await this.prisma.message.updateMany({
       where: {
-        id: { lt: lastMessage.last_message_id },
+        id: { lt: lastMessage?.last_message_id || 0 },
         channel_id: channelId,
       },
       data: { read_count: { decrement: 1 } },
