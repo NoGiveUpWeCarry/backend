@@ -214,6 +214,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     // 클라이언트에 채널 객체 전달
     client.emit('channelJoined', channel);
+    console.log(client.id);
     client.broadcast.to(channelId.toString()).emit('broadcastChannelJoined');
   }
 
@@ -303,7 +304,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // DB에서 유저 삭제 + 채널 탈퇴 메세지 DB 저장 후 반환
     const leaveMessage = await this.chatService.deleteUser(userId, channelId);
 
-    this.server.to(channelId.toString()).emit('message', leaveMessage);
+    client.broadcast.to(channelId.toString()).emit('message', leaveMessage);
   }
 
   // 메세지 실시간 읽음처리
@@ -319,6 +320,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const { userId, channelId, messageId } = data;
     await this.chatService.increaseReadCount(messageId);
     await this.chatService.setLastMessageId(userId, channelId, messageId);
-    this.server.to(data.channelId.toString()).emit('readCounted', messageId);
+    this.server.to(data.channelId.toString()).emit('readCounted');
   }
 }
