@@ -44,7 +44,6 @@ export class NotificationsController {
     }
 
     console.log(`✅ SSE 연결 성공 - 사용자 ${userId}`);
-
     req.on('close', () => {
       console.log(`❌ 사용자 ${userId}와의 SSE 연결 종료`);
     });

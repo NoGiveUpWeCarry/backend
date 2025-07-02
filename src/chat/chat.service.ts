@@ -4,12 +4,14 @@ import { GetMessageDto } from './dto/getMessage.dto';
 import { SearchMessageDto } from './dto/serchMessage.dto';
 import { S3Service } from '@src/s3/s3.service';
 import * as fileType from 'file-type';
+import { NotificationsService } from '@src/modules/notification/notification.service';
 
 @Injectable()
 export class ChatService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly s3: S3Service
+    private readonly s3: S3Service,
+    private readonly notificationsService: NotificationsService
   ) {}
 
   // 온라인 유저 DB에 저장
@@ -314,7 +316,7 @@ export class ChatService {
       const result = await this.prisma.message.findMany({
         orderBy: {
           // 커서값이 없다면(초기요청) direction 상관없이 desc 정렬
-          id: cursor ? (direction == 'forward' ? 'asc' : 'desc') : 'desc',
+          id: cursor || direction === 'backward' ? 'desc' : 'asc',
         },
         where: cursor
           ? {
@@ -343,21 +345,16 @@ export class ChatService {
       });
 
       // 메세지 데이터 양식화
-      const data = await this.getMessageObj(result);
+      const messages = await this.getMessageObj(result);
 
-      // 메세지 데이터, 메세지 id순 오름차순 정렬
-      const messages =
-        !cursor || direction == 'backward' ? data.reverse() : data;
-
-      // 커서
       const cursors =
         direction == 'backward'
-          ? { prev: data[0] ? data[0].messageId : null }
-          : {
-              next: data[data.length - 1]
-                ? data[data.length - 1].messageId
-                : null,
-            };
+          ? messages[messages.length - 1]
+            ? messages[messages.length - 1].messageId
+            : null
+          : messages[0]
+            ? messages[0].messageId
+            : null;
 
       // 응답 메세지
       const message = {
@@ -366,7 +363,7 @@ export class ChatService {
       };
 
       // 응답데이터 {메세지데이터, 커서, 응답메세지}
-      return { messages, cursors, message };
+      return { messages, cursor: cursors, message };
     } catch (err) {
       return err.message;
     }
@@ -392,7 +389,7 @@ export class ChatService {
           select: { id: true },
         });
         direction = 'backward';
-        cursor = res.id;
+        cursor = res.id + 1;
       }
 
       // 키워드에 해당하는 메세지id 검색
@@ -409,8 +406,10 @@ export class ChatService {
       });
 
       if (!keywordMessage) {
-        const message = { code: 404, text: '메세지를 찾을 수 없습니다' };
-        return { message };
+        throw new HttpException(
+          '메세지를 찾을 수 없습니다',
+          HttpStatus.NOT_FOUND
+        );
       }
 
       // 키워드 메세지 커서 설정
@@ -438,23 +437,16 @@ export class ChatService {
 
       const messages = await this.getMessageById(ids);
       // 무한 스크롤용 커서 데이터
-      const cursors = {
-        // backward 무한스크롤 요청 커서
-        prev: forwardIds.length ? forwardIds[0] : null,
-        // forward 무한스크롤 요청 커서
-        next: backwordIds.length ? backwordIds[backwordIds.length - 1] : null,
-        // 검색 메세지 아이디 커서
-        search,
-      };
+      const cursors = search;
 
       const message = {
         code: 200,
         message: '데이터 패칭 성공',
       };
 
-      return { messages, cursors, message };
+      return { messages, cursor: cursors, message };
     } catch (err) {
-      return err;
+      throw err;
     }
   }
 
@@ -510,8 +502,8 @@ export class ChatService {
         user_id: userId,
       },
     });
-    const userData = this.getSenderProfile(userId);
-    const nickname = (await userData).nickname;
+    const userData = await this.getSenderProfile(userId);
+    const nickname = userData.nickname;
 
     const data = {
       type: 'exit',
@@ -522,6 +514,16 @@ export class ChatService {
 
     const msg = await this.prisma.message.create({
       data,
+    });
+
+    const lastMessage = await this.getLastMessageId(userId, channelId);
+
+    await this.prisma.message.updateMany({
+      where: {
+        id: { lt: lastMessage?.last_message_id || 0 },
+        channel_id: channelId,
+      },
+      data: { read_count: { decrement: 1 } },
     });
 
     return {
@@ -566,14 +568,18 @@ export class ChatService {
     };
   }
 
-  async increaseReadCount(messageId) {
+  async increaseReadCount(messageId: number) {
     await this.prisma.message.update({
       where: { id: messageId },
       data: { read_count: { increment: 1 } },
     });
   }
 
-  async setLastMessageId(userId, channelId, lastMessageId) {
+  async setLastMessageId(
+    userId: number,
+    channelId: number,
+    lastMessageId: number
+  ) {
     const exist = await this.prisma.last_message_status.findFirst({
       where: { user_id: userId, channel_id: channelId },
     });
@@ -595,7 +601,7 @@ export class ChatService {
   }
 
   // 라스트 메세지 id 조회
-  async getLastMessageId(userId, channelId) {
+  async getLastMessageId(userId: number, channelId: number) {
     const lastMessageId = await this.prisma.last_message_status.findFirst({
       where: {
         user_id: userId,
@@ -646,5 +652,37 @@ export class ChatService {
     const result = userIds.filter(id => !onlineIds.includes(id));
 
     return result;
+  }
+
+  // 알림 생성 및 전송
+  async handleChatNotices(
+    sender,
+    targetUserId: number,
+    type: string,
+    message: string
+  ) {
+    // 알림 생성 및 DB에 저장
+    const createdNotification =
+      await this.notificationsService.createNotification(
+        targetUserId,
+        sender.userId,
+        type,
+        message
+      );
+
+    // 전송할 알림 데이터 객체
+    const notificationData = {
+      notificationId: createdNotification.notificationId, // 포함된 notificationId
+      type: 'privateChat',
+      message,
+      senderNickname: sender.nickname,
+      senderProfileUrl: sender.profileUrl,
+    };
+
+    // SSE를 통해 실시간 알림 전송
+    this.notificationsService.sendRealTimeNotification(
+      targetUserId,
+      notificationData
+    );
   }
 }
